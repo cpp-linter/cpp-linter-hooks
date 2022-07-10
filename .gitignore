@@ -1,3 +1,5 @@
 build
 dist
 cpp_linter_hooks.egg-info
+tests/.coverage
+tests/__pycache__

@@ -18,9 +18,9 @@ def run_clang_format(args) -> int:
         return 1
 
 
-def main() -> int:
+def main():
     run_clang_format(args)
 
 
 if __name__ == "__main__":
-    raise SystemExit(main())
+    main()
