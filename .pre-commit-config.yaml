@@ -1,11 +1,12 @@
 repos:
-  # For development test
+  # Start: for development testing
   - repo: https://github.com/shenxianpeng/cpp-linter-hooks
     rev: latest
     hooks:
       - id: clang-format
         verbose: true
-        args: [--style=Google, --version=13]
+        args: [--style=Google, --version=14]
+  # End: for development testing
   - repo: https://github.com/pycqa/flake8
     rev: '4.0.1'
     hooks:
