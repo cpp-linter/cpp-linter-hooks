@@ -10,13 +10,13 @@
   files: \.(h\+\+|h|hh|hxx|hpp|c|cc|cpp|c\+\+|cxx)$
   types_or: [c, c++, c#, objective-c]
 
-# - id: clang-tidy
-#   name: clang-tidy
-#   description: Run `clang-tidy` against C/C++ code to find warnings/errors
-#   language: python
-#   files: \.(h\+\+|h|hh|hxx|hpp|c|cc|cpp|c\+\+|cxx)$
-#   types_or: [c, c++, c#, objective-c]
-#   entry: clang-tidy
+- id: clang-tidy
+  name: clang-tidy
+  description: Run `clang-tidy` against C/C++ code to find warnings/errors
+  entry: clang-tidy-hook
+  language: python
+  files: \.(h\+\+|h|hh|hxx|hpp|c|cc|cpp|c\+\+|cxx)$
+  types_or: [c, c++, c#, objective-c]
 
 # - id: docker-clang-format
 #   name: clang-format

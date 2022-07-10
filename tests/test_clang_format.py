@@ -5,8 +5,8 @@ from cpp_linter_hooks.clang_format import run_clang_format
 
 @pytest.mark.parametrize(
     ('args', 'expected_retval'), (
-        (['clang-format', '-i', '--style=Google', 'tests/main.c'], 0),
-        (['clang-format', '-i', '--style=Google', '--version=13', 'tests/main.c'], 0),
+        (['clang-format', '-i', '--style=Google', 'testing/main.c'], 0),
+        (['clang-format', '-i', '--style=Google', '--version=13', 'testing/main.c'], 0),
     ),
 )
 @patch('cpp_linter_hooks.clang_format.subprocess.run')

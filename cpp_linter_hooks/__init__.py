@@ -9,6 +9,9 @@ expect_version = get_expect_version(args)
 
 for tool in clang_tools:
     if expect_version:
-        check_installed(tool, version=expect_version)
+        retval = check_installed(tool, version=expect_version)
     else:
-        check_installed(tool)
+        retval = check_installed(tool)
+
+    if retval != 0:
+        raise SystemError("clang_tools not found. exit!")

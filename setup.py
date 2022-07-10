@@ -14,7 +14,7 @@ setup(
     entry_points={
         "console_scripts": [
             "clang-format-hook=cpp_linter_hooks.clang_format:main",
-            # "clang-tidy=cpp_linter_hooks.clang_tidy:main",
+            "clang-tidy-hook=cpp_linter_hooks.clang_tidy:main",
         ]
     },
 )

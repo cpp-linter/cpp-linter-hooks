@@ -183,4 +183,3 @@ CheckOptions:
     value:           '1'
   - key:             readability-uppercase-literal-suffix.NewSuffixes
     value:           ''
-...
