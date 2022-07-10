@@ -3,19 +3,17 @@ import subprocess
 
 def check_installed(tool, version="") -> int:
     if version:
-        command = [f'{tool}-{version} ', '--version']
-    else:
-        command = [tool, '--version']
-    try:
-        subprocess.run(command, stdout=subprocess.PIPE)
-        retval = 0
-    except FileNotFoundError:
+        check_version_cmd = [f'{tool}-{version} ', '--version']
         # clang-tools exist because install_requires=['clang-tools'] in setup.py
+        install_tool_cmd = ['clang-tools', '-i', version]
+    else:
+        check_version_cmd = [tool, '--version']
         # install verison 13 by default if clang-tools not exist.
-        if version:
-            retval = subprocess.run(['clang-tools', '-i', version], stdout=subprocess.PIPE).returncode
-        else:
-            retval = subprocess.run(['clang-tools', '-i', '13'], stdout=subprocess.PIPE).returncode
+        install_tool_cmd = ['clang-tools', '-i', '13']
+    try:
+        retval = subprocess.run(check_version_cmd, stdout=subprocess.PIPE).returncode
+    except FileNotFoundError:
+        retval = subprocess.run(install_tool_cmd, stdout=subprocess.PIPE).returncode
     return retval
 
 

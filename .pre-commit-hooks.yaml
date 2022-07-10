@@ -5,7 +5,7 @@
 - id: clang-format
   name: clang-format
   description: Automatically run `clang-format` against C/C++ source code
-  entry: clang-format
+  entry: clang-format-hook
   language: python
   files: \.(h\+\+|h|hh|hxx|hpp|c|cc|cpp|c\+\+|cxx)$
   types_or: [c, c++, c#, objective-c]

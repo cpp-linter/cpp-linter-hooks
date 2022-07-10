@@ -13,7 +13,7 @@ setup(
     install_requires=['clang-tools>=0.2.2'],
     entry_points={
         "console_scripts": [
-            "clang-format=cpp_linter_hooks.clang_format:main",
+            "clang-format-hook=cpp_linter_hooks.clang_format:main",
             # "clang-tidy=cpp_linter_hooks.clang_tidy:main",
         ]
     },
