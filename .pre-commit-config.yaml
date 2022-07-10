@@ -39,10 +39,8 @@ repos:
     rev: main
     hooks:
       - id: clang-format
-        verbose: true
         args: [--style=Google, --version=14]
       - id: clang-tidy
-        verbose: true
         args: [--checks="boost-*,bugprone-*,performance-*,readability-*,portability-*,modernize-*,clang-analyzer-*,cppcoreguidelines-*"]
         # or specify the path of .clang-tidy
         # args: [--config-file=."]
