@@ -17,7 +17,7 @@ repos:
       - id: reorder-python-imports
         language_version: python3
   - repo: https://github.com/asottile/pyupgrade
-    rev: v1.16.1
+    rev: v2.36.0
     hooks:
       - id: pyupgrade
   - repo: https://github.com/pycqa/flake8
@@ -39,9 +39,9 @@ repos:
     rev: main
     hooks:
       - id: clang-format
-        args: [--style=Google, --version=14]
+        args: [--style=Google, --version=13]
       - id: clang-tidy
-        args: [--checks="boost-*,bugprone-*,performance-*,readability-*,portability-*,modernize-*,clang-analyzer-*,cppcoreguidelines-*"]
+        args: [--checks=testing/.clang-tidy, --version=13]
         # or specify the path of .clang-tidy
         # args: [--config-file=."]
   # End: for development testing
