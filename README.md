@@ -1,5 +1,7 @@
 # cpp-linter-hooks
 
+[![Test](https://github.com/shenxianpeng/cpp-linter-hooks/actions/workflows/test.yml/badge.svg)](https://github.com/shenxianpeng/cpp-linter-hooks/actions/workflows/test.yml) [![codecov](https://codecov.io/gh/shenxianpeng/cpp-linter-hooks/branch/master/graph/badge.svg?token=L74Z3HZ4Y5)](https://codecov.io/gh/shenxianpeng/cpp-linter-hooks)
+
 Using `clang-format` and `clang-tidy` hooks with [pre-commit](https://pre-commit.com/) to lint your C/C++ code.
 
 ✨Highlight✨: automatically install `clang-format` and `clang-tidy` when they do not exist.

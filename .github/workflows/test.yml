@@ -34,7 +34,10 @@ jobs:
           git push origin latest
 
       - name: Run tests and collect coverage
-        run: pytest --cov .
+        run: |
+          coverage run --source=tests,cpp_linter_hooks -m pytest
+          coverage report -m
+          coverage html
       - name: Upload coverage reports to Codecov
         run: |
           # Replace `linux` below with the appropriate OS
