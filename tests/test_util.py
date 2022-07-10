@@ -42,6 +42,6 @@ def test_get_expect_version():
     version = get_expect_version(args)
     assert version == ""
 
-    args = ['clang-format', '-i' '--install=13']
+    args = ['clang-format', '-i', '--install=13']
     version = get_expect_version(args)
     assert version == ""
