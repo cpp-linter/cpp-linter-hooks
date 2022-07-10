@@ -1,0 +1,7 @@
+repos:
+  - repo: https://github.com/shenxianpeng/cpp-linter-hooks
+    rev: latest
+    hooks:
+      - id: clang-format
+        verbose: true
+        args: [--style=Google, --version=13]
