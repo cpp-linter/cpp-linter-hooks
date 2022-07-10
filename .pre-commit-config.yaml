@@ -1,4 +1,39 @@
 repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.3.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: \.output
+      - id: end-of-file-fixer
+        exclude: \.(cp?p?$|output)
+      - id: check-docstring-first
+      - id: check-added-large-files
+      - id: check-yaml
+      - id: debug-statements
+      - id: requirements-txt-fixer
+  - repo: https://github.com/asottile/reorder_python_imports
+    rev: v3.7.0
+    hooks:
+      - id: reorder-python-imports
+        language_version: python3
+  - repo: https://github.com/asottile/pyupgrade
+    rev: v1.16.1
+    hooks:
+      - id: pyupgrade
+  - repo: https://github.com/pycqa/flake8
+    rev: '4.0.1'
+    hooks:
+      - id: flake8
+        args: [--max-line-length=120]
+  - repo: local
+    hooks:
+      - id: tests
+        name: tests
+        entry: bash -c "pip install . && pytest -v tests"
+        description: Run all tests
+        language: system
+        types: [python]
+
   # Start: for development testing
   - repo: https://github.com/shenxianpeng/cpp-linter-hooks
     rev: latest
@@ -12,16 +47,3 @@ repos:
         # or specify the path of .clang-tidy
         # args: [--config-file=."]
   # End: for development testing
-  - repo: https://github.com/pycqa/flake8
-    rev: '4.0.1'
-    hooks:
-      - id: flake8
-        args: [--max-line-length=120]
-  - repo: local
-    hooks:
-      - id: tests
-        name: tests
-        entry: bash -c "pip install . && pytest -v tests"
-        description: Run all tests 
-        language: system
-        types: [python]

@@ -1,5 +1,7 @@
 import subprocess
-from cpp_linter_hooks import args, expect_version
+
+from cpp_linter_hooks import args
+from cpp_linter_hooks import expect_version
 
 
 def run_clang_format(args) -> int:

@@ -1,5 +1,7 @@
-import pytest
 from unittest.mock import patch
+
+import pytest
+
 from cpp_linter_hooks.clang_tidy import run_clang_tidy
 
 

@@ -1,6 +1,9 @@
-import pytest
 from unittest.mock import patch
-from cpp_linter_hooks.util import check_installed, get_expect_version
+
+import pytest
+
+from cpp_linter_hooks.util import check_installed
+from cpp_linter_hooks.util import get_expect_version
 
 
 @pytest.mark.parametrize(

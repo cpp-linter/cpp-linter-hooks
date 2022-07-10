@@ -16,7 +16,7 @@ repos:
     rev: v0.1.0  # Use the ref you want to point at
     hooks:
       - id: clang-format
-        args: [--style=Google] 
+        args: [--style=Google]
       # - id: clang-tidy ## Work in progress
       #   args: [--config-file=file]
 ```

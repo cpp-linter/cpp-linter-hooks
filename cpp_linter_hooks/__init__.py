@@ -1,5 +1,7 @@
 import sys
-from cpp_linter_hooks.util import get_expect_version, check_installed
+
+from cpp_linter_hooks.util import check_installed
+from cpp_linter_hooks.util import get_expect_version
 
 
 clang_tools = ['clang-format', 'clang-tidy']
