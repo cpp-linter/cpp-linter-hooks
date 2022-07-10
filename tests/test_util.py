@@ -40,8 +40,8 @@ def test_get_expect_version():
 
     args = ['clang-format', '-i', '--style=Google']
     version = get_expect_version(args)
-    assert version is None
+    assert version == ""
 
     args = ['clang-format', '-i' '--install=13']
     version = get_expect_version(args)
-    assert version is None
+    assert version == ""

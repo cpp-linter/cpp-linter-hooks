@@ -21,9 +21,10 @@ def get_expect_version(args) -> str:
         if arg.startswith("--version"):  # expect specific clang-tools version.
             # If --version is passed in as 2 arguments, the second is version
             if arg == "--version" and args.index(arg) != len(args) - 1:
+                # when --version 14
                 expect_version = args[args.index(arg) + 1]
-            # Expected split of --version=14 or --version 14
             else:
+                # when --version=14, --version='14' or --version="14"
                 expect_version = arg.replace(" ", "").replace("=", "").replace("--version", "")
             return expect_version
-    return None
+    return ""
