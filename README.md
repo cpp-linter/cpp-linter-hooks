@@ -5,7 +5,7 @@
 
 Using `clang-format` and `clang-tidy` hooks with [pre-commit](https://pre-commit.com/) to lint your C/C++ code.
 
-✨Highlight✨: automatically install `clang-format` and `clang-tidy` when they do not exist.
+Highlight✨: automatically install `clang-format` and `clang-tidy` when they do not exist.
 
 ## Usage
 
@@ -17,12 +17,25 @@ repos:
     rev: v0.1.0  # Use the ref you want to point at
     hooks:
       - id: clang-format
-        args: [--style=Google]
+        args: [--style=Google] # Other coding style: LLVM, GNU, Chromium, Microsoft, Mozilla, WebKit.
       - id: clang-tidy
         args: [--checks='boost-*,bugprone-*,performance-*,readability-*,portability-*,modernize-*,clang-analyzer-*,cppcoreguidelines-*']
 ```
 
-Use specific version. for example `clang-format` is version 13, `clang-tidy` is version 12.
+The example of using custom config: `.clang-format` and `.clang-tidy`
+
+```yaml
+repos:
+  - repo: https://github.com/shenxianpeng/cpp-linter-hooks
+    rev: v0.1.0  # Use the ref you want to point at
+    hooks:
+      - id: clang-format
+        args: [--style=.clang-format] # path/to/.clang-format
+      - id: clang-tidy
+        args: [--checks=.clang-tidy]  # path/to/.clang-tidy
+```
+
+The example of using any version of [clang-tools](https://github.com/shenxianpeng/clang-tools-pip).
 
 ```yaml
 repos:
@@ -32,54 +45,20 @@ repos:
       - id: clang-format
         args: [--style=Google, --version=13]
       - id: clang-tidy
-        args: [--checks='boost-*,bugprone-*,performance-*,readability-*,portability-*,modernize-*,clang-analyzer-*,cppcoreguidelines-*', --version=12]
+        args: [--checks=.clang-tidy, --version=12]
 ```
 
-## Support hooks
+## Output
 
-### `clang-format`
-
-Prevent committing unformatted C/C++ code.
-
-* Set coding style: LLVM, GNU, Google, Chromium, Microsoft, Mozilla, WebKit with `args: [--style=LLVM]`
-* Load coding style configuration file `.clang-format` with `args: [--style=file]`
-
-output
+The output when catching unformatted and error code.
 
 ```
 clang-format.............................................................Failed
 - hook id: clang-format
 - files were modified by this hook
-```
-modified file
-```diff
---- a/testing/main.c
-+++ b/testing/main.c
-@@ -1,3 +1,6 @@
- #include <stdio.h>
--int main() {for (;;) break; printf("Hello world!\n");return 0;}
--
-+int main() {
-+  for (;;) break;
-+  printf("Hello world!\n");
-+  return 0;
-+}
-```
-
-### `clang-tidy`
-
-Prevent committing typical programming errors, like style violations, interface misuse, or bugs that can be deduced.
-
-* Set checks like `args: [--checks='boost-*,bugprone-*,performance-*,readability-*,portability-*,modernize-*,clang-analyzer-*,cppcoreguidelines-*']`
-* Or set specify the path of .clang-tidy like `args: [--checks=path/to/.clang-tidy]`
-
-
-Output
-
-```
 clang-tidy...............................................................Failed
 - hook id: clang-tidy
-- duration: 0.48s
+- exit code: 1
 
 418 warnings and 1 error generated.
 Error while processing /home/ubuntu/cpp-linter-hooks/testing/main.c.
@@ -94,3 +73,23 @@ Found compiler error(s).
 #include <stddef.h>
          ^~~~~~~~~~
 ```
+
+The diff of the modified file.
+
+```diff
+--- a/testing/main.c
++++ b/testing/main.c
+@@ -1,3 +1,6 @@
+ #include <stdio.h>
+-int main() {for (;;) break; printf("Hello world!\n");return 0;}
+-
++int main() {
++  for (;;) break;
++  printf("Hello world!\n");
++  return 0;
++}
+```
+
+## License
+
+This project is licensed under the terms of the MIT license.
