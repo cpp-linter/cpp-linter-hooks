@@ -36,7 +36,7 @@ repos:
 
   # Start: for development testing
   - repo: https://github.com/shenxianpeng/cpp-linter-hooks
-    rev: cf62613fe77f66cc826cbebcf2693bf0872dc764
+    rev: dd98f398f2bc72869a39a9c56d97940408f6d3b4
     hooks:
       - id: clang-format
         args: [--style=Google, --version=13]

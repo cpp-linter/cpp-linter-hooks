@@ -22,11 +22,13 @@ def run_clang_tidy(args) -> int:
         return 1, e
 
 
-def main():
+def main() -> int:
+    retval = 0
     retval, output = run_clang_tidy(args)
     if retval != 0:
         print(output)
+    return retval
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())
