@@ -14,6 +14,7 @@ def run_clang_tidy(args) -> int:
             continue
         command.append(arg)
 
+    print(command)
     retval = 0
     output = ""
     try:
