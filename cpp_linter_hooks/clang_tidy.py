@@ -23,7 +23,6 @@ def run_clang_tidy(args) -> int:
 
 
 def main() -> int:
-    retval = 0
     retval, output = run_clang_tidy(args)
     if retval != 0:
         print(output)

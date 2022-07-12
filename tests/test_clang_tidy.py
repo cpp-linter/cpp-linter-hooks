@@ -5,7 +5,7 @@ import pytest
 from cpp_linter_hooks.clang_tidy import run_clang_tidy
 
 
-@pytest.mark.skip(reason="can not pass the test.")
+@pytest.mark.skip(reason="don't know hwo to pass test.")
 @pytest.mark.parametrize(
     ('args', 'expected_retval'), (
         (['clang-tidy', '--checks="boost-*"', 'testing/main.c'], "stdout"),
