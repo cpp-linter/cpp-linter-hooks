@@ -14,14 +14,13 @@ def run_clang_tidy(args) -> int:
             continue
         command.append(arg)
 
-    print(command)
     retval = 0
     output = ""
     try:
         sp = subprocess.run(command, stdout=subprocess.PIPE)
         retval = sp.returncode
         output = sp.stdout.decode("utf-8")
-        if "warning:" in output:
+        if "warning:" in output or "error:" in output:
             retval = 1
         return retval, output
     except FileNotFoundError as e:
