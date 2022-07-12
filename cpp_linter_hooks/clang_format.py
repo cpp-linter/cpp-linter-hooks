@@ -21,7 +21,8 @@ def run_clang_format(args) -> int:
             sp = subprocess.run(command, stdout=subprocess.PIPE)
             retval = -1  # Not a fail just identify it's a dry-run.
             output = sp.stdout.decode("utf-8")
-        retval = subprocess.run(command, stdout=subprocess.PIPE).returncode
+        else:
+            retval = subprocess.run(command, stdout=subprocess.PIPE).returncode
         return retval, output
     except FileNotFoundError as e:
         retval = 1
