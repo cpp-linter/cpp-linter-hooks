@@ -30,9 +30,9 @@ repos:
     rev: v0.1.0
     hooks:
       - id: clang-format
-        args: [--style=.clang-format] # path/to/.clang-format
+        args: [--style=file]  # to find .clang-format
       - id: clang-tidy
-        args: [--checks=.clang-tidy]  # path/to/.clang-tidy
+        args: [--config-file=.clang-tidy] # path/to/.clang-tidy
 ```
 
 The example of using any version of [clang-tools](https://github.com/shenxianpeng/clang-tools-pip).
@@ -43,9 +43,9 @@ repos:
     rev: v0.1.0
     hooks:
       - id: clang-format
-        args: [--style=Google, --version=13]
+        args: [--style=file, --version=13]
       - id: clang-tidy
-        args: [--checks=.clang-tidy, --version=12]
+        args: [--config-file=.clang-tidy, --version=12]
 ```
 
 ## Output
