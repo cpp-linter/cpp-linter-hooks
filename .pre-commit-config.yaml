@@ -36,11 +36,12 @@ repos:
 
   # Start: for development testing
   - repo: https://github.com/shenxianpeng/cpp-linter-hooks
-    rev: main
+    rev: 39b0aaa721fb0b1d6fb07214e6bfa63322419e5a
     hooks:
       - id: clang-format
         args: [--style=Google, --version=13]
       - id: clang-tidy
+        verbose: true
         args: [--checks=testing/.clang-tidy, --version=13]
         # or specify the path of .clang-tidy
         # args: [--config-file=."]

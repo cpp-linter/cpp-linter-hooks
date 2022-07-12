@@ -4,7 +4,7 @@ from cpp_linter_hooks import args
 from cpp_linter_hooks import expect_version
 
 
-def run_clang_tidy(args) -> int:
+def run_clang_tidy(args) -> str:
     if expect_version:
         command = [f'clang-tidy-{expect_version}']
     else:
@@ -13,16 +13,16 @@ def run_clang_tidy(args) -> int:
         if arg == expect_version or arg.startswith("--version"):
             continue
         command.append(arg)
-    print(command)
     try:
-        subprocess.run(command, stdout=subprocess.PIPE)
-        return 0
-    except FileNotFoundError:
-        return 1
+        output = subprocess.run(command, stdout=subprocess.PIPE).stdout.decode("utf-8")
+    except FileNotFoundError as e:
+        output = e
+    return output
 
 
 def main():
-    run_clang_tidy(args)
+    result = run_clang_tidy(args)
+    print(result)
 
 
 if __name__ == "__main__":
