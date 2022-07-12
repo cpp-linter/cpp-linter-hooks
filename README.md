@@ -5,7 +5,7 @@
 
 Using `clang-format` and `clang-tidy` hooks with [pre-commit](https://pre-commit.com/) to lint your C/C++ code.
 
-Highlight✨: automatically install `clang-format` and `clang-tidy` when they do not exist.
+Highlight✨: No need to manually download and install `clang-format` or `clang-tidy` on your system.
 
 ## Usage
 
