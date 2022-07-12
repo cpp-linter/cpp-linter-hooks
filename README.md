@@ -50,7 +50,7 @@ repos:
 
 ## Output
 
-### clang-format
+### clang-format output
 
 ```bash
 clang-format.............................................................Failed
@@ -76,7 +76,7 @@ Here is the diff between the modified file.
 
 Pass `--dry-run` to the `args` of `clang-format`(can also pass other arg which clang-format supports)
 
-This just prints instead of changing the format. E.g:
+Then it will just print instead of changing the format. E.g:
 
 ```bash
 clang-format.............................................................Failed
@@ -103,7 +103,7 @@ int main() {for (;;) break; printf("Hello world!\n");return 0;}
                                                               ^
 ```
 
-### chang-tidy
+### chang-tidy output
 
 ```bash
 clang-tidy...............................................................Failed
