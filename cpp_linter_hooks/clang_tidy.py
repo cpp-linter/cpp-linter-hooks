@@ -19,7 +19,8 @@ def run_clang_tidy(args) -> int:
         output = sp.stdout.decode("utf-8")
         return retval, output
     except FileNotFoundError as e:
-        return 1, e
+        retval = 1
+        return retval, e
 
 
 def main() -> int:
