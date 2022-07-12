@@ -25,13 +25,13 @@ jobs:
           pip install .
           pip install -r requirements-dev.txt
 
-      - name: Add tag to latest commit for testing
-        run: |
-          git config user.name 'github-actions'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git push --delete origin latest || true
-          git tag -a latest -m 'Retag latest commit'
-          git push origin latest
+      # - name: Add tag to latest commit for testing
+      #   run: |
+      #     git config user.name 'github-actions'
+      #     git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+      #     git push --delete origin latest || true
+      #     git tag -a latest -m 'Retag latest commit'
+      #     git push origin latest
 
       - name: Run tests and collect coverage
         run: |

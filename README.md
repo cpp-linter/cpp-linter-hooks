@@ -27,7 +27,7 @@ The example of using custom config: `.clang-format` and `.clang-tidy`
 ```yaml
 repos:
   - repo: https://github.com/shenxianpeng/cpp-linter-hooks
-    rev: v0.1.0  # Use the ref you want to point at
+    rev: v0.1.0
     hooks:
       - id: clang-format
         args: [--style=.clang-format] # path/to/.clang-format
@@ -40,7 +40,7 @@ The example of using any version of [clang-tools](https://github.com/shenxianpen
 ```yaml
 repos:
   - repo: https://github.com/shenxianpeng/cpp-linter-hooks
-    rev: v0.1.0  # Use the ref you want to point at
+    rev: v0.1.0
     hooks:
       - id: clang-format
         args: [--style=Google, --version=13]
