@@ -14,6 +14,8 @@ def run_clang_format(args) -> int:
             continue
         command.append(arg)
 
+    retval = 0
+    output = ""
     try:
         if "--dry-run" in command:
             sp = subprocess.run(command, stdout=subprocess.PIPE)

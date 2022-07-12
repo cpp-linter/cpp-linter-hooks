@@ -13,6 +13,9 @@ def run_clang_tidy(args) -> int:
         if arg == expect_version or arg.startswith("--version"):
             continue
         command.append(arg)
+
+    retval = 0
+    output = ""
     try:
         sp = subprocess.run(command, stdout=subprocess.PIPE)
         retval = sp.returncode
