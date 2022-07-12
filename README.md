@@ -32,7 +32,7 @@ repos:
       - id: clang-format
         args: [--style=file]  # to load .clang-format
       - id: clang-tidy
-        args: [--config=.clang-tidy] # path/to/.clang-tidy
+        args: [--checks=.clang-tidy] # path/to/.clang-tidy
 ```
 
 The example of using any version of [clang-tools](https://github.com/shenxianpeng/clang-tools-pip).
@@ -45,17 +45,67 @@ repos:
       - id: clang-format
         args: [--style=file, --version=13]
       - id: clang-tidy
-        args: [--config=.clang-tidy, --version=12]
+        args: [--checks=.clang-tidy, --version=12]
 ```
 
 ## Output
 
-The output when catching unformatted and error code.
+### clang-format
 
-```
+```bash
 clang-format.............................................................Failed
 - hook id: clang-format
 - files were modified by this hook
+```
+
+Here is the diff between the modified file.
+
+```diff
+--- a/testing/main.c
++++ b/testing/main.c
+@@ -1,3 +1,6 @@
+ #include <stdio.h>
+-int main() {for (;;) break; printf("Hello world!\n");return 0;}
+-
++int main() {
++  for (;;) break;
++  printf("Hello world!\n");
++  return 0;
++}
+```
+
+Pass `--dry-run` to the `args` of `clang-format`(can also pass other arg which clang-format supports)
+
+This just prints instead of changing the format. E.g:
+
+```bash
+clang-format.............................................................Failed
+- hook id: clang-format
+- exit code: 255
+
+main.c:2:11: warning: code should be clang-formatted [-Wclang-format-violations]
+int main() {for (;;) break; printf("Hello world!\n");return 0;}
+          ^
+main.c:2:13: warning: code should be clang-formatted [-Wclang-format-violations]
+int main() {for (;;) break; printf("Hello world!\n");return 0;}
+            ^
+main.c:2:21: warning: code should be clang-formatted [-Wclang-format-violations]
+int main() {for (;;) break; printf("Hello world!\n");return 0;}
+                    ^
+main.c:2:28: warning: code should be clang-formatted [-Wclang-format-violations]
+int main() {for (;;) break; printf("Hello world!\n");return 0;}
+                           ^
+main.c:2:54: warning: code should be clang-formatted [-Wclang-format-violations]
+int main() {for (;;) break; printf("Hello world!\n");return 0;}
+                                                     ^
+main.c:2:63: warning: code should be clang-formatted [-Wclang-format-violations]
+int main() {for (;;) break; printf("Hello world!\n");return 0;}
+                                                              ^
+```
+
+### chang-tidy
+
+```bash
 clang-tidy...............................................................Failed
 - hook id: clang-tidy
 - exit code: 1
@@ -74,21 +124,9 @@ Found compiler error(s).
          ^~~~~~~~~~
 ```
 
-The diff of the modified file.
+## Contributing
 
-```diff
---- a/testing/main.c
-+++ b/testing/main.c
-@@ -1,3 +1,6 @@
- #include <stdio.h>
--int main() {for (;;) break; printf("Hello world!\n");return 0;}
--
-+int main() {
-+  for (;;) break;
-+  printf("Hello world!\n");
-+  return 0;
-+}
-```
+Any contribution is very welcome, including submitting issues, PRs, etc.
 
 ## License
 
