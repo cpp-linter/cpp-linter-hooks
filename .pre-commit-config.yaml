@@ -33,10 +33,3 @@ repos:
         description: Run all tests
         language: system
         types: [python]
-  - repo: https://github.com/shenxianpeng/cpp-linter-hooks
-    rev: v0.1.0
-    hooks:
-      - id: clang-format
-        args: [--style=Google, --version=13]
-      - id: clang-tidy
-        args: [--checks=testing/.clang-tidy, --version=13]
