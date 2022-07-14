@@ -1,7 +1,7 @@
 # cpp-linter-hooks
 
-[![Test](https://github.com/shenxianpeng/cpp-linter-hooks/actions/workflows/test.yml/badge.svg)](https://github.com/shenxianpeng/cpp-linter-hooks/actions/workflows/test.yml)
-[![codecov](https://codecov.io/gh/shenxianpeng/cpp-linter-hooks/branch/main/graph/badge.svg?token=L74Z3HZ4Y5)](https://codecov.io/gh/shenxianpeng/cpp-linter-hooks)
+[![Test](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/test.yml/badge.svg)](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/test.yml)
+[![codecov](https://codecov.io/gh/cpp-linter/cpp-linter-hooks/branch/main/graph/badge.svg?token=L74Z3HZ4Y5)](https://codecov.io/gh/cpp-linter/cpp-linter-hooks)
 
 Using `clang-format` and `clang-tidy` hooks with [pre-commit](https://pre-commit.com/) to lint your C/C++ code.
 
@@ -13,7 +13,7 @@ Add this to your `.pre-commit-config.yaml`
 
 ```yaml
 repos:
-  - repo: https://github.com/shenxianpeng/cpp-linter-hooks
+  - repo: https://github.com/cpp-linter/cpp-linter-hooks
     rev: v0.2.0  # Use the ref you want to point at
     hooks:
       - id: clang-format
@@ -26,7 +26,7 @@ The example of using custom config: `.clang-format` and `.clang-tidy`
 
 ```yaml
 repos:
-  - repo: https://github.com/shenxianpeng/cpp-linter-hooks
+  - repo: https://github.com/cpp-linter/cpp-linter-hooks
     rev: v0.2.0
     hooks:
       - id: clang-format
@@ -35,11 +35,11 @@ repos:
         args: [--checks=.clang-tidy] # path/to/.clang-tidy
 ```
 
-The example of using any version of [clang-tools](https://github.com/shenxianpeng/clang-tools-pip).
+The example of using any version of [clang-tools](https://github.com/cpp-linter/clang-tools-pip).
 
 ```yaml
 repos:
-  - repo: https://github.com/shenxianpeng/cpp-linter-hooks
+  - repo: https://github.com/cpp-linter/cpp-linter-hooks
     rev: v0.2.0
     hooks:
       - id: clang-format
