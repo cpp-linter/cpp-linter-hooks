@@ -30,7 +30,7 @@ def get_expect_version(args) -> str:
                 # when --version 14
                 expect_version = args[args.index(arg) + 1]
             else:
-                # when --version=14, --version='14' or --version="14"
+                # when --version=14
                 expect_version = arg.replace(" ", "").replace("=", "").replace("--version", "")
             return expect_version
     return ""

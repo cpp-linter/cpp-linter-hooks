@@ -33,18 +33,10 @@ def test_check_installed_with_version(mock_subprocess_run, tool, version, expect
 
 
 def test_get_expect_version():
-    args = ['clang-format', '-i', '--style=Google', '--version=13']
+    args = ['clang-format', '--version 14']
     version = get_expect_version(args)
-    assert version == '13'
+    assert version == '14'
 
-    args = ['clang-format', '-i', '--style=Google', '--version = 13']
+    args = ['clang-format', '--version=14']
     version = get_expect_version(args)
-    assert version == '13'
-
-    args = ['clang-format', '-i', '--style=Google']
-    version = get_expect_version(args)
-    assert version == ""
-
-    args = ['clang-format', '-i', '--install=13']
-    version = get_expect_version(args)
-    assert version == ""
+    assert version == '14'
