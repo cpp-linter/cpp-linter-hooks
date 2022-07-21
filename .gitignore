@@ -5,3 +5,4 @@ cpp_linter_hooks/__pycache__/
 tests/.coverage
 tests/__pycache__
 .coverage
+__pycache__
