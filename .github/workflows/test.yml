@@ -45,3 +45,9 @@ jobs:
           curl -Os https://uploader.codecov.io/latest/linux/codecov
           chmod +x codecov
           ./codecov -t ${CODECOV_TOKEN}
+      - if: github.ref == 'refs/heads/main'
+        name: Test hooks
+        run: |
+          pip install pre-commit
+          pre-commit install
+          pre-commit try-repo .
