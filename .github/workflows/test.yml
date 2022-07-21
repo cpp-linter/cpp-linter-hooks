@@ -45,9 +45,12 @@ jobs:
           curl -Os https://uploader.codecov.io/latest/linux/codecov
           chmod +x codecov
           ./codecov -t ${CODECOV_TOKEN}
-      - if: github.ref == 'refs/heads/main'
-        name: Test hooks
+      - name: Test hooks
         run: |
           pip install pre-commit
           pre-commit install
-          pre-commit try-repo .
+          pre-commit try-repo . -c testing/.pre-commit-config.yaml --files testing/main.c | tee result.txt || true
+          grep -e "Failed" result.txt
+          if [ $? -ne 0 ]; then
+              exit 1
+          fi
