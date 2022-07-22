@@ -5,7 +5,7 @@ setup(
     name='cpp_linter_hooks',
     description='Automatically check c/c++ with clang-format and clang-tidy',
     url='https://github.com/cpp-linter/cpp-linter-hooks',
-    version='0.2.0',
+    version='0.2.1',
     author="Peter Shen",
     author_email="xianpeng.shen@gmail.com",
     license="MIT",
