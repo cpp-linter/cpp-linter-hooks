@@ -4,7 +4,6 @@
   entry: clang-format-hook
   language: python
   files: \.(h\+\+|h|hh|hxx|hpp|c|cc|cpp|c\+\+|cxx)$
-  types_or: [c, c++, c#, objective-c]
 
 - id: clang-tidy
   name: clang-tidy
@@ -12,4 +11,3 @@
   entry: clang-tidy-hook
   language: python
   files: \.(h\+\+|h|hh|hxx|hpp|c|cc|cpp|c\+\+|cxx)$
-  types_or: [c, c++, c#, objective-c]
