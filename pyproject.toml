@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=45", "setuptools-scm", "clang-tools>=0.2.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cpp_linter_hooks"
+description = "Automatically check c/c++ with clang-format and clang-tidy"
+readme = "README.md"
+keywords = ["clang", "clang-format", "clang-tidy", "pre-commit", "pre-commit-hooks"]
+license = {text = "MIT License"}
+authors = [
+    { name = "Peter Shen", email = "xianpeng.shen@gmail.com" },
+]
+classifiers = [
+    # https://pypi.org/pypi?%3Aaction=list_classifiers
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "Intended Audience :: Information Technology",
+    "Natural Language :: English",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Topic :: Software Development :: Build Tools",
+]
+dynamic = ["version"]
+
+[project.scripts]
+clang-format-hook = "cpp_linter_hooks.clang_format:main"
+clang-tidy-hook = "cpp_linter_hooks.clang_tidy:main"
+
+[project.urls]
+source =  "https://github.com/cpp-linter/cpp-linter-hooks"
+tracker = "https://github.com/cpp-linter/cpp-linter-hooks/issues"
+
+# ... other project metadata fields as specified in:
+#     https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
+
+[tool.setuptools]
+zip-safe = false
+packages = ["cpp_linter_hooks"]
+
+[tool.setuptools_scm]
+# It would be nice to include the commit hash in the version, but that
+# can't be done in a PEP 440-compatible way.
+version_scheme= "no-guess-dev"
+# Test PyPI does not support local versions.
+local_scheme = "no-local-version"
+fallback_version = "0.0.0"
+
+[tool.mypy]
+show_error_codes = true
+show_column_numbers = true
