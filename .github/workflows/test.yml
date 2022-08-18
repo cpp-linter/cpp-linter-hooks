@@ -31,16 +31,14 @@ jobs:
 
       - name: Run tests and collect coverage
         run: |
-          coverage run --source=tests,cpp_linter_hooks -m pytest
-          coverage report -m
-          coverage html
-      - name: Upload coverage reports to Codecov
-        run: |
-          # Replace `linux` below with the appropriate OS
-          # Options are `alpine`, `linux`, `macos`, `windows`
-          curl -Os https://uploader.codecov.io/latest/linux/codecov
-          chmod +x codecov
-          ./codecov -t ${CODECOV_TOKEN}
+          coverage run --source=tests,cpp_linter_hooks -m pytest -vv
+          coverage report
+          coverage xml
+      - uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: true # optional (default = false)
+          verbose: true # optional (default = false)
       - name: Test hooks
         run: |
           pip install pre-commit
