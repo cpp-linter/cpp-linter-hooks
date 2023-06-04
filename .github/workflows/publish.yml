@@ -36,16 +36,16 @@ jobs:
     - name: Build wheel
       run: python -m pip wheel -w dist .
     - name: Check distribution
-      run: twine check dist/*
+      run: twine check dist/cpp_linter_hooks*
     - name: Publish package (to TestPyPI)
       if: github.event_name == 'workflow_dispatch' && github.repository == 'cpp-linter/cpp-linter-hooks'
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.TEST_PYPI_TOKEN }}
-      run: twine upload --repository testpypi dist/*
+      run: twine upload --repository testpypi dist/cpp_linter_hooks*
     - name: Publish package (to PyPI)
       if: github.event_name != 'workflow_dispatch' && github.repository == 'cpp-linter/cpp-linter-hooks'
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-      run: twine upload dist/*
+      run: twine upload dist/cpp_linter_hooks*
