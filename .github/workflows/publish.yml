@@ -36,7 +36,7 @@ jobs:
     - name: Build wheel
       run: python -m pip wheel -w dist .
     - name: Check distribution
-      run: twine check dist/*
+      run: twine check dist/cpp_linter_hooks*
     - name: Publish package (to TestPyPI)
       if: github.event_name == 'workflow_dispatch' && github.repository == 'cpp-linter/cpp-linter-hooks'
       env:
