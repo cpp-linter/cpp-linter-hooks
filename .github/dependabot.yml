@@ -12,4 +12,8 @@ updates:
   - package-ecosystem: pip
     directory: /
     schedule:
+      interval: "daily"   
+  - package-ecosystem: pip-compile
+    directory: /
+    schedule:
       interval: "daily"
