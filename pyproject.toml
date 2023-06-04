@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=45", "setuptools-scm", "clang-tools>=0.2.2"]
+requires = ["setuptools>=45", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -23,6 +23,9 @@ classifiers = [
     "Operating System :: MacOS",
     "Programming Language :: Python :: 3",
     "Topic :: Software Development :: Build Tools",
+]
+dependencies = [
+    "clang-tools>=0.2.2",
 ]
 dynamic = ["version"]
 
