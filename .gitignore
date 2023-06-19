@@ -6,3 +6,5 @@ tests/.coverage
 tests/__pycache__
 .coverage
 __pycache__
+venv
+result.txt

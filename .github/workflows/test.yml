@@ -33,7 +33,7 @@ jobs:
           files: ./coverage.xml
           fail_ci_if_error: true # optional (default = false)
           verbose: true # optional (default = false)
-      - name: Test hooks
+      - name: Test cpp-linter-hooks
         run: |
           pip install pre-commit
           pre-commit install
