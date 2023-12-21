@@ -6,10 +6,8 @@ from cpp_linter_hooks.util import get_expect_version
 
 clang_tools = ['clang-format', 'clang-tidy']
 args = list(sys.argv[1:])
-print(args)
 
 expect_version = get_expect_version(args)
-print(f"expect_version is {expect_version}")
 
 for tool in clang_tools:
     if expect_version:
