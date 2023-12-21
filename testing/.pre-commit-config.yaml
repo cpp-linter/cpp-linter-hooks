@@ -3,6 +3,6 @@ repos:
     rev: 2a92e91720ca4bc79d67c3e4aea57642f598d534
     hooks:
       - id: clang-format
-        args: [--style=file, --version=15]  # to load .clang-format
+        args: [--style=file, --version=16]  # to load .clang-format
       - id: clang-tidy
-        args: [--checks=.clang-tidy, --version=15] # path/to/.clang-tidy
+        args: [--checks=.clang-tidy, --version=16] # path/to/.clang-tidy
