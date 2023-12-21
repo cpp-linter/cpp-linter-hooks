@@ -40,5 +40,4 @@ def get_expect_version(args) -> str:
                 # when --version=14
                 expect_version = arg.replace(" ", "").replace("=", "").replace("--version", "")
             return expect_version
-        print(arg)
     return ""

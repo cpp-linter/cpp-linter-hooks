@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: d59f2627a2bbb3bba3da08299f556787e15ed81e
+    rev: 2a92e91720ca4bc79d67c3e4aea57642f598d534
     hooks:
       - id: clang-format
         args: [--style=file, --version=15]  # to load .clang-format
