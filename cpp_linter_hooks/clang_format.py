@@ -24,9 +24,9 @@ def run_clang_format(args) -> int:
         else:
             retval = subprocess.run(command, stdout=subprocess.PIPE).returncode
         return retval, output
-    except FileNotFoundError as e:
+    except FileNotFoundError as stderr:
         retval = 1
-        return retval, e
+        return retval, stderr
 
 
 def main() -> int:

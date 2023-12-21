@@ -19,7 +19,7 @@ def install_clang_tools(version: str) -> int:
         # clang-tools exist because install_requires=['clang-tools'] in setup.py
         install_tool_cmd = ['clang-tools', '-i', version]
     else:
-        # install verison 13 by default if clang-tools not exist.
+        # install version 13 by default if clang-tools not exist.
         install_tool_cmd = ['clang-tools', '-i', '13']
     try:
         subprocess.run(install_tool_cmd, stdout=subprocess.PIPE)

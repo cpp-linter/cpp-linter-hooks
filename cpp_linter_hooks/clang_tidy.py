@@ -23,9 +23,9 @@ def run_clang_tidy(args) -> int:
         if "warning:" in output or "error:" in output:
             retval = 1
         return retval, output
-    except FileNotFoundError as e:
+    except FileNotFoundError as stderr:
         retval = 1
-        return retval, e
+        return retval, stderr
 
 
 def main() -> int:

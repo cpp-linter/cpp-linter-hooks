@@ -31,7 +31,7 @@ The example of using custom config: `.clang-format` and `.clang-tidy`
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.2.1
+    rev: v0.2.5
     hooks:
       - id: clang-format
         args: [--style=file]  # to load .clang-format
@@ -44,12 +44,12 @@ The example of using any version of [clang-tools](https://github.com/cpp-linter/
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.2.1
+    rev: v0.2.5
     hooks:
       - id: clang-format
-        args: [--style=file, --version=13]
+        args: [--style=file, --version=16]
       - id: clang-tidy
-        args: [--checks=.clang-tidy, --version=12]
+        args: [--checks=.clang-tidy, --version=16]
 ```
 
 ## Output
@@ -107,25 +107,21 @@ int main() {for (;;) break; printf("Hello world!\n");return 0;}
                                                               ^
 ```
 
-### chang-tidy output
+### clang-tidy output
 
 ```bash
 clang-tidy...............................................................Failed
 - hook id: clang-tidy
 - exit code: 1
 
-418 warnings and 1 error generated.
-Error while processing /home/ubuntu/cpp-linter-hooks/testing/main.c.
-Suppressed 417 warnings (417 in non-user code).
+522 warnings generated.
+Suppressed 521 warnings (521 in non-user code).
 Use -header-filter=.* to display errors from all non-system headers. Use -system-headers to display errors from system headers as well.
-Found compiler error(s).
-/home/ubuntu/cpp-linter-hooks/testing/main.c:3:11: warning: statement should be inside braces [readability-braces-around-statements]
-  for (;;) break;
-          ^
-           {
-/usr/include/stdio.h:33:10: error: 'stddef.h' file not found [clang-diagnostic-error]
-#include <stddef.h>
-         ^~~~~~~~~~
+/home/runner/work/cpp-linter-hooks/cpp-linter-hooks/testing/main.c:4:13: warning: statement should be inside braces [readability-braces-around-statements]
+    for (;;)
+            ^
+             {
+
 ```
 
 ## Contributing

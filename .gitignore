@@ -8,3 +8,4 @@ tests/__pycache__
 __pycache__
 venv
 result.txt
+testing/main.c

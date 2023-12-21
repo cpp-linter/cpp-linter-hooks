@@ -34,11 +34,4 @@ jobs:
           fail_ci_if_error: true # optional (default = false)
           verbose: true # optional (default = false)
       - name: Test cpp-linter-hooks
-        run: |
-          pip install pre-commit
-          pre-commit install
-          pre-commit try-repo . -c testing/.pre-commit-config.yaml --files testing/main.c | tee result.txt || true
-          grep -e "Failed" result.txt
-          if [ $? -ne 0 ]; then
-              exit 1
-          fi
+        run: sh testing/run.sh
