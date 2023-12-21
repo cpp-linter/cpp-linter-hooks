@@ -9,7 +9,7 @@
 
 Using `clang-format` and `clang-tidy` hooks with [pre-commit](https://pre-commit.com/) to lint your C/C++ code.
 
-Highlight✨: No need to manually download and install `clang-format` or `clang-tidy` on your system.
+Highlight✨: Automatically downloads a specific version of `clang-format` or `clang-tidy` and installs it on the system.
 
 ## Usage
 
@@ -18,7 +18,7 @@ Add this to your `.pre-commit-config.yaml`
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.2.1  # Use the ref you want to point at
+    rev: v0.2.5  # Use the ref you want to point at
     hooks:
       - id: clang-format
         args: [--style=Google] # Other coding style: LLVM, GNU, Chromium, Microsoft, Mozilla, WebKit.
