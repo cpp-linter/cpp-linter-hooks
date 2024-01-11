@@ -39,7 +39,7 @@ repos:
         args: [--checks=.clang-tidy] # path/to/.clang-tidy
 ```
 
-The example of using any version of [clang-tools](https://github.com/cpp-linter/clang-tools-pip).
+The example of using any version of [clang-tools](https://github.com/cpp-linter/clang-tools-pip?tab=readme-ov-file#supported-versions).
 
 ```yaml
 repos:
