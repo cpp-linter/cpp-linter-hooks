@@ -28,7 +28,7 @@ jobs:
           coverage run --source=tests,cpp_linter_hooks -m pytest -vv
           coverage report
           coverage xml
-      - uses: codecov/codecov-action@v3
+      - uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
