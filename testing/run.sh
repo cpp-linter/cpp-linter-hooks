@@ -1,5 +1,5 @@
-pre-commit install
-pre-commit try-repo . -c testing/.pre-commit-config.yaml --files testing/main.c | tee result.txt || true
+pre-commit clean
+pre-commit run --files testing/main.c | tee result.txt || true
 
 failed_cases=`grep -c "Failed" result.txt`
 

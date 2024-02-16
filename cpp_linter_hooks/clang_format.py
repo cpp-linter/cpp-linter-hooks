@@ -1,18 +1,24 @@
 import subprocess
+from pathlib import Path
+import sys
+from argparse import ArgumentParser
 
-from cpp_linter_hooks import args
-from cpp_linter_hooks import expect_version
+from .util import ensure_installed
 
 
-def run_clang_format(args) -> int:
-    if expect_version:
-        command = [f'clang-format-{expect_version}', '-i']
+BIN_PATH = Path(sys.executable).parent
+
+parser = ArgumentParser()
+parser.add_argument("--version")
+
+
+def run_clang_format(version, args) -> int:
+    if version:
+        command = [f'{BIN_PATH}/clang-format-{version}', '-i']
     else:
-        command = ["clang-format", '-i']
-    for arg in args:
-        if arg == expect_version or arg.startswith("--version"):
-            continue
-        command.append(arg)
+        command = [f"{BIN_PATH}/clang-format", '-i']
+
+    command.extend(args)
 
     retval = 0
     output = ""
@@ -30,7 +36,9 @@ def run_clang_format(args) -> int:
 
 
 def main() -> int:
-    retval, output = run_clang_format(args)
+    main_args, other_args = parser.parse_known_args()
+    ensure_installed("clang-format", main_args.version)
+    retval, output = run_clang_format(version=main_args.version, args=other_args)
     if retval != 0:
         print(output)
     return retval
