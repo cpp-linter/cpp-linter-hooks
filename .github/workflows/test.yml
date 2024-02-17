@@ -23,6 +23,9 @@ jobs:
           pip install .
           pip install -r requirements-dev.txt
 
+      - name: Run pre-commit against all files
+        run: pre-commit run --all-files
+
       - name: Run tests and collect coverage
         run: |
           coverage run --source=tests,cpp_linter_hooks -m pytest -vv
