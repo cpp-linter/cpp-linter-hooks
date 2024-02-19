@@ -13,12 +13,11 @@ parser = ArgumentParser()
 parser.add_argument("--version", default=DEFAULT_CLANG_VERSION)
 
 
-
-def run_clang_tidy(version, args) -> Tuple[int, str]:
-    path = ensure_installed("clang-tidy", version)
+def run_clang_tidy(args=None) -> Tuple[int, str]:
+    hook_args, other_args = parser.parse_known_args(args)
+    path = ensure_installed("clang-tidy", hook_args.version)
     command = [str(path)]
-
-    command.extend(args)
+    command.extend(other_args)
 
     retval = 0
     output = ""
@@ -35,8 +34,7 @@ def run_clang_tidy(version, args) -> Tuple[int, str]:
 
 
 def main() -> int:
-    main_args, other_args = parser.parse_known_args()
-    retval, output = run_clang_tidy(version=main_args.version, args=other_args)
+    retval, output = run_clang_tidy()
     if retval != 0:
         print(output)
     return retval

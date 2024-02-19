@@ -13,10 +13,11 @@ parser = ArgumentParser()
 parser.add_argument("--version", default=DEFAULT_CLANG_VERSION)
 
 
-def run_clang_format(version, args) -> Tuple[int, str]:
-    path = ensure_installed("clang-format", version)
-    command = [str(path), '-i']
-    command.extend(args)
+def run_clang_format(args=None) -> Tuple[int, str]:
+    hook_args, other_args = parser.parse_known_args(args)
+    path = ensure_installed("clang-format", hook_args.version)
+    command = [str(path), '-i', '-Werror']
+    command.extend(other_args)
 
     retval = 0
     output = ""
@@ -34,8 +35,7 @@ def run_clang_format(version, args) -> Tuple[int, str]:
 
 
 def main() -> int:
-    main_args, other_args = parser.parse_known_args()
-    retval, output = run_clang_format(version=main_args.version, args=other_args)
+    retval, output = run_clang_format()
     if retval != 0:
         print(output)
     return retval
