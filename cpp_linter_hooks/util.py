@@ -1,6 +1,5 @@
 import sys
 from pathlib import Path
-from typing import Optional
 import logging
 
 from clang_tools.install import is_installed, install_tool
@@ -9,11 +8,10 @@ from clang_tools.install import is_installed, install_tool
 LOG = logging.getLogger(__name__)
 
 
-def ensure_installed(tool_name: str, version: Optional[str] = None):
-    # install version 13 by default if clang-tools not exist.
-    if version is None:
-        version = "13"
+DEFAULT_CLANG_VERSION = "13"
 
+
+def ensure_installed(tool_name: str, version: str = DEFAULT_CLANG_VERSION):
     LOG.info("Checking for %s, version %s", tool_name, version)
     if not is_installed(tool_name, version):
         LOG.info("Installing %s, version %s", tool_name, version)

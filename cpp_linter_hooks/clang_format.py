@@ -3,21 +3,17 @@ from pathlib import Path
 import sys
 from argparse import ArgumentParser
 
-from .util import ensure_installed
+from .util import ensure_installed, DEFAULT_CLANG_VERSION
 
 
 BIN_PATH = Path(sys.executable).parent
 
 parser = ArgumentParser()
-parser.add_argument("--version")
+parser.add_argument("--version", default=DEFAULT_CLANG_VERSION)
 
 
 def run_clang_format(version, args) -> int:
-    if version:
-        command = [f'{BIN_PATH}/clang-format-{version}', '-i']
-    else:
-        command = [f"{BIN_PATH}/clang-format", '-i']
-
+    command = [f'{BIN_PATH}/clang-format-{version}', '-i']
     command.extend(args)
 
     retval = 0
