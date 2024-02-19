@@ -1,13 +1,9 @@
 import subprocess
-from pathlib import Path
-import sys
 from argparse import ArgumentParser
 from typing import Tuple
 
 from .util import ensure_installed, DEFAULT_CLANG_VERSION
 
-
-BIN_PATH = Path(sys.executable).parent
 
 parser = ArgumentParser()
 parser.add_argument("--version", default=DEFAULT_CLANG_VERSION)
