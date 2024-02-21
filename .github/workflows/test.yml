@@ -9,7 +9,9 @@ on:
 
 jobs:
   pre-commit:
-    uses: cpp-linter/.github/.github/workflows/pre-commit.yml@main
+    uses: cpp-linter/.github/.github/workflows/pre-commit.yml@swith-to-reusable-workflows
+    with:
+      commands: pip install . && pytest -v tests
   test:
     runs-on: ubuntu-latest
     steps:
