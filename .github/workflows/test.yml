@@ -11,7 +11,7 @@ jobs:
   pre-commit:
     uses: cpp-linter/.github/.github/workflows/pre-commit.yml@main
     with:
-      commands: pip install pytest
+      commands: pip install pytest -e .
   test:
     runs-on: ubuntu-latest
     steps:
