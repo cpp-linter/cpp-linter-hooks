@@ -9,7 +9,7 @@ on:
 
 jobs:
   pre-commit:
-    uses: cpp-linter/.github/.github/workflows/pre-commit.yml@run-command
+    uses: cpp-linter/.github/.github/workflows/pre-commit.yml@main
     with:
       commands: pip install pytest -e . && pytest -v tests
   test:
