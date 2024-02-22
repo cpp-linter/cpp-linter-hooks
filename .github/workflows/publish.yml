@@ -9,3 +9,4 @@ on:
 jobs:
   deploy:
     uses: cpp-linter/.github/.github/workflows/py-publish.yml@main
+    secrets: inherit
