@@ -13,6 +13,7 @@ jobs:
     with:
       commands: pip install pytest -e .
   test:
+    needs: [pre-commit]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
