@@ -18,11 +18,3 @@ repos:
     hooks:
       - id: flake8
         args: [--max-line-length=120]
-  - repo: local
-    hooks:
-      - id: tests
-        name: tests
-        entry: bash -c "pip install . && pytest -v tests"
-        description: Run all tests
-        language: system
-        types: [python]

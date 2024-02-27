@@ -1,4 +1,4 @@
-name: Run pre-commit
+name: pre-commit
 
 on:
   push:
@@ -10,5 +10,3 @@ on:
 jobs:
   pre-commit:
     uses: cpp-linter/.github/.github/workflows/pre-commit.yml@main
-    with:
-      commands: pip install pytest & pip install -e .
