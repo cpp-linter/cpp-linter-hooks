@@ -9,6 +9,6 @@ on:
 
 jobs:
   codeql:
-    uses: cpp-linter/.github/.github/workflows/codeql.yml@add-codeql-workflow
+    uses: cpp-linter/.github/.github/workflows/codeql.yml@main
     with:
       language: python
