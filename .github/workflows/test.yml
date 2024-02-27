@@ -8,12 +8,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  pre-commit:
-    uses: cpp-linter/.github/.github/workflows/pre-commit.yml@main
-    with:
-      commands: pip install pytest -e .
   test:
-    needs: [pre-commit]
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -41,3 +36,8 @@ jobs:
           verbose: true # optional (default = false)
       - name: Test cpp-linter-hooks
         run: sh testing/run.sh
+  pre-commit:
+    needs: [test]
+    uses: cpp-linter/.github/.github/workflows/pre-commit.yml@main
+    with:
+      commands: pip install pytest -e .
