@@ -1,0 +1,14 @@
+name: CodeQL
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  codeql:
+    uses: cpp-linter/.github/.github/workflows/codeql.yml@main
+    with:
+      language: python
