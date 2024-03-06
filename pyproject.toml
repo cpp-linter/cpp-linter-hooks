@@ -25,7 +25,7 @@ classifiers = [
     "Topic :: Software Development :: Build Tools",
 ]
 dependencies = [
-    "clang-tools==0.11.2",
+    "clang-tools==0.11.3",
 ]
 dynamic = ["version"]
 
