@@ -1,43 +1,48 @@
-import subprocess
+import sys
+from pathlib import Path
+import logging
+from typing import Optional
+
+from clang_tools.install import is_installed as _is_installed, install_tool
 
 
-def check_installed(tool: str, version="") -> int:
-    if version:
-        check_version_cmd = [f'{tool}-{version} ', '--version']
-    else:
-        check_version_cmd = [tool, '--version']
-    try:
-        subprocess.run(check_version_cmd, stdout=subprocess.PIPE)
-        retval = 0
-    except FileNotFoundError:
-        retval = install_clang_tools(version)
-    return retval
+LOG = logging.getLogger(__name__)
 
 
-def install_clang_tools(version: str) -> int:
-    if version:
-        # clang-tools exist because install_requires=['clang-tools'] in setup.py
-        install_tool_cmd = ['clang-tools', '-i', version]
-    else:
-        # install version 13 by default if clang-tools not exist.
-        install_tool_cmd = ['clang-tools', '-i', '13']
-    try:
-        subprocess.run(install_tool_cmd, stdout=subprocess.PIPE)
-        retval = 0
-    except Exception:
-        retval = 1
-    return retval
+DEFAULT_CLANG_VERSION = "13"
 
 
-def get_expect_version(args) -> str:
-    for arg in args:
-        if arg.startswith("--version"):  # expect specific clang-tools version.
-            # If --version is passed in as 2 arguments, the second is version
-            if arg == "--version" and args.index(arg) != len(args) - 1:
-                # when --version 14
-                expect_version = args[args.index(arg) + 1]
-            else:
-                # when --version=14
-                expect_version = arg.replace(" ", "").replace("=", "").replace("--version", "")
-            return expect_version
-    return ""
+def is_installed(tool_name: str, version: str) -> Optional[Path]:
+    """Check if tool is installed.
+
+    Checks the current python prefix and PATH via clang_tools.install.is_installed.
+    """
+    # check in current python prefix (usual situation when we installed into pre-commit venv)
+    directory = Path(sys.executable).parent
+    path = (directory / f"{tool_name}-{version}")
+    if path.is_file():
+        return path
+
+    # also check using clang_tools
+    path = _is_installed(tool_name, version)
+    if path is not None:
+        return Path(path)
+
+    # not found
+    return None
+
+
+def ensure_installed(tool_name: str, version: str = DEFAULT_CLANG_VERSION) -> Path:
+    """
+    Ensure tool is available at given version.
+    """
+    LOG.info("Checking for %s, version %s", tool_name, version)
+    path = is_installed(tool_name, version)
+    if path is not None:
+        LOG.info("%s, version %s is already installed", tool_name, version)
+        return path
+
+    LOG.info("Installing %s, version %s", tool_name, version)
+    directory = Path(sys.executable).parent
+    install_tool(tool_name, version, directory=str(directory), no_progress_bar=True)
+    return directory / f"{tool_name}-{version}"

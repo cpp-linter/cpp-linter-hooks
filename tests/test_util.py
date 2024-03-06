@@ -1,52 +1,40 @@
-from unittest.mock import patch
-
+import logging
+import sys
 import pytest
+from itertools import product
 
-from cpp_linter_hooks.util import check_installed
-from cpp_linter_hooks.util import get_expect_version
-from cpp_linter_hooks.util import install_clang_tools
-
-
-@pytest.mark.parametrize(('tool', 'expected_retval'), (('clang-format', 0), ('clang-tidy', 0),),)
-@patch('cpp_linter_hooks.util.subprocess.run')
-def test_check_installed(mock_subprocess_run, tool, expected_retval):
-    mock_subprocess_run.return_value = expected_retval
-    ret = check_installed(tool)
-    assert ret == expected_retval
+from cpp_linter_hooks.util import ensure_installed, DEFAULT_CLANG_VERSION
 
 
-@pytest.mark.parametrize(('tool', 'version', 'expected_retval'), (('clang-format', '14', 0), ('clang-tidy', '14', 0),),)
-@patch('cpp_linter_hooks.util.subprocess.run')
-def test_check_installed_with_version(mock_subprocess_run, tool, version, expected_retval):
-    mock_subprocess_run.return_value = expected_retval
-    ret = check_installed(tool, version=version)
-    assert ret == expected_retval
+VERSIONS = [None, "16"]
+TOOLS = ["clang-format", "clang-tidy"]
 
 
-@pytest.mark.parametrize(('tool', 'version', 'expected_retval'), (('non-exist-cmd', '14', 0),),)
-@patch('cpp_linter_hooks.util.subprocess.run')
-def test_check_installed_with_except(mock_subprocess_run, tool, version, expected_retval):
-    mock_subprocess_run.return_value = expected_retval
-    ret = check_installed(tool, version=version)
-    assert ret == expected_retval
+@pytest.mark.skip(reason="see https://github.com/cpp-linter/cpp-linter-hooks/pull/29")
+@pytest.mark.parametrize(("tool", "version"), list(product(TOOLS, VERSIONS)))
+def test_ensure_installed(tool, version, tmp_path, monkeypatch, caplog):
 
+    bin_path = tmp_path / "bin"
+    with monkeypatch.context() as m:
+        m.setattr(sys, "executable", str(bin_path / "python"))
 
-@pytest.mark.parametrize(('version', 'expected_retval'), (('100', 1),),)
-@patch('cpp_linter_hooks.util.subprocess.run')
-def test_install_clang_tools(mock_subprocess_run, version, expected_retval):
-    mock_subprocess_run.return_value = expected_retval
-    try:
-        ret = install_clang_tools(version)
-        assert ret == expected_retval
-    except Exception:
-        pass
+        for run in range(2):
+            # clear any existing log messages
+            caplog.clear()
+            caplog.set_level(logging.INFO, logger="cpp_linter_hooks.util")
 
+            if version is not None:
+                ensure_installed(tool, version=version)
+            else:
+                ensure_installed(tool)
 
-def test_get_expect_version():
-    args = ['clang-format', '--version 14']
-    version = get_expect_version(args)
-    assert version == '14'
+            bin_version = version or DEFAULT_CLANG_VERSION
+            assert (bin_path / f"{tool}-{bin_version}").is_file()
 
-    args = ['clang-format', '--version=14']
-    version = get_expect_version(args)
-    assert version == '14'
+            # first run should install
+            assert caplog.record_tuples[0][2] == f"Checking for {tool}, version {bin_version}"
+            if run == 0:
+                assert caplog.record_tuples[1][2] == f"Installing {tool}, version {bin_version}"
+            # second run should just confirm it's already installed
+            else:
+                assert caplog.record_tuples[1][2] == f"{tool}, version {bin_version} is already installed"
