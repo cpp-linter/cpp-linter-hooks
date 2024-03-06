@@ -9,6 +9,7 @@ from cpp_linter_hooks.util import ensure_installed, DEFAULT_CLANG_VERSION
 VERSIONS = [None, "16"]
 TOOLS = ["clang-format", "clang-tidy"]
 
+
 @pytest.mark.parametrize(("tool", "version"), list(product(TOOLS, VERSIONS)))
 def test_ensure_installed(tool, version, tmp_path, monkeypatch, caplog):
 

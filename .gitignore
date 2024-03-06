@@ -5,6 +5,7 @@ cpp_linter_hooks/__pycache__/
 tests/.coverage
 tests/__pycache__
 .coverage
+coverage.xml
 __pycache__
 venv
 result.txt
