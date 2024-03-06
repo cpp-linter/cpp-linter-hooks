@@ -10,6 +10,7 @@ VERSIONS = [None, "16"]
 TOOLS = ["clang-format", "clang-tidy"]
 
 
+@pytest.mark.skip(reason="see https://github.com/cpp-linter/cpp-linter-hooks/pull/29")
 @pytest.mark.parametrize(("tool", "version"), list(product(TOOLS, VERSIONS)))
 def test_ensure_installed(tool, version, tmp_path, monkeypatch, caplog):
 
