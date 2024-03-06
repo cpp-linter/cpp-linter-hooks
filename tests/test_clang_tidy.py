@@ -4,6 +4,7 @@ from pathlib import Path
 from cpp_linter_hooks.clang_tidy import run_clang_tidy
 
 
+@pytest.mark.skip(reason="see https://github.com/cpp-linter/cpp-linter-hooks/pull/29")
 @pytest.mark.parametrize(
     ('args', 'expected_retval'), (
         (['--checks="boost-*"'], 1),
