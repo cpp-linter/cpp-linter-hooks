@@ -3,6 +3,7 @@ from pathlib import Path
 import logging
 from typing import Optional
 
+from clang_tools.util import Version
 from clang_tools.install import is_installed as _is_installed, install_tool
 
 
@@ -23,8 +24,10 @@ def is_installed(tool_name: str, version: str) -> Optional[Path]:
     if path.is_file():
         return path
 
+    # parse the user-input version as a string
+    parsed_ver = Version(version)
     # also check using clang_tools
-    path = _is_installed(tool_name, version)
+    path = _is_installed(tool_name, parsed_ver)
     if path is not None:
         return Path(path)
 
