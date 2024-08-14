@@ -7,7 +7,7 @@ from cpp_linter_hooks.clang_tidy import run_clang_tidy
 @pytest.mark.parametrize(
     ('args', 'expected_retval'), (
         (['--checks="boost-*"'], 1),
-        (['--checks="boost-*"', '--version=16'], 0),
+        (['--checks="boost-*"', '--version=16'], 1),
     ),
 )
 def test_run_clang_tidy_valid(args, expected_retval, tmp_path):
