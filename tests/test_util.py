@@ -3,14 +3,20 @@ import sys
 import pytest
 from itertools import product
 
-from cpp_linter_hooks.util import ensure_installed, DEFAULT_CLANG_VERSION
+from cpp_linter_hooks.util import is_installed, ensure_installed, DEFAULT_CLANG_VERSION
 
 
 VERSIONS = [None, "16"]
 TOOLS = ["clang-format", "clang-tidy"]
 
 
-@pytest.mark.skip(reason="see https://github.com/cpp-linter/cpp-linter-hooks/pull/29")
+clang_tools_installed = pytest.mark.skipif(
+    is_installed('clang-format', '13') or is_installed('clang-tidy', '13'),
+    reason="https://github.com/cpp-linter/cpp-linter-hooks/pull/29#issuecomment-1952873903",
+)
+
+
+@clang_tools_installed
 @pytest.mark.parametrize(("tool", "version"), list(product(TOOLS, VERSIONS)))
 def test_ensure_installed(tool, version, tmp_path, monkeypatch, caplog):
 
@@ -23,10 +29,10 @@ def test_ensure_installed(tool, version, tmp_path, monkeypatch, caplog):
             caplog.clear()
             caplog.set_level(logging.INFO, logger="cpp_linter_hooks.util")
 
-            if version is not None:
-                ensure_installed(tool, version=version)
-            else:
+            if version is None:
                 ensure_installed(tool)
+            else:
+                ensure_installed(tool, version=version)
 
             bin_version = version or DEFAULT_CLANG_VERSION
             assert (bin_path / f"{tool}-{bin_version}").is_file()
