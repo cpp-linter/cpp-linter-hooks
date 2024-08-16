@@ -18,9 +18,8 @@ def generate_compilation_database():
         (['--checks="boost-*"', '--version=16'], 1),
     ),
 )
-def test_run_clang_tidy_valid(args, expected_retval, generate_compilation_database):
+def test_run_clang_tidy_valid(args, expected_retval):
     # copy test file to tmp_path to prevent modifying repo data
-    generate_compilation_database
     test_file = Path("testing/main.c")
     test_file.write_bytes(Path("testing/main.c").read_bytes())
     ret, output = run_clang_tidy(args + [str(test_file)])
