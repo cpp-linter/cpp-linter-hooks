@@ -33,7 +33,7 @@ def test_ensure_installed(tool, version, tmp_path, monkeypatch, caplog):
             # first run should install
             assert caplog.record_tuples[0][2] == f"Checking for {tool}, version {bin_version}"
             if run == 0:
-                # FIXME 
+                # FIXME
                 # assert caplog.record_tuples[1][2] == f"Installing {tool}, version {bin_version}"
                 assert caplog.record_tuples[1][2] == f"{tool}, version {bin_version} is already installed"
             # second run should just confirm it's already installed
