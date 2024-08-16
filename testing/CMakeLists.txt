@@ -5,7 +5,9 @@ project(main C CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_executable(main_app
-    ${CMAKE_BINARY_SOURCE_DIR}main.c
+add_executable(main
+    ${CMAKE_CURRENT_SOURCE_DIR}/main.c
 )
-target_include_directories(main_app PUBLIC ${CMAKE_BINARY_SOURCE_DIR})
+target_include_directories(main PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+file(COPY ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
