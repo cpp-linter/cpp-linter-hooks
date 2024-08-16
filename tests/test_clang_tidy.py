@@ -8,7 +8,8 @@ from cpp_linter_hooks.clang_tidy import run_clang_tidy
 @pytest.fixture(scope='function')
 def generate_compilation_database():
     # Generate compilation database
-    subprocess.run(['mkdir', '-p', 'build', '&&', 'cmake', '-Bbuild', 'testing/'], shell=True)
+    subprocess.run(['mkdir', '-p', 'build'])
+    subprocess.run(['cmake', '-Bbuild', 'testing/'])
 
 
 @pytest.mark.parametrize(
