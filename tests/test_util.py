@@ -10,13 +10,6 @@ VERSIONS = [None, "18"]
 TOOLS = ["clang-format", "clang-tidy"]
 
 
-clang_tools_installed = pytest.mark.skipif(
-    is_installed('clang-format', '13') or is_installed('clang-tidy', '13'),
-    reason="https://github.com/cpp-linter/cpp-linter-hooks/pull/29#issuecomment-1952873903",
-)
-
-
-@clang_tools_installed
 @pytest.mark.parametrize(("tool", "version"), list(product(TOOLS, VERSIONS)))
 def test_ensure_installed(tool, version, tmp_path, monkeypatch, caplog):
 
