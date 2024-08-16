@@ -10,6 +10,7 @@ def generate_compilation_database():
     # Generate compilation database
     subprocess.run(['mkdir', '-p', 'build'])
     subprocess.run(['cmake', '-Bbuild', 'testing/'])
+    subprocess.run(['cmake', '-Bbuild', 'testing/'])
 
 
 @pytest.mark.parametrize(

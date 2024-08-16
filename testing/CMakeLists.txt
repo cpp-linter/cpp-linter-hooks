@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.15)
+cmake_minimum_required(VERSION 3.21)
 
 # Set the project name to your project name
 project(main C CXX)
@@ -10,4 +10,6 @@ add_executable(main
 )
 target_include_directories(main PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
-file(COPY ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}")
+if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json)
+    file(COPY ${CMAKE_CURRENT_BINARY_DIR}/compile_commands.json DESTINATION ${CMAKE_CURRENT_SOURCE_DIR})
+endif()
