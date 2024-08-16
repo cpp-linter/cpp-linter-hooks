@@ -1,4 +1,5 @@
 import pytest
+import subprocess
 from pathlib import Path
 
 from cpp_linter_hooks.clang_tidy import run_clang_tidy
@@ -11,6 +12,7 @@ from cpp_linter_hooks.clang_tidy import run_clang_tidy
     ),
 )
 def test_run_clang_tidy_valid(args, expected_retval, tmp_path):
+    subprocess.run(['mkdir', '-p', 'build', '&&', 'cmake', '-Bbuild', 'testing/'], shell=True)
     # copy test file to tmp_path to prevent modifying repo data
     test_file = tmp_path / "main.c"
     test_file.write_bytes(Path("testing/main.c").read_bytes())
