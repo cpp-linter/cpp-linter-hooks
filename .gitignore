@@ -10,3 +10,4 @@ __pycache__
 venv
 result.txt
 testing/main.c
+*/*compile_commands.json
