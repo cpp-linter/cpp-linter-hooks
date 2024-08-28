@@ -7,8 +7,7 @@
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 <!-- [![PyPI - Downloads](https://img.shields.io/pypi/dw/cpp-linter-hooks)](https://pypi.org/project/cpp-linter-hooks/) -->
 
-
-`cpp-linter-hooks` integrates `clang-format` and `clang-tidy` hooks with [pre-commit](https://pre-commit.com/) to lint your C/C++ code efficiently.
+cpp-linter-hooks is a [pre-commit](https://pre-commit.com/) hook that uses clang-format and clang-tidy to check your C/C++ code.
 
 > [!NOTE]
 > This hook automatically downloads a specific version of `clang-format` or `clang-tidy` [binaries](https://github.com/cpp-linter/clang-tools-static-binaries) and installs it on the system.
