@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cpp_linter_hooks"
-description = "Automatically check c/c++ with clang-format and clang-tidy"
+description = "Automatically check c/c++ code with clang-format and clang-tidy"
 readme = "README.md"
 keywords = ["clang", "clang-format", "clang-tidy", "pre-commit", "pre-commit-hooks"]
 license = {text = "MIT License"}
 authors = [
-    { name = "Peter Shen", email = "xianpeng.shen@gmail.com" },
+    { name = "Xianpeng Shen", email = "xianpeng.shen@gmail.com" },
 ]
 classifiers = [
     # https://pypi.org/pypi?%3Aaction=list_classifiers
