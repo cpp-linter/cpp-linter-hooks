@@ -8,6 +8,7 @@ tests/__pycache__
 coverage.xml
 __pycache__
 venv
+.venv
 result.txt
 testing/main.c
 */*compile_commands.json
