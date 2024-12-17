@@ -1,20 +1,23 @@
 # cpp-linter-hooks
 
-[![PyPI](https://img.shields.io/pypi/v/cpp-linter-hooks)](https://pypi.org/project/cpp-linter-hooks/)
+[![PyPI](https://img.shields.io/pypi/v/cpp-linter-hooks?color=blue)](https://pypi.org/project/cpp-linter-hooks/)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/cpp-linter-hooks)](https://pypi.org/project/cpp-linter-hooks/)
 [![codecov](https://codecov.io/gh/cpp-linter/cpp-linter-hooks/branch/main/graph/badge.svg?token=L74Z3HZ4Y5)](https://codecov.io/gh/cpp-linter/cpp-linter-hooks)
 [![Test](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/test.yml/badge.svg)](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/test.yml)
 [![CodeQL](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/codeql.yml/badge.svg)](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/codeql.yml)
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit&logoColor=white)](https://github.com/pre-commit/pre-commit)
 <!-- [![PyPI - Downloads](https://img.shields.io/pypi/dw/cpp-linter-hooks)](https://pypi.org/project/cpp-linter-hooks/) -->
 
-cpp-linter-hooks is a [pre-commit](https://pre-commit.com/) hook that uses clang-format and clang-tidy to check your C/C++ code.
+cpp-linter-hooks is a [pre-commit](https://pre-commit.com/) hook that uses `clang-format` and `clang-tidy` to format C/C++ code.
 
 > [!NOTE]
-> This hook automatically downloads a specific version of `clang-format` or `clang-tidy` [binaries](https://github.com/cpp-linter/clang-tools-static-binaries) and installs it on the system.
+> This hook automatically downloads specific versions of `clang-format` or `clang-tidy` [binaries](https://github.com/cpp-linter/clang-tools-static-binaries) and installs them on your system.
 
 ## Usage
 
-Add the following configuration to your `.pre-commit-config.yaml`:
+To use cpp-linter-hooks, add the following configuration to your `.pre-commit-config.yaml`:
+
+### Basic Configuration
 
 ```yaml
 repos:
@@ -26,6 +29,8 @@ repos:
       - id: clang-tidy
         args: [--checks='boost-*,bugprone-*,performance-*,readability-*,portability-*,modernize-*,clang-analyzer-*,cppcoreguidelines-*']
 ```
+
+### Custom Configuration
 
 To use custom configurations like `.clang-format` and `.clang-tidy`:
 
@@ -55,7 +60,7 @@ repos:
 
 ## Output
 
-### clang-format output
+### clang-format Example
 
 ```bash
 clang-format.............................................................Failed
@@ -63,7 +68,7 @@ clang-format.............................................................Failed
 - files were modified by this hook
 ```
 
-The diff between the modified file is as follows:
+Here’s a sample diff showing the formatting applied:
 
 ```diff
 --- a/testing/main.c
@@ -106,7 +111,7 @@ int main() {for (;;) break; printf("Hello world!\n");return 0;}
                                                               ^
 ```
 
-### clang-tidy output
+### clang-tidy Example
 
 ```bash
 clang-tidy...............................................................Failed
@@ -125,8 +130,8 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
 
 ## Contributing
 
-Contributions are very welcome, including submitting issues, PRs, etc.
+We welcome contributions! Whether it's fixing issues, suggesting improvements, or submitting pull requests, your support is greatly appreciated.
 
 ## License
 
-[MIT](LICENSE)
+cpp-linter-hooks is licensed under the [MIT License](LICENSE)

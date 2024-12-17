@@ -34,6 +34,7 @@ jobs:
           coverage report
           coverage xml
       - uses: codecov/codecov-action@v5
+        if: matrix.python-version == '3.13'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
