@@ -21,7 +21,7 @@ To use cpp-linter-hooks, add the following configuration to your `.pre-commit-co
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.6.0  # Use the ref you want to point at
+    rev: v0.6.1  # Use the ref you want to point at
     hooks:
       - id: clang-format
         args: [--style=Google] # Other coding style: LLVM, GNU, Chromium, Microsoft, Mozilla, WebKit.
@@ -36,7 +36,7 @@ To use custom configurations like `.clang-format` and `.clang-tidy`:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.6.0
+    rev: v0.6.1
     hooks:
       - id: clang-format
         args: [--style=file]  # to load .clang-format
@@ -49,7 +49,7 @@ To use specific versions of [clang-tools](https://github.com/cpp-linter/clang-to
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.6.0
+    rev: v0.6.1
     hooks:
       - id: clang-format
         args: [--style=file, --version=16] # Specifies version
