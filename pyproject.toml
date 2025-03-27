@@ -9,7 +9,7 @@ name = "cpp_linter_hooks"
 description = "Automatically check c/c++ code with clang-format and clang-tidy"
 readme = "README.md"
 keywords = ["clang", "clang-format", "clang-tidy", "pre-commit", "pre-commit-hooks"]
-license = {text = "MIT License"}
+license = "MIT"
 authors = [
     { name = "Xianpeng Shen", email = "xianpeng.shen@gmail.com" },
 ]
