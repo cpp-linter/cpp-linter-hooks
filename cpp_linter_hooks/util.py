@@ -10,7 +10,7 @@ from clang_tools.install import is_installed as _is_installed, install_tool
 LOG = logging.getLogger(__name__)
 
 
-DEFAULT_CLANG_VERSION = "13"
+DEFAULT_CLANG_VERSION = "16"
 
 
 def is_installed(tool_name: str, version: str) -> Optional[Path]:
