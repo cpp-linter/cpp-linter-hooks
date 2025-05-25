@@ -57,6 +57,21 @@ repos:
         args: [--checks=.clang-tidy, --version=16]  # Specifies version
 ```
 
+> [!IMPORTANT]
+> If you run `pre-commit` longer than expected, highly suggest to add `files` in `hooks` to limit the scope of the hook. For example below:
+
+```yaml
+- repo: https://github.com/cpp-linter/cpp-linter-hooks
+  rev: v0.6.1
+  hooks:
+  -   id: clang-format
+      args: [--style=file, --version=16]
+      files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$ # limit the scope
+  -   id: clang-tidy
+      args: [--checks=.clang-tidy, --version=16]
+      files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
+```
+
 ## Output
 
 ### clang-format Example
