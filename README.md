@@ -58,7 +58,8 @@ repos:
 ```
 
 > [!IMPORTANT]
-> If you run `pre-commit` longer than expected, highly suggest to add `files` in `hooks` to limit the scope of the hook. For example below:
+> If your `pre-commit` runs longer than expected, it is highly recommended to add `files` in `.pre-commit-config.yaml` to limit the scope of the hook. This helps improve performance by reducing the number of files being checked and avoids unnecessary processing. For example below:
+
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
