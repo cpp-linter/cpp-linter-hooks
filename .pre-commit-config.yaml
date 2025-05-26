@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.5.0
+    rev: v5.0.0
     hooks:
       - id: trailing-whitespace
       - id: end-of-file-fixer
@@ -10,11 +10,11 @@ repos:
       - id: check-toml
       - id: requirements-txt-fixer
   - repo: https://github.com/asottile/pyupgrade
-    rev: v3.15.0
+    rev: v3.20.0
     hooks:
       - id: pyupgrade
   - repo: https://github.com/pycqa/flake8
-    rev: '7.0.0'
+    rev: '7.2.0'
     hooks:
       - id: flake8
         args: [--max-line-length=120]
