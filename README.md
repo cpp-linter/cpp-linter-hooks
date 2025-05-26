@@ -58,7 +58,7 @@ repos:
 ```
 
 > [!IMPORTANT]
-> If your `pre-commit` runs longer than expected, it is highly recommended to add `files` in `.pre-commit-config.yaml` to limit the scope of the hook. This helps improve performance by reducing the number of files being checked and avoids unnecessary processing. For example below:
+> If your `pre-commit` runs longer than expected, it is highly recommended to add `files` in `.pre-commit-config.yaml` to limit the scope of the hook. This helps improve performance by reducing the number of files being checked and avoids unnecessary processing. Here's an example configuration:
 
 
 ```yaml
@@ -72,6 +72,14 @@ repos:
       args: [--checks=.clang-tidy, --version=16]
       files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
 ```
+
+Alternatively, if you want to run the hooks manually on only the changed files, you can use the following command:
+
+```bash
+pre-commit run --files $(git diff --name-only)
+```
+
+This approach ensures that only modified files are checked, further speeding up the linting process during development.
 
 ## Output
 
