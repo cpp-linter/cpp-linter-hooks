@@ -44,8 +44,12 @@ clang-tidy-hook = "cpp_linter_hooks.clang_tidy:main"
 source =  "https://github.com/cpp-linter/cpp-linter-hooks"
 tracker = "https://github.com/cpp-linter/cpp-linter-hooks/issues"
 
-# ... other project metadata fields as specified in:
-#     https://packaging.python.org/en/latest/specifications/declaring-project-metadata/
+[project.optional-dependencies]
+dev = [
+    "coverage",
+    "pre-commit",
+    "pytest",
+]
 
 [tool.setuptools]
 zip-safe = false
