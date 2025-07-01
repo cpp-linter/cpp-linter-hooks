@@ -2,7 +2,6 @@
 Checks:          'clang-diagnostic-*,clang-analyzer-*,-*,performance-*,bugprone-*,clang-analyzer-*,mpi-*,misc-*,readability-*'
 WarningsAsErrors: ''
 HeaderFilterRegex: ''
-AnalyzeTemporaryDtors: false
 FormatStyle:     'file'
 CheckOptions:
   - key:             bugprone-argument-comment.CommentBoolLiterals
