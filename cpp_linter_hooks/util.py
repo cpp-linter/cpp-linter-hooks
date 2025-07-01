@@ -20,7 +20,7 @@ def is_installed(tool_name: str, version: str) -> Optional[Path]:
     """
     # check in current python prefix (usual situation when we installed into pre-commit venv)
     directory = Path(sys.executable).parent
-    path = (directory / f"{tool_name}-{version}")
+    path = directory / f"{tool_name}-{version}"
     if path.is_file():
         return path
 
