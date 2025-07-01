@@ -6,7 +6,7 @@ from itertools import product
 from cpp_linter_hooks.util import ensure_installed, DEFAULT_CLANG_VERSION
 
 
-VERSIONS = [None, "18"]
+VERSIONS = [None, "16"]
 TOOLS = ["clang-format", "clang-tidy"]
 
 
