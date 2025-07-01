@@ -12,3 +12,9 @@ venv
 result.txt
 testing/main.c
 */*compile_commands.json
+
+# Ignore clang-tools binaries
+clang-tidy-1*
+clang-tidy-2*
+clang-format-1*
+clang-format-2*
