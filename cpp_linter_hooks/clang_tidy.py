@@ -32,7 +32,7 @@ def run_clang_tidy(args=None) -> Tuple[int, str]:
 def main() -> int:
     retval, output = run_clang_tidy()
     if retval != 0:
-        print(output)
+        print(output)  # pragma: no cover
     return retval
 
 
