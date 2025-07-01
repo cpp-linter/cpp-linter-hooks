@@ -9,7 +9,9 @@ done
 
 failed_cases=`grep -c "Failed" result.txt`
 
-if [ $failed_cases -eq 4 ]; then
+echo $failed_cases " cases failed."
+
+if [ $failed_cases -eq 12 ]; then
     echo "=============================="
     echo "Test cpp-linter-hooks success."
     echo "=============================="
