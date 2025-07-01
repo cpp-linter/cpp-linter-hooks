@@ -10,7 +10,7 @@
 cpp-linter-hooks is a [pre-commit](https://pre-commit.com/) hook that uses `clang-format` and `clang-tidy` to format C/C++ code.
 
 > [!NOTE]
-> This hook automatically downloads specific versions of `clang-format` or `clang-tidy` [binaries](https://github.com/cpp-linter/clang-tools-static-binaries) and installs them on your system.
+> This hook automatically downloads specific versions of `clang-format` or `clang-tidy` [clang-tools-static-binaries](https://github.com/cpp-linter/clang-tools-static-binaries) and installs them on your system.
 
 ## Usage
 
@@ -21,7 +21,7 @@ To use cpp-linter-hooks, add the following configuration to your `.pre-commit-co
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.8.1  # Use the ref you want to point at
+    rev: v0.8.1  # Use the tag or commit you want
     hooks:
       - id: clang-format
         args: [--style=Google] # Other coding style: LLVM, GNU, Chromium, Microsoft, Mozilla, WebKit.
@@ -39,9 +39,9 @@ repos:
     rev: v0.8.1
     hooks:
       - id: clang-format
-        args: [--style=file]  # to load .clang-format
+        args: [--style=file]  # Loads style from .clang-format file
       - id: clang-tidy
-        args: [--checks=.clang-tidy] # path/to/.clang-tidy
+        args: [--checks=.clang-tidy] # Loads checks from .clang-tidy file
 ```
 
 To use specific versions of [clang-tools](https://github.com/cpp-linter/clang-tools-pip?tab=readme-ov-file#supported-versions):
@@ -54,7 +54,7 @@ repos:
       - id: clang-format
         args: [--style=file, --version=18] # Specifies version
       - id: clang-tidy
-        args: [--checks=.clang-tidy, --version=18]  # Specifies version
+        args: [--checks=.clang-tidy, --version=18] # Specifies version
 ```
 
 > [!IMPORTANT]
@@ -65,10 +65,10 @@ repos:
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
   rev: v0.8.1
   hooks:
-  -   id: clang-format
+    - id: clang-format
       args: [--style=file, --version=18]
-      files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$ # limit the scope
-  -   id: clang-tidy
+      files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$ # Limits to specific dirs and file types
+    - id: clang-tidy
       args: [--checks=.clang-tidy, --version=18]
       files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
 ```
