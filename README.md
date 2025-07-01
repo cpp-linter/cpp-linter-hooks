@@ -52,9 +52,9 @@ repos:
     rev: v0.8.1
     hooks:
       - id: clang-format
-        args: [--style=file, --version=16] # Specifies version
+        args: [--style=file, --version=18] # Specifies version
       - id: clang-tidy
-        args: [--checks=.clang-tidy, --version=16]  # Specifies version
+        args: [--checks=.clang-tidy, --version=18]  # Specifies version
 ```
 
 > [!IMPORTANT]
@@ -66,10 +66,10 @@ repos:
   rev: v0.8.1
   hooks:
   -   id: clang-format
-      args: [--style=file, --version=16]
+      args: [--style=file, --version=18]
       files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$ # limit the scope
   -   id: clang-tidy
-      args: [--checks=.clang-tidy, --version=16]
+      args: [--checks=.clang-tidy, --version=18]
       files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
 ```
 
