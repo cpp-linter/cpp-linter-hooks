@@ -40,6 +40,7 @@ def test_run_clang_format_invalid(args, expected_retval, tmp_path):
     ret, _ = run_clang_format(args + [str(test_file)])
     assert ret == expected_retval
 
+
 @pytest.mark.parametrize(
     ('args', 'expected_retval'), (
         (['--style=Google',], 1),
