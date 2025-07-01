@@ -39,3 +39,15 @@ def test_run_clang_format_invalid(args, expected_retval, tmp_path):
 
     ret, _ = run_clang_format(args + [str(test_file)])
     assert ret == expected_retval
+
+@pytest.mark.parametrize(
+    ('args', 'expected_retval'), (
+        (['--style=Google',], 1),
+    ),
+)
+def test_run_clang_format_dry_run(args, expected_retval, tmp_path):
+    # copy test file to tmp_path to prevent modifying repo data
+    test_file = tmp_path / "main.c"
+    ret, output = run_clang_format(['--dry-run', str(test_file)])
+    assert ret == -1  # Dry run should not fail
+    assert "No changes made" in output  # Assuming clang-format outputs this for no changes
