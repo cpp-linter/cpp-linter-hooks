@@ -10,7 +10,7 @@
 cpp-linter-hooks is a [pre-commit](https://pre-commit.com/) hook that uses `clang-format` and `clang-tidy` to format C/C++ code.
 
 > [!NOTE]
-> This hook automatically downloads specific versions of `clang-format` or `clang-tidy` [clang-tools-static-binaries](https://github.com/cpp-linter/clang-tools-static-binaries) and installs them on your system.
+> This hook automatically downloads specific versions of `clang-format` or `clang-tidy` [static-binaries](https://github.com/cpp-linter/clang-tools-static-binaries) and installs them on your system.
 
 ## Usage
 
