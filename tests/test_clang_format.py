@@ -8,6 +8,10 @@ from cpp_linter_hooks.clang_format import run_clang_format
     ('args', 'expected_retval'), (
         (['--style=Google'], (0, "")),
         (['--style=Google', '--version=16'], (0, "")),
+        (['--style=Google', '--version=17'], (0, "")),
+        (['--style=Google', '--version=18'], (0, "")),
+        (['--style=Google', '--version=19'], (0, "")),
+        (['--style=Google', '--version=20'], (0, "")),
     ),
 )
 def test_run_clang_format_valid(args, expected_retval, tmp_path):
@@ -23,6 +27,10 @@ def test_run_clang_format_valid(args, expected_retval, tmp_path):
     ('args', 'expected_retval'), (
         (['--style=Google',], 1),
         (['--style=Google', '--version=16'], 1),
+        (['--style=Google', '--version=17'], 1),
+        (['--style=Google', '--version=18'], 1),
+        (['--style=Google', '--version=19'], 1),
+        (['--style=Google', '--version=20'], 1),
     ),
 )
 def test_run_clang_format_invalid(args, expected_retval, tmp_path):
