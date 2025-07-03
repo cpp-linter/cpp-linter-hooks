@@ -1,7 +1,7 @@
 rm -f result.txt
 git restore testing/main.c
 
-for config in testing/pre-commit-config.yaml testing/pre-commit-config-version.yaml; do
+for config in testing/pre-commit-config.yaml testing/pre-commit-config-version.yaml testing/pre-commit-config-verbose.yaml; do
     pre-commit clean
     pre-commit run -c $config --files testing/main.c | tee -a result.txt || true
     git restore testing/main.c
