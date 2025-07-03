@@ -1,5 +1,4 @@
 #!/bin/bash
-# 2 Failed cases are expected
 echo "==========================="
 echo "Test pre-commit-config.yaml"
 echo "==========================="
@@ -7,7 +6,6 @@ pre-commit clean
 pre-commit run -c testing/pre-commit-config.yaml --files testing/main.c | tee -a result.txt || true
 git restore testing/main.c
 
-# 10 Failed cases are expected
 echo "===================================="
 echo "Test pre-commit-config-version.yaml"
 echo "===================================="
@@ -15,7 +13,6 @@ pre-commit clean
 pre-commit run -c testing/pre-commit-config-version.yaml --files testing/main.c | tee -a result.txt || true
 git restore testing/main.c
 
-# 2 Failed cases are expected
 echo "===================================="
 echo "Test pre-commit-config-verbose.yaml"
 echo "===================================="
@@ -23,10 +20,10 @@ pre-commit clean
 pre-commit run -c testing/pre-commit-config-verbose.yaml --files testing/main.c | tee -a result.txt || true
 git restore testing/main.c
 
-echo "===================================="
+echo "=================================================================================="
 echo "print result.txt"
 cat result.txt
-echo "===================================="
+echo "=================================================================================="
 
 failed_cases=`grep -c "Failed" result.txt`
 
