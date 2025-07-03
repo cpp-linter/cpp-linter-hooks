@@ -1,6 +1,6 @@
 import pytest
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
 from cpp_linter_hooks.clang_format import run_clang_format, main
 
@@ -109,7 +109,7 @@ def test_verbose_output(tmp_path, capsys):
             mock_run.assert_called_once()
             call_args = mock_run.call_args
             assert call_args[1]["tool_name"] == "clang-format"
-            assert call_args[1]["verbose"] == True
+            assert call_args[1]["verbose"] is True
 
 
 def test_verbose_with_error(tmp_path, capsys):
@@ -137,7 +137,7 @@ def test_verbose_with_error(tmp_path, capsys):
             mock_run.assert_called_once()
             call_args = mock_run.call_args
             assert call_args[1]["tool_name"] == "clang-format"
-            assert call_args[1]["verbose"] == True
+            assert call_args[1]["verbose"] is True
 
 
 def test_verbose_dry_run(tmp_path, capsys):
@@ -165,5 +165,5 @@ def test_verbose_dry_run(tmp_path, capsys):
             mock_run.assert_called_once()
             call_args = mock_run.call_args
             assert call_args[1]["tool_name"] == "clang-format"
-            assert call_args[1]["verbose"] == True
-            assert call_args[1]["dry_run"] == True
+            assert call_args[1]["verbose"] is True
+            assert call_args[1]["dry_run"] is True

@@ -1,5 +1,3 @@
-import subprocess
-import sys
 from argparse import ArgumentParser
 from typing import Tuple
 
