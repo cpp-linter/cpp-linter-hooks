@@ -72,8 +72,10 @@ def test_verbose_output(tmp_path, capsys):
 
     with patch("cpp_linter_hooks.clang_tidy.ensure_installed") as mock_ensure:
         mock_ensure.return_value = "/fake/clang-tidy"
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        with patch(
+            "cpp_linter_hooks.clang_tidy.run_subprocess_with_logging"
+        ) as mock_run:
+            mock_run.return_value = (0, "")
 
             # Test verbose mode
             retval, output = run_clang_tidy(
@@ -82,10 +84,14 @@ def test_verbose_output(tmp_path, capsys):
 
             # Check that debug messages were printed to stderr
             captured = capsys.readouterr()
-            assert "[DEBUG] clang-tidy command:" in captured.err
             assert "[DEBUG] clang-tidy version:" in captured.err
             assert "[DEBUG] clang-tidy executable:" in captured.err
-            assert "[DEBUG] Exit code:" in captured.err
+
+            # Verify that run_subprocess_with_logging was called correctly
+            mock_run.assert_called_once()
+            call_args = mock_run.call_args
+            assert call_args[1]["tool_name"] == "clang-tidy"
+            assert call_args[1]["verbose"] == True
 
 
 def test_verbose_with_warnings(tmp_path, capsys):
@@ -94,11 +100,12 @@ def test_verbose_with_warnings(tmp_path, capsys):
 
     with patch("cpp_linter_hooks.clang_tidy.ensure_installed") as mock_ensure:
         mock_ensure.return_value = "/fake/clang-tidy"
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0,
-                stdout="warning: some issue found",
-                stderr="compilation database warning",
+        with patch(
+            "cpp_linter_hooks.clang_tidy.run_subprocess_with_logging"
+        ) as mock_run:
+            mock_run.return_value = (
+                1,
+                "warning: some issue found\ncompilation database warning",
             )
 
             # Test verbose mode with warnings
@@ -111,22 +118,24 @@ def test_verbose_with_warnings(tmp_path, capsys):
             assert "warning: some issue found" in output
             assert "compilation database warning" in output
 
-            # Check debug output
-            captured = capsys.readouterr()
-            assert "[DEBUG] Exit code: 0" in captured.err
-            assert (
-                "[DEBUG] Found warnings/errors, setting exit code to 1" in captured.err
-            )
-            assert "[DEBUG] stdout:" in captured.err
-            assert "[DEBUG] stderr:" in captured.err
+            # Verify that run_subprocess_with_logging was called correctly
+            mock_run.assert_called_once()
+            call_args = mock_run.call_args
+            assert call_args[1]["tool_name"] == "clang-tidy"
+            assert call_args[1]["verbose"] == True
 
 
 def test_verbose_with_file_not_found(capsys):
     """Test verbose output when clang-tidy executable is not found"""
     with patch("cpp_linter_hooks.clang_tidy.ensure_installed") as mock_ensure:
         mock_ensure.return_value = "/fake/clang-tidy"
-        with patch("subprocess.run") as mock_run:
-            mock_run.side_effect = FileNotFoundError("No such file or directory")
+        with patch(
+            "cpp_linter_hooks.clang_tidy.run_subprocess_with_logging"
+        ) as mock_run:
+            mock_run.return_value = (
+                1,
+                "clang-tidy executable not found: No such file or directory",
+            )
 
             # Test verbose mode with FileNotFoundError
             retval, output = run_clang_tidy(["--verbose", "--checks=boost-*", "test.c"])
@@ -135,7 +144,8 @@ def test_verbose_with_file_not_found(capsys):
             assert retval == 1
             assert "clang-tidy executable not found" in output
 
-            # Check debug output
-            captured = capsys.readouterr()
-            assert "[DEBUG] FileNotFoundError:" in captured.err
-            assert "[DEBUG] Command attempted:" in captured.err
+            # Verify that run_subprocess_with_logging was called correctly
+            mock_run.assert_called_once()
+            call_args = mock_run.call_args
+            assert call_args[1]["tool_name"] == "clang-tidy"
+            assert call_args[1]["verbose"] == True

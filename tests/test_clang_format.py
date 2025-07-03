@@ -90,8 +90,10 @@ def test_verbose_output(tmp_path, capsys):
 
     with patch("cpp_linter_hooks.clang_format.ensure_installed") as mock_ensure:
         mock_ensure.return_value = "/fake/clang-format"
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        with patch(
+            "cpp_linter_hooks.clang_format.run_subprocess_with_logging"
+        ) as mock_run:
+            mock_run.return_value = (0, "")
 
             # Test verbose mode
             retval, output = run_clang_format(
@@ -100,10 +102,14 @@ def test_verbose_output(tmp_path, capsys):
 
             # Check that debug messages were printed to stderr
             captured = capsys.readouterr()
-            assert "[DEBUG] clang-format command:" in captured.err
             assert "[DEBUG] clang-format version:" in captured.err
             assert "[DEBUG] clang-format executable:" in captured.err
-            assert "[DEBUG] Exit code:" in captured.err
+
+            # Verify that run_subprocess_with_logging was called correctly
+            mock_run.assert_called_once()
+            call_args = mock_run.call_args
+            assert call_args[1]["tool_name"] == "clang-format"
+            assert call_args[1]["verbose"] == True
 
 
 def test_verbose_with_error(tmp_path, capsys):
@@ -112,10 +118,10 @@ def test_verbose_with_error(tmp_path, capsys):
 
     with patch("cpp_linter_hooks.clang_format.ensure_installed") as mock_ensure:
         mock_ensure.return_value = "/fake/clang-format"
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=1, stdout="error output", stderr="error in stderr"
-            )
+        with patch(
+            "cpp_linter_hooks.clang_format.run_subprocess_with_logging"
+        ) as mock_run:
+            mock_run.return_value = (1, "error output\nerror in stderr")
 
             # Test verbose mode with error
             retval, output = run_clang_format(
@@ -127,11 +133,11 @@ def test_verbose_with_error(tmp_path, capsys):
             assert "error output" in output
             assert "error in stderr" in output
 
-            # Check debug output
-            captured = capsys.readouterr()
-            assert "[DEBUG] Exit code: 1" in captured.err
-            assert "[DEBUG] stdout:" in captured.err
-            assert "[DEBUG] stderr:" in captured.err
+            # Verify that run_subprocess_with_logging was called correctly
+            mock_run.assert_called_once()
+            call_args = mock_run.call_args
+            assert call_args[1]["tool_name"] == "clang-format"
+            assert call_args[1]["verbose"] == True
 
 
 def test_verbose_dry_run(tmp_path, capsys):
@@ -141,10 +147,10 @@ def test_verbose_dry_run(tmp_path, capsys):
 
     with patch("cpp_linter_hooks.clang_format.ensure_installed") as mock_ensure:
         mock_ensure.return_value = "/fake/clang-format"
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = MagicMock(
-                returncode=0, stdout="dry run output", stderr=""
-            )
+        with patch(
+            "cpp_linter_hooks.clang_format.run_subprocess_with_logging"
+        ) as mock_run:
+            mock_run.return_value = (-1, "dry run output")
 
             # Test verbose dry-run mode
             retval, output = run_clang_format(
@@ -155,7 +161,9 @@ def test_verbose_dry_run(tmp_path, capsys):
             assert retval == -1
             assert "dry run output" in output
 
-            # Check debug output
-            captured = capsys.readouterr()
-            assert "[DEBUG] Dry-run mode detected" in captured.err
-            assert "[DEBUG] Exit code: 0 (converted to -1 for dry-run)" in captured.err
+            # Verify that run_subprocess_with_logging was called correctly
+            mock_run.assert_called_once()
+            call_args = mock_run.call_args
+            assert call_args[1]["tool_name"] == "clang-format"
+            assert call_args[1]["verbose"] == True
+            assert call_args[1]["dry_run"] == True

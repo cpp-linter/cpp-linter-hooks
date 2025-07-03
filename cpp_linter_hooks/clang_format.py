@@ -3,7 +3,12 @@ import sys
 from argparse import ArgumentParser
 from typing import Tuple
 
-from .util import ensure_installed, DEFAULT_CLANG_VERSION
+from .util import (
+    ensure_installed,
+    DEFAULT_CLANG_VERSION,
+    debug_print,
+    run_subprocess_with_logging,
+)
 
 
 parser = ArgumentParser()
@@ -21,71 +26,17 @@ def run_clang_format(args=None) -> Tuple[int, str]:
 
     verbose = hook_args.verbose
 
-    if verbose:
-        print(f"[DEBUG] clang-format command: {' '.join(command)}", file=sys.stderr)
-        print(f"[DEBUG] clang-format version: {hook_args.version}", file=sys.stderr)
-        print(f"[DEBUG] clang-format executable: {path}", file=sys.stderr)
+    # Log initial debug information
+    debug_print(f"clang-format version: {hook_args.version}", verbose)
+    debug_print(f"clang-format executable: {path}", verbose)
 
-    retval = 0
-    output = ""
-    stderr_output = ""
+    # Check for dry-run mode
+    dry_run = "--dry-run" in command
 
-    try:
-        if "--dry-run" in command:
-            sp = subprocess.run(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                encoding="utf-8",
-            )
-            retval = -1  # Not a fail just identify it's a dry-run.
-            output = sp.stdout
-            stderr_output = sp.stderr
-
-            if verbose:
-                print("[DEBUG] Dry-run mode detected", file=sys.stderr)
-                print(
-                    f"[DEBUG] Exit code: {sp.returncode} (converted to -1 for dry-run)",
-                    file=sys.stderr,
-                )
-        else:
-            sp = subprocess.run(
-                command,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                encoding="utf-8",
-            )
-            retval = sp.returncode
-            output = sp.stdout
-            stderr_output = sp.stderr
-
-            if verbose:
-                print(f"[DEBUG] Exit code: {retval}", file=sys.stderr)
-
-        # Combine stdout and stderr for comprehensive output
-        combined_output = ""
-        if output:
-            combined_output += output
-        if stderr_output:
-            if combined_output:
-                combined_output += "\n"
-            combined_output += stderr_output
-
-        if verbose and (output or stderr_output):
-            print(f"[DEBUG] stdout: {repr(output)}", file=sys.stderr)
-            print(f"[DEBUG] stderr: {repr(stderr_output)}", file=sys.stderr)
-
-        return retval, combined_output
-
-    except FileNotFoundError as error:
-        retval = 1
-        error_msg = f"clang-format executable not found: {error}"
-
-        if verbose:
-            print(f"[DEBUG] FileNotFoundError: {error}", file=sys.stderr)
-            print(f"[DEBUG] Command attempted: {' '.join(command)}", file=sys.stderr)
-
-        return retval, error_msg
+    # Use the utility function for subprocess execution
+    return run_subprocess_with_logging(
+        command=command, tool_name="clang-format", verbose=verbose, dry_run=dry_run
+    )
 
 
 def main() -> int:
