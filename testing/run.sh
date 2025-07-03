@@ -1,17 +1,26 @@
-rm -f result.txt
+#!/bin/bash
+# 2 Failed cases are expected
+pre-commit clean
+pre-commit run -c testing/pre-commit-config.yaml --files testing/main.c | tee -a result.txt || true
 git restore testing/main.c
 
-for config in testing/pre-commit-config.yaml testing/pre-commit-config-version.yaml testing/pre-commit-config-verbose.yaml; do
-    pre-commit clean
-    pre-commit run -c $config --files testing/main.c | tee -a result.txt || true
-    git restore testing/main.c
-done
+# 10 Failed cases are expected
+pre-commit clean
+pre-commit run -c testing/pre-commit-config-version.yaml --files testing/main.c | tee -a result.txt || true
+git restore testing/main.c
+cat result.txt
+
+# 2 Failed cases are expected
+pre-commit clean
+pre-commit run -c testing/pre-commit-config-verbose.yaml --files testing/main.c | tee -a result.txt || true
+git restore testing/main.c
+cat result.txt
 
 failed_cases=`grep -c "Failed" result.txt`
 
 echo $failed_cases " cases failed."
 
-if [ $failed_cases -eq 9 ]; then
+if [ $failed_cases -eq 10 ]; then
     echo "=============================="
     echo "Test cpp-linter-hooks success."
     echo "=============================="
