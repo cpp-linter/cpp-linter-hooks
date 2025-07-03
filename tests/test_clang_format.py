@@ -1,7 +1,8 @@
 import pytest
 from pathlib import Path
+from unittest.mock import patch, MagicMock
 
-from cpp_linter_hooks.clang_format import run_clang_format
+from cpp_linter_hooks.clang_format import run_clang_format, main
 
 
 @pytest.mark.parametrize(
@@ -64,3 +65,97 @@ def test_run_clang_format_dry_run(args, expected_retval, tmp_path):
     test_file = tmp_path / "main.c"
     ret, _ = run_clang_format(["--dry-run", str(test_file)])
     assert ret == -1  # Dry run should not fail
+
+
+def test_main_empty_output():
+    """Test main() function when clang-format returns error with empty output"""
+    with patch(
+        "cpp_linter_hooks.clang_format.run_clang_format"
+    ) as mock_run_clang_format:
+        # Mock failed run with empty output
+        mock_run_clang_format.return_value = (1, "")
+
+        with patch("builtins.print") as mock_print:
+            result = main()
+
+            # Should return 1 and print empty string
+            assert result == 1
+            mock_print.assert_called_once_with("")
+
+
+def test_verbose_output(tmp_path, capsys):
+    """Test that verbose mode produces debug output to stderr"""
+    test_file = tmp_path / "test.c"
+    test_file.write_text("#include <stdio.h>\nint main(){return 0;}")
+
+    with patch("cpp_linter_hooks.clang_format.ensure_installed") as mock_ensure:
+        mock_ensure.return_value = "/fake/clang-format"
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+
+            # Test verbose mode
+            retval, output = run_clang_format(
+                ["--verbose", "--style=Google", str(test_file)]
+            )
+
+            # Check that debug messages were printed to stderr
+            captured = capsys.readouterr()
+            assert "[DEBUG] clang-format command:" in captured.err
+            assert "[DEBUG] clang-format version:" in captured.err
+            assert "[DEBUG] clang-format executable:" in captured.err
+            assert "[DEBUG] Exit code:" in captured.err
+
+
+def test_verbose_with_error(tmp_path, capsys):
+    """Test verbose output when there's an error"""
+    test_file = tmp_path / "test.c"
+
+    with patch("cpp_linter_hooks.clang_format.ensure_installed") as mock_ensure:
+        mock_ensure.return_value = "/fake/clang-format"
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=1, stdout="error output", stderr="error in stderr"
+            )
+
+            # Test verbose mode with error
+            retval, output = run_clang_format(
+                ["--verbose", "--style=Google", str(test_file)]
+            )
+
+            # Check return values
+            assert retval == 1
+            assert "error output" in output
+            assert "error in stderr" in output
+
+            # Check debug output
+            captured = capsys.readouterr()
+            assert "[DEBUG] Exit code: 1" in captured.err
+            assert "[DEBUG] stdout:" in captured.err
+            assert "[DEBUG] stderr:" in captured.err
+
+
+def test_verbose_dry_run(tmp_path, capsys):
+    """Test verbose output in dry-run mode"""
+    test_file = tmp_path / "test.c"
+    test_file.write_text("#include <stdio.h>\nint main(){return 0;}")
+
+    with patch("cpp_linter_hooks.clang_format.ensure_installed") as mock_ensure:
+        mock_ensure.return_value = "/fake/clang-format"
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0, stdout="dry run output", stderr=""
+            )
+
+            # Test verbose dry-run mode
+            retval, output = run_clang_format(
+                ["--verbose", "--dry-run", str(test_file)]
+            )
+
+            # Check return values (dry-run should return -1)
+            assert retval == -1
+            assert "dry run output" in output
+
+            # Check debug output
+            captured = capsys.readouterr()
+            assert "[DEBUG] Dry-run mode detected" in captured.err
+            assert "[DEBUG] Exit code: 0 (converted to -1 for dry-run)" in captured.err

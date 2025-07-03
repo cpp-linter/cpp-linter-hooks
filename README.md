@@ -81,6 +81,44 @@ pre-commit run --files $(git diff --name-only)
 
 This approach ensures that only modified files are checked, further speeding up the linting process during development.
 
+### Verbose Output and Debugging
+
+For debugging issues or getting more detailed information about what the hooks are doing, you can enable verbose output:
+
+```yaml
+repos:
+  - repo: https://github.com/cpp-linter/cpp-linter-hooks
+    rev: v0.8.1
+    hooks:
+      - id: clang-format
+        args: [--style=file, --version=18, --verbose]  # Enable verbose output
+      - id: clang-tidy
+        args: [--checks=.clang-tidy, --version=18, --verbose]  # Enable verbose output
+```
+
+When you run pre-commit with verbose mode, you'll get detailed debug information:
+
+```bash
+# Run pre-commit with verbose output
+pre-commit run --verbose --all-files
+
+# Run specific hook with verbose output
+pre-commit run clang-format --verbose
+```
+
+The verbose output includes:
+- The exact command being executed
+- The path to the clang tool executable
+- The tool version being used
+- Exit codes and detailed error messages
+- Both stdout and stderr output from the tools
+
+This is particularly useful when debugging issues like:
+- Exit code 247 (tool execution errors)
+- Missing compilation databases for clang-tidy
+- Configuration file loading issues
+- Tool installation problems
+
 ## Output
 
 ### clang-format Example
@@ -148,7 +186,6 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
     for (;;)
             ^
              {
-
 ```
 
 ## Contributing

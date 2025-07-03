@@ -1,6 +1,7 @@
 import pytest
 import subprocess
 from pathlib import Path
+from unittest.mock import patch, MagicMock
 
 from cpp_linter_hooks.clang_tidy import run_clang_tidy
 
@@ -49,3 +50,92 @@ def test_run_clang_tidy_invalid(args, expected_retval, tmp_path):
 
     ret, _ = run_clang_tidy(args + [str(test_file)])
     assert ret == expected_retval
+
+
+def test_main_as_script():
+    """Test the if __name__ == '__main__' behavior"""
+    with patch("cpp_linter_hooks.clang_tidy.main") as mock_main:
+        mock_main.return_value = 42
+
+        # This would normally raise SystemExit, but we're mocking main()
+        with pytest.raises(SystemExit) as exc_info:
+            # Simulate running the script directly
+            exec("if __name__ == '__main__': raise SystemExit(main())")
+
+        assert exc_info.value.code == 42
+
+
+def test_verbose_output(tmp_path, capsys):
+    """Test that verbose mode produces debug output to stderr"""
+    test_file = tmp_path / "test.c"
+    test_file.write_text("#include <stdio.h>\nint main(){return 0;}")
+
+    with patch("cpp_linter_hooks.clang_tidy.ensure_installed") as mock_ensure:
+        mock_ensure.return_value = "/fake/clang-tidy"
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+
+            # Test verbose mode
+            retval, output = run_clang_tidy(
+                ["--verbose", "--checks=boost-*", str(test_file)]
+            )
+
+            # Check that debug messages were printed to stderr
+            captured = capsys.readouterr()
+            assert "[DEBUG] clang-tidy command:" in captured.err
+            assert "[DEBUG] clang-tidy version:" in captured.err
+            assert "[DEBUG] clang-tidy executable:" in captured.err
+            assert "[DEBUG] Exit code:" in captured.err
+
+
+def test_verbose_with_warnings(tmp_path, capsys):
+    """Test verbose output when there are warnings"""
+    test_file = tmp_path / "test.c"
+
+    with patch("cpp_linter_hooks.clang_tidy.ensure_installed") as mock_ensure:
+        mock_ensure.return_value = "/fake/clang-tidy"
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = MagicMock(
+                returncode=0,
+                stdout="warning: some issue found",
+                stderr="compilation database warning",
+            )
+
+            # Test verbose mode with warnings
+            retval, output = run_clang_tidy(
+                ["--verbose", "--checks=boost-*", str(test_file)]
+            )
+
+            # Check return values (should be 1 due to warnings)
+            assert retval == 1
+            assert "warning: some issue found" in output
+            assert "compilation database warning" in output
+
+            # Check debug output
+            captured = capsys.readouterr()
+            assert "[DEBUG] Exit code: 0" in captured.err
+            assert (
+                "[DEBUG] Found warnings/errors, setting exit code to 1" in captured.err
+            )
+            assert "[DEBUG] stdout:" in captured.err
+            assert "[DEBUG] stderr:" in captured.err
+
+
+def test_verbose_with_file_not_found(capsys):
+    """Test verbose output when clang-tidy executable is not found"""
+    with patch("cpp_linter_hooks.clang_tidy.ensure_installed") as mock_ensure:
+        mock_ensure.return_value = "/fake/clang-tidy"
+        with patch("subprocess.run") as mock_run:
+            mock_run.side_effect = FileNotFoundError("No such file or directory")
+
+            # Test verbose mode with FileNotFoundError
+            retval, output = run_clang_tidy(["--verbose", "--checks=boost-*", "test.c"])
+
+            # Check return values
+            assert retval == 1
+            assert "clang-tidy executable not found" in output
+
+            # Check debug output
+            captured = capsys.readouterr()
+            assert "[DEBUG] FileNotFoundError:" in captured.err
+            assert "[DEBUG] Command attempted:" in captured.err

@@ -1,0 +1,25 @@
+# Example .pre-commit-config.yaml with verbose debugging enabled
+
+repos:
+  - repo: https://github.com/cpp-linter/cpp-linter-hooks
+    rev: v0.8.1  # Use the tag or commit you want
+    hooks:
+      - id: clang-format
+        args: [--style=file, --version=18, --verbose]   # Added --verbose
+        files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
+      - id: clang-tidy
+        args: [--checks=.clang-tidy, --version=18, --verbose]  # Added --verbose
+        files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
+
+# To use this configuration:
+# 1. Save this as .pre-commit-config.yaml in your project root
+# 2. Run: pre-commit run --verbose --all-files
+# 3. The --verbose flag to pre-commit combined with --verbose in args
+#    will give you maximum debugging information
+
+# For your specific exit code 247 issue, you'll now see:
+# - The exact clang-format command being executed
+# - The path to the clang-format executable
+# - The version being used
+# - Both stdout and stderr output
+# - The actual exit code from clang-format
