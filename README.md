@@ -155,7 +155,7 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
 
 ### Debugging `clang-format` hook
 
-If you encounter issues with the clang-format hook (such as exit code 247 or other errors), you can enable verbose output to show the list of processed files.
+If you encounter issues with the clang-format hook (such as exit code 247 or other errors), you can enable verbose output to show the list of processed files by passing the `-v` or `--verbose` argument in the `args` section.
 
 ```yaml
 repos:

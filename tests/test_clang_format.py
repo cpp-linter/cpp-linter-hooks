@@ -73,7 +73,7 @@ def test_run_clang_format_verbose(tmp_path):
     test_file.write_bytes(Path("testing/main.c").read_bytes())
 
     # Test with verbose flag
-    ret, output = run_clang_format(["--verbose", "--style=Google", str(test_file)])
+    ret, _ = run_clang_format(["--verbose", "--style=Google", str(test_file)])
 
     # Should succeed
     assert ret == 0

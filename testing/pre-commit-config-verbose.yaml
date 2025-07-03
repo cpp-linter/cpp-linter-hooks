@@ -4,3 +4,8 @@ repos:
     hooks:
       - id: clang-format
         args: [--style=file, --version=16, --verbose]  # test with verbose output
+  - repo: .
+    rev: HEAD
+    hooks:
+      - id: clang-format
+        args: [--style=file, --version=16, -v]  # test with verbose output

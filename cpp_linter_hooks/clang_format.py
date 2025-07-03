@@ -22,11 +22,11 @@ def run_clang_format(args=None) -> Tuple[int, str]:
     output = ""
     try:
         if "--dry-run" in command:
-            sp = subprocess.run(command, stdout=subprocess.PIPE, encoding="utf-8")
+            sp = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8")
             retval = -1  # Not a fail just identify it's a dry-run.
-            output = sp.stdout
+            output = sp.stdout + sp.stderr
         else:
-            retval = subprocess.run(command, stdout=subprocess.PIPE).returncode
+            retval = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE).returncode
         return retval, output
     except FileNotFoundError as stderr:
         retval = 1
