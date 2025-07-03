@@ -7,6 +7,9 @@ from .util import ensure_installed, DEFAULT_CLANG_VERSION
 
 parser = ArgumentParser()
 parser.add_argument("--version", default=DEFAULT_CLANG_VERSION)
+parser.add_argument(
+    "-v", "--verbose", action="store_true", help="Enable verbose output"
+)
 
 
 def run_clang_format(args=None) -> Tuple[int, str]:

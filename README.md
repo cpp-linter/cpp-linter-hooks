@@ -151,6 +151,21 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
 
 ```
 
+## Troubleshooting
+
+### Debugging `clang-format` hook
+
+If you encounter issues with the clang-format hook (such as exit code 247 or other errors), you can enable verbose output to show the list of processed files.
+
+```yaml
+repos:
+  - repo: https://github.com/cpp-linter/cpp-linter-hooks
+    rev: v0.8.1
+    hooks:
+      - id: clang-format
+        args: [--style=file, --version=18, --verbose]   # Add --verbose for detailed output
+```
+
 ## Contributing
 
 We welcome contributions! Whether it's fixing issues, suggesting improvements, or submitting pull requests, your support is greatly appreciated.
