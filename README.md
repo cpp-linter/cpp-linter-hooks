@@ -29,7 +29,7 @@ Add this configuration to your `.pre-commit-config.yaml` file:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.8.1  # Use the tag or commit you want
+    rev: v0.8.3  # Use the tag or commit you want
     hooks:
       - id: clang-format
         args: [--style=Google] # Other coding style: LLVM, GNU, Chromium, Microsoft, Mozilla, WebKit.
@@ -44,7 +44,7 @@ To use custom configurations like `.clang-format` and `.clang-tidy`:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.8.1
+    rev: v0.8.3
     hooks:
       - id: clang-format
         args: [--style=file]  # Loads style from .clang-format file
@@ -59,7 +59,7 @@ To use specific versions of [clang-tools](https://github.com/cpp-linter/clang-to
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.8.1
+    rev: v0.8.3
     hooks:
       - id: clang-format
         args: [--style=file, --version=18] # Specifies version
@@ -146,7 +146,7 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v0.8.1
+  rev: v0.8.3
   hooks:
     - id: clang-format
       args: [--style=file, --version=18]
@@ -172,7 +172,7 @@ This approach ensures that only modified files are checked, further speeding up 
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.8.1
+    rev: v0.8.3
     hooks:
       - id: clang-format
         args: [--style=file, --version=18, --verbose]   # Add -v or --verbose for detailed output
