@@ -6,7 +6,7 @@ requires-python = ">=3.9"
 
 [project]
 name = "cpp_linter_hooks"
-description = "Automatically check c/c++ code with clang-format and clang-tidy"
+description = "Automatically formats and lints C/C++ code using clang-format and clang-tidy"
 readme = "README.md"
 keywords = ["clang", "clang-format", "clang-tidy", "pre-commit", "pre-commit-hooks"]
 license = "MIT"

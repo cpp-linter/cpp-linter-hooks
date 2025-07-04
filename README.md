@@ -6,7 +6,7 @@
 [![Test](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/test.yml/badge.svg)](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/test.yml)
 [![CodeQL](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/codeql.yml/badge.svg)](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/codeql.yml)
 
-A powerful [pre-commit](https://pre-commit.com/) hook that automatically formats and lints your C/C++ code using `clang-format` and `clang-tidy`.
+A powerful [pre-commit](https://pre-commit.com/) hook for auto-formatting and linting C/C++ code with `clang-format` and `clang-tidy`.
 
 ## Table of Contents
 
