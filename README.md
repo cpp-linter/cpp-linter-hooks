@@ -172,7 +172,7 @@ This approach ensures that only modified files are checked, further speeding up 
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.8.1
+    rev: v0.8.3
     hooks:
       - id: clang-format
         args: [--style=file, --version=18, --verbose]   # Add -v or --verbose for detailed output
