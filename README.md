@@ -166,7 +166,8 @@ This approach ensures that only modified files are checked, further speeding up 
 
 ### Verbose Output
 
-If you encounter issues with the `clang-format` hook (such as exit code 247 or other errors), you can enable verbose output to show the list of processed files by passing the `-v` or `--verbose` argument in the `args` section.
+> [!NOTE]
+> Use `-v` or `--verbose` in `args` of `clang-format` to show the list of processed files e.g.:
 
 ```yaml
 repos:
