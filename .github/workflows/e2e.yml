@@ -1,4 +1,4 @@
-name: Large Codebase Functional Test
+name: End-to-End Test
 
 on:
   push:
@@ -22,17 +22,16 @@ on:
 
 jobs:
   test:
-    name: Test cpp-linter-hooks
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout cpp-linter-hooks
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: Set up Python 3.13
         uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.13'
 
       - name: Install dependencies
         run: |
@@ -50,7 +49,7 @@ jobs:
           cat > .pre-commit-config.yaml << 'EOF'
           repos:
             - repo: https://github.com/cpp-linter/cpp-linter-hooks
-              rev: v0.8.1
+              rev: v0.8.3
               hooks:
                 - id: clang-format
                   args: [--style=${{ github.event.inputs.style || 'Google' }}, --version=${{ github.event.inputs.clang_version || '20' }}]
