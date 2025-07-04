@@ -11,13 +11,14 @@ A powerful [pre-commit](https://pre-commit.com/) hook that automatically formats
 ## Table of Contents
 
 - [Quick Start](#quick-start)
-- [Custom Configuration Files](#custom-configuration-files)
-- [Custom Clang Tool Version](#custom-clang-tool-version)
-- [Troubleshooting](#troubleshooting)
-- [Debugging `clang-format` hook](#debugging-clang-format-hook)
+  - [Custom Configuration Files](#custom-configuration-files)
+  - [Custom Clang Tool Version](#custom-clang-tool-version)
 - [Output](#output)
   - [clang-format Output](#clang-format-output)
   - [clang-tidy Output](#clang-tidy-output)
+- [Troubleshooting](#troubleshooting)
+  - [Performance Optimization](#performance-optimization)
+  - [Verbose Output](#verbose-output)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -64,45 +65,6 @@ repos:
         args: [--style=file, --version=18] # Specifies version
       - id: clang-tidy
         args: [--checks=.clang-tidy, --version=18] # Specifies version
-```
-
-### Troubleshooting
-
-> [!IMPORTANT]
-> If your `pre-commit` runs longer than expected, it is highly recommended to add `files` in `.pre-commit-config.yaml` to limit the scope of the hook. This helps improve performance by reducing the number of files being checked and avoids unnecessary processing. Here's an example configuration:
-
-
-```yaml
-- repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v0.8.1
-  hooks:
-    - id: clang-format
-      args: [--style=file, --version=18]
-      files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$ # Limits to specific dirs and file types
-    - id: clang-tidy
-      args: [--checks=.clang-tidy, --version=18]
-      files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
-```
-
-Alternatively, if you want to run the hooks manually on only the changed files, you can use the following command:
-
-```bash
-pre-commit run --files $(git diff --name-only)
-```
-
-This approach ensures that only modified files are checked, further speeding up the linting process during development.
-
-### Debugging `clang-format` hook
-
-If you encounter issues with the clang-format hook (such as exit code 247 or other errors), you can enable verbose output to show the list of processed files by passing the `-v` or `--verbose` argument in the `args` section.
-
-```yaml
-repos:
-  - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.8.1
-    hooks:
-      - id: clang-format
-        args: [--style=file, --version=18, --verbose]   # Add -v or --verbose for detailed output
 ```
 
 ## Output
@@ -173,6 +135,46 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
             ^
              {
 
+```
+
+## Troubleshooting
+
+### Performance Optimization
+
+> [!WARNING]
+> If your `pre-commit` runs longer than expected, it is highly recommended to add `files` in `.pre-commit-config.yaml` to limit the scope of the hook. This helps improve performance by reducing the number of files being checked and avoids unnecessary processing. Here's an example configuration:
+
+```yaml
+- repo: https://github.com/cpp-linter/cpp-linter-hooks
+  rev: v0.8.1
+  hooks:
+    - id: clang-format
+      args: [--style=file, --version=18]
+      files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$ # Limits to specific dirs and file types
+    - id: clang-tidy
+      args: [--checks=.clang-tidy, --version=18]
+      files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
+```
+
+Alternatively, if you want to run the hooks manually on only the changed files, you can use the following command:
+
+```bash
+pre-commit run --files $(git diff --name-only)
+```
+
+This approach ensures that only modified files are checked, further speeding up the linting process during development.
+
+### Verbose Output
+
+If you encounter issues with the `clang-format` hook (such as exit code 247 or other errors), you can enable verbose output to show the list of processed files by passing the `-v` or `--verbose` argument in the `args` section.
+
+```yaml
+repos:
+  - repo: https://github.com/cpp-linter/cpp-linter-hooks
+    rev: v0.8.1
+    hooks:
+      - id: clang-format
+        args: [--style=file, --version=18, --verbose]   # Add -v or --verbose for detailed output
 ```
 
 ## Contributing
