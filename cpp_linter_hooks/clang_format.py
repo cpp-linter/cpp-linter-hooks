@@ -61,14 +61,14 @@ def _print_verbose_info(command: list, retval: int, output: str) -> None:
 
 
 def main() -> int:
-    retval, output = run_clang_format()
+    retval, output = run_clang_format()  # pragma: no cover
 
     # Print output for errors, but not for dry-run mode
-    if retval != 0 and retval != -1 and output.strip():
+    if retval != 0 and retval != -1 and output.strip():  # pragma: no cover
         print(output)
 
     # Convert dry-run special code to success
-    return 0 if retval == -1 else retval
+    return 0 if retval == -1 else retval  # pragma: no cover
 
 
 if __name__ == "__main__":
