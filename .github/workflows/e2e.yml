@@ -1,0 +1,64 @@
+name: Large Codebase Functional Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      target_repo:
+        description: 'Target repository to test against'
+        required: false
+        default: 'python/cpython'
+      clang_version:
+        description: 'Clang version to use'
+        required: false
+        default: '20'
+      style:
+        description: 'Clang-format style'
+        required: false
+        default: 'Google'
+
+jobs:
+  test:
+    name: Test cpp-linter-hooks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout cpp-linter-hooks
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pre-commit
+
+      - name: Clone target repository
+        run: |
+          git clone --depth=1 https://github.com/${{ github.event.inputs.target_repo || 'python/cpython' }}.git test-repo
+
+      - name: Replace pre-commit configuration
+        run: |
+          cd test-repo
+          rm -f .pre-commit-config.yaml
+          cat > .pre-commit-config.yaml << 'EOF'
+          repos:
+            - repo: https://github.com/cpp-linter/cpp-linter-hooks
+              rev: v0.8.1
+              hooks:
+                - id: clang-format
+                  args: [--style=${{ github.event.inputs.style || 'Google' }}, --version=${{ github.event.inputs.clang_version || '20' }}]
+                  files: ^(.*\.(c|cc|cpp|cxx|h|hpp|hxx))$
+          EOF
+
+      - name: Install pre-commit hooks
+        run: |
+          cd test-repo
+          pre-commit install
+          pre-commit run --all-files
