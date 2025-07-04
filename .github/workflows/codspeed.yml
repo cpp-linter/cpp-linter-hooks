@@ -3,8 +3,20 @@ name: CodSpeed
 on:
   push:
     branches:
-      - "main" # or "master"
+      - "main"
+    paths:
+      - "cpp-linter-hooks/**"
+      - "tests/**"
+      - ".github/workflows/codspeed.yml"
+      - "pyproject.toml"
   pull_request:
+    branches:
+      - "main"
+    paths:
+      - "cpp-linter-hooks/**"
+      - "tests/**"
+      - ".github/workflows/codspeed.yml"
+      - "pyproject.toml"
   # `workflow_dispatch` allows CodSpeed to trigger backtest
   # performance analysis in order to generate initial data.
   workflow_dispatch:
