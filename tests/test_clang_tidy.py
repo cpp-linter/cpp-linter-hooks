@@ -12,6 +12,7 @@ def generate_compilation_database():
     subprocess.run(["cmake", "-Bbuild", "testing/"])
 
 
+@pytest.mark.benchmark
 @pytest.mark.parametrize(
     ("args", "expected_retval"),
     (
@@ -32,6 +33,7 @@ def test_run_clang_tidy_valid(args, expected_retval):
     print(output)
 
 
+@pytest.mark.benchmark
 @pytest.mark.parametrize(
     ("args", "expected_retval"),
     (

@@ -4,6 +4,7 @@ from pathlib import Path
 from cpp_linter_hooks.clang_format import run_clang_format
 
 
+@pytest.mark.benchmark
 @pytest.mark.parametrize(
     ("args", "expected_retval"),
     (
@@ -24,6 +25,7 @@ def test_run_clang_format_valid(args, expected_retval, tmp_path):
     assert test_file.read_text() == Path("testing/good.c").read_text()
 
 
+@pytest.mark.benchmark
 @pytest.mark.parametrize(
     ("args", "expected_retval"),
     (
@@ -48,6 +50,7 @@ def test_run_clang_format_invalid(args, expected_retval, tmp_path):
     assert ret == expected_retval
 
 
+@pytest.mark.benchmark
 @pytest.mark.parametrize(
     ("args", "expected_retval"),
     (
@@ -66,6 +69,7 @@ def test_run_clang_format_dry_run(args, expected_retval, tmp_path):
     assert ret == -1  # Dry run should not fail
 
 
+@pytest.mark.benchmark
 def test_run_clang_format_verbose(tmp_path):
     """Test that verbose option works and provides detailed output."""
     # copy test file to tmp_path to prevent modifying repo data
@@ -82,6 +86,7 @@ def test_run_clang_format_verbose(tmp_path):
     assert test_file.read_text() == Path("testing/good.c").read_text()
 
 
+@pytest.mark.benchmark
 def test_run_clang_format_verbose_error(tmp_path):
     """Test that verbose option provides useful error information."""
     test_file = tmp_path / "main.c"
