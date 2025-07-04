@@ -49,6 +49,7 @@ dev = [
     "coverage",
     "pre-commit",
     "pytest",
+    "pytest-codspeed",
 ]
 
 [tool.setuptools]

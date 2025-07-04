@@ -10,6 +10,7 @@ VERSIONS = [None, "18"]
 TOOLS = ["clang-format", "clang-tidy"]
 
 
+@pytest.mark.benchmark
 @pytest.mark.parametrize(("tool", "version"), list(product(TOOLS, VERSIONS)))
 def test_ensure_installed(tool, version, tmp_path, monkeypatch, caplog):
     bin_path = tmp_path / "bin"
