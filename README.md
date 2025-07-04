@@ -5,18 +5,26 @@
 [![codecov](https://codecov.io/gh/cpp-linter/cpp-linter-hooks/branch/main/graph/badge.svg?token=L74Z3HZ4Y5)](https://codecov.io/gh/cpp-linter/cpp-linter-hooks)
 [![Test](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/test.yml/badge.svg)](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/test.yml)
 [![CodeQL](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/codeql.yml/badge.svg)](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/codeql.yml)
-<!-- [![PyPI - Downloads](https://img.shields.io/pypi/dw/cpp-linter-hooks)](https://pypi.org/project/cpp-linter-hooks/) -->
 
-cpp-linter-hooks is a [pre-commit](https://pre-commit.com/) hook that uses `clang-format` and `clang-tidy` to format C/C++ code.
+A powerful [pre-commit](https://pre-commit.com/) hook for auto-formatting and linting C/C++ code with `clang-format` and `clang-tidy`.
 
-> [!NOTE]
-> This hook automatically downloads specific versions of `clang-format` or `clang-tidy` [static-binaries](https://github.com/cpp-linter/clang-tools-static-binaries) and installs them on your system.
+## Table of Contents
 
-## Usage
+- [Quick Start](#quick-start)
+  - [Custom Configuration Files](#custom-configuration-files)
+  - [Custom Clang Tool Version](#custom-clang-tool-version)
+- [Output](#output)
+  - [clang-format Output](#clang-format-output)
+  - [clang-tidy Output](#clang-tidy-output)
+- [Troubleshooting](#troubleshooting)
+  - [Performance Optimization](#performance-optimization)
+  - [Verbose Output](#verbose-output)
+- [Contributing](#contributing)
+- [License](#license)
 
-To use cpp-linter-hooks, add the following configuration to your `.pre-commit-config.yaml`:
+## Quick Start
 
-### Basic Configuration
+Add this configuration to your `.pre-commit-config.yaml` file:
 
 ```yaml
 repos:
@@ -29,7 +37,7 @@ repos:
         args: [--checks='boost-*,bugprone-*,performance-*,readability-*,portability-*,modernize-*,clang-analyzer-*,cppcoreguidelines-*']
 ```
 
-### Custom Configuration
+### Custom Configuration Files
 
 To use custom configurations like `.clang-format` and `.clang-tidy`:
 
@@ -44,6 +52,8 @@ repos:
         args: [--checks=.clang-tidy] # Loads checks from .clang-tidy file
 ```
 
+### Custom Clang Tool Version
+
 To use specific versions of [clang-tools](https://github.com/cpp-linter/clang-tools-pip?tab=readme-ov-file#supported-versions):
 
 ```yaml
@@ -57,33 +67,9 @@ repos:
         args: [--checks=.clang-tidy, --version=18] # Specifies version
 ```
 
-> [!IMPORTANT]
-> If your `pre-commit` runs longer than expected, it is highly recommended to add `files` in `.pre-commit-config.yaml` to limit the scope of the hook. This helps improve performance by reducing the number of files being checked and avoids unnecessary processing. Here's an example configuration:
-
-
-```yaml
-- repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v0.8.1
-  hooks:
-    - id: clang-format
-      args: [--style=file, --version=18]
-      files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$ # Limits to specific dirs and file types
-    - id: clang-tidy
-      args: [--checks=.clang-tidy, --version=18]
-      files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
-```
-
-Alternatively, if you want to run the hooks manually on only the changed files, you can use the following command:
-
-```bash
-pre-commit run --files $(git diff --name-only)
-```
-
-This approach ensures that only modified files are checked, further speeding up the linting process during development.
-
 ## Output
 
-### clang-format Example
+### clang-format Output
 
 ```bash
 clang-format.............................................................Failed
@@ -106,8 +92,8 @@ Here’s a sample diff showing the formatting applied:
 +  return 0;
 +}
 ```
-
-Use `--dry-run` in `args` of `clang-format` to print instead of changing the format, e.g.:
+> [!NOTE]
+> Use `--dry-run` in `args` of `clang-format` to print instead of changing the format, e.g.:
 
 ```bash
 clang-format.............................................................Failed
@@ -134,7 +120,7 @@ int main() {for (;;) break; printf("Hello world!\n");return 0;}
                                                               ^
 ```
 
-### clang-tidy Example
+### clang-tidy Output
 
 ```bash
 clang-tidy...............................................................Failed
@@ -151,10 +137,51 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
 
 ```
 
+## Troubleshooting
+
+### Performance Optimization
+
+> [!WARNING]
+> If your `pre-commit` runs longer than expected, it is highly recommended to add `files` in `.pre-commit-config.yaml` to limit the scope of the hook. This helps improve performance by reducing the number of files being checked and avoids unnecessary processing. Here's an example configuration:
+
+```yaml
+- repo: https://github.com/cpp-linter/cpp-linter-hooks
+  rev: v0.8.1
+  hooks:
+    - id: clang-format
+      args: [--style=file, --version=18]
+      files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$ # Limits to specific dirs and file types
+    - id: clang-tidy
+      args: [--checks=.clang-tidy, --version=18]
+      files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
+```
+
+Alternatively, if you want to run the hooks manually on only the changed files, you can use the following command:
+
+```bash
+pre-commit run --files $(git diff --name-only)
+```
+
+This approach ensures that only modified files are checked, further speeding up the linting process during development.
+
+### Verbose Output
+
+> [!NOTE]
+> Use `-v` or `--verbose` in `args` of `clang-format` to show the list of processed files e.g.:
+
+```yaml
+repos:
+  - repo: https://github.com/cpp-linter/cpp-linter-hooks
+    rev: v0.8.1
+    hooks:
+      - id: clang-format
+        args: [--style=file, --version=18, --verbose]   # Add -v or --verbose for detailed output
+```
+
 ## Contributing
 
 We welcome contributions! Whether it's fixing issues, suggesting improvements, or submitting pull requests, your support is greatly appreciated.
 
 ## License
 
-cpp-linter-hooks is licensed under the [MIT License](LICENSE)
+This project is licensed under the [MIT License](LICENSE).

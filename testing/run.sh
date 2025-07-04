@@ -1,22 +1,40 @@
-rm -f result.txt
+#!/bin/bash
+echo "==========================="
+echo "Test pre-commit-config.yaml"
+echo "==========================="
+pre-commit clean
+pre-commit run -c testing/pre-commit-config.yaml --files testing/main.c | tee -a result.txt || true
 git restore testing/main.c
 
-for config in testing/pre-commit-config.yaml testing/pre-commit-config-version.yaml; do
-    pre-commit clean
-    pre-commit run -c $config --files testing/main.c | tee -a result.txt || true
-    git restore testing/main.c
-done
+echo "===================================="
+echo "Test pre-commit-config-version.yaml"
+echo "===================================="
+pre-commit clean
+pre-commit run -c testing/pre-commit-config-version.yaml --files testing/main.c | tee -a result.txt || true
+git restore testing/main.c
+
+echo "===================================="
+echo "Test pre-commit-config-verbose.yaml"
+echo "===================================="
+pre-commit clean
+pre-commit run -c testing/pre-commit-config-verbose.yaml --files testing/main.c | tee -a result.txt || true
+git restore testing/main.c
+
+echo "=================================================================================="
+echo "print result.txt"
+cat result.txt
+echo "=================================================================================="
 
 failed_cases=`grep -c "Failed" result.txt`
 
 echo $failed_cases " cases failed."
 
-if [ $failed_cases -eq 9 ]; then
+if [ $failed_cases -eq 10 ]; then
     echo "=============================="
     echo "Test cpp-linter-hooks success."
     echo "=============================="
-    exit 0
     rm result.txt
+    exit 0
 else
     echo "============================="
     echo "Test cpp-linter-hooks failed."
