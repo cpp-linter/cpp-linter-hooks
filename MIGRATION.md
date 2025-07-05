@@ -15,9 +15,8 @@ Starting from version **v1.0.0**, `cpp-linter-hooks` has migrated from using the
 
 | Aspect | Before (< v1.0.0) | After (≥ v1.0.0) |
 |--------|-------------------|-------------------|
-| **Installation** | `clang-tools` package (binary management) | Python wheel packages (`clang-format`, `clang-tidy`) |
-| **Distribution** | Single package for both tools | Separate packages for each tool |
-| **Version Control** | Limited version flexibility | Enhanced version management with pip |
+| **Installation** | Install from GitHub release | Install with from PyPI |
+| **Distribution** | Binary packages | Python wheel packages |
 | **Performance** | Standard performance | Optimized wheel packages |
 
 ### Implementation Details
@@ -28,9 +27,7 @@ Starting from version **v1.0.0**, `cpp-linter-hooks` has migrated from using the
 
 ## Breaking Changes
 
-### For End Users
-
-> **No breaking changes for end users**
+**No breaking changes for end users**
 
 - Your existing `.pre-commit-config.yaml` files will continue to work without modification
 - All hook configurations remain backward compatible
@@ -38,44 +35,12 @@ Starting from version **v1.0.0**, `cpp-linter-hooks` has migrated from using the
 
 ## Migration Steps
 
-### For End Users
-
 **No action required!** Your existing configuration will continue to work seamlessly.
 
 However, we recommend updating to the latest version for:
 - Better performance
 - Enhanced reliability
 - Latest features and bug fixes
-
-#### Example Configuration (No Changes Needed)
-
-```yaml
-repos:
-  - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.0.0  # Use the latest version
-    hooks:
-      - id: clang-format
-        args: [--style=Google]
-      - id: clang-tidy
-        args: [--checks=-*,readability-*]
-```
-
-## Troubleshooting
-
-### Common Issues
-
-#### Issue: Tool not found after migration
-**Solution**: Clear your pre-commit cache:
-```bash
-pre-commit clean
-pre-commit install
-```
-
-#### Issue: Version mismatch errors
-**Solution**: Ensure you're using the latest version of `cpp-linter-hooks`:
-```yaml
-rev: v1.0.0  # Update to latest version
-```
 
 ## Support
 
