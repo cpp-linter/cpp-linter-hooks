@@ -1,4 +1,4 @@
-name: End-to-End Test
+name: E2E Test
 
 on:
   push:
@@ -48,7 +48,7 @@ jobs:
           cat > .pre-commit-config.yaml << 'EOF'
           repos:
             - repo: https://github.com/cpp-linter/cpp-linter-hooks
-              rev: v0.8.3
+              rev: v1.0.0
               hooks:
                 - id: clang-format
                   args: [--style=${{ github.event.inputs.style || 'Google' }}, --version=${{ github.event.inputs.clang_version || '20' }}]
