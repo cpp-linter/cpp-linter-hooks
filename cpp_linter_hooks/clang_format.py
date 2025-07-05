@@ -3,11 +3,11 @@ import sys
 from argparse import ArgumentParser
 from typing import Tuple
 
-from .util import ensure_installed, DEFAULT_CLANG_VERSION
+from .util import ensure_installed, DEFAULT_CLANG_FORMAT_VERSION
 
 
 parser = ArgumentParser()
-parser.add_argument("--version", default=DEFAULT_CLANG_VERSION)
+parser.add_argument("--version", default=DEFAULT_CLANG_FORMAT_VERSION)
 parser.add_argument(
     "-v", "--verbose", action="store_true", help="Enable verbose output"
 )
@@ -15,8 +15,8 @@ parser.add_argument(
 
 def run_clang_format(args=None) -> Tuple[int, str]:
     hook_args, other_args = parser.parse_known_args(args)
-    path = ensure_installed("clang-format", hook_args.version)
-    command = [str(path), "-i"]
+    tool_name = ensure_installed("clang-format", hook_args.version)
+    command = [tool_name, "-i"]
 
     # Add verbose flag if requested
     if hook_args.verbose:
