@@ -7,7 +7,6 @@ Starting from version **v1.0.0**, `cpp-linter-hooks` has migrated from using the
 - **Better cross-platform compatibility**
 - **Easier installation and dependency management**
 - **Improved performance and reliability**
-- **More predictable version management**
 
 ## What Changed
 
@@ -17,7 +16,7 @@ Starting from version **v1.0.0**, `cpp-linter-hooks` has migrated from using the
 |--------|-------------------|-------------------|
 | **Installation** | Install from GitHub release | Install with from PyPI |
 | **Distribution** | Binary packages | Python wheel packages |
-| **Performance** | Standard performance | Optimized wheel packages |
+| **Performance** | Run serially | Run in parallel |
 
 ### Implementation Details
 
