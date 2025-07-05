@@ -1,111 +1,109 @@
-# Migration Guide: From clang-tools to Python Wheels
+# Migration: From Clang Tools Binaries to Python Wheels
 
 ## Overview
 
-Starting from version 0.9.0, `cpp-linter-hooks` has migrated from using the `clang-tools` package to using Python wheel packages for `clang-format` and `clang-tidy`. This change provides better cross-platform compatibility, easier installation, and more reliable dependency management.
+Starting from version **v1.0.0**, `cpp-linter-hooks` has migrated from using the `clang-tools` package to using Python wheel packages for `clang-format` and `clang-tidy`. This change provides:
+
+- **Better cross-platform compatibility**
+- **Easier installation and dependency management**
+- **Improved performance and reliability**
+- **More predictable version management**
 
 ## What Changed
 
-### Dependencies
-- **Before**: Used `clang-tools==0.15.1` package
-- **After**: Uses `clang-format` and `clang-tidy` wheel packages from PyPI
+### Core Changes
 
-### Installation Method
-- **Before**: clang-format and clang-tidy were installed via `clang-tools` package which managed binaries
-- **After**: clang-format and clang-tidy are installed as Python packages and available as executables
+| Aspect | Before (< v1.0.0) | After (≥ v1.0.0) |
+|--------|-------------------|-------------------|
+| **Installation** | `clang-tools` package (binary management) | Python wheel packages (`clang-format`, `clang-tidy`) |
+| **Distribution** | Single package for both tools | Separate packages for each tool |
+| **Version Control** | Limited version flexibility | Enhanced version management with pip |
+| **Performance** | Standard performance | Optimized wheel packages |
 
-### Benefits of Migration
+### Implementation Details
 
-1. **Better Cross-Platform Support**: Python wheels work consistently across different operating systems
-2. **Simplified Installation**: No need to manage binary installations separately
-3. **More Reliable**: No more issues with binary compatibility or single threaded execution
-4. **Better Version Management**: Each tool version is a separate package release
+- **Dependencies**: Updated to use separate `clang-format==20.1.7` and `clang-tidy==20.1.0` Python wheels
+- **Installation Logic**: Enhanced with pip-based installation and runtime version checks
+- **Performance**: Pre-commit hooks can now run in parallel for better speed
 
 ## Breaking Changes
 
 ### For End Users
 
-- **No breaking changes**: The pre-commit hook configuration remains exactly the same
-- All existing `.pre-commit-config.yaml` files will continue to work without modification
+> **No breaking changes for end users**
 
-### For Developers
-- The internal `ensure_installed()` function now returns the tool name instead of a Path object
-- The `util.py` module has been rewritten to use `shutil.which()` instead of `clang_tools.install`
-- Tests have been updated to mock the new wheel-based installation
+- Your existing `.pre-commit-config.yaml` files will continue to work without modification
+- All hook configurations remain backward compatible
+- No changes required to your workflow
 
 ## Migration Steps
 
 ### For End Users
-No action required! Your existing configuration will continue to work.
 
-### For Developers/Contributors
-1. Update your development environment:
-   ```bash
-   pip install clang-format clang-tidy
-   ```
+**No action required!** Your existing configuration will continue to work seamlessly.
 
-2. If you were importing from the utility module:
-   ```python
-   # Before
-   from cpp_linter_hooks.util import ensure_installed
-   path = ensure_installed("clang-format", "18")
-   command = [str(path), "--version"]
+However, we recommend updating to the latest version for:
+- Better performance
+- Enhanced reliability
+- Latest features and bug fixes
 
-   # After
-   from cpp_linter_hooks.util import ensure_installed
-   tool_name = ensure_installed("clang-format", "18")
-   command = [tool_name, "--version"]
-   ```
+#### Example Configuration (No Changes Needed)
 
-## Version Support
-
-The wheel packages support the same LLVM versions as before:
-- LLVM 16, 17, 18, 19, 20+
-- The `--version` argument continues to work as expected
+```yaml
+repos:
+  - repo: https://github.com/cpp-linter/cpp-linter-hooks
+    rev: v1.0.0  # Use the latest version
+    hooks:
+      - id: clang-format
+        args: [--style=Google]
+      - id: clang-tidy
+        args: [--checks=-*,readability-*]
+```
 
 ## Troubleshooting
 
-### Tool Not Found Error
-If you encounter "command not found" errors:
+### Common Issues
 
-1. Ensure the wheel packages are installed:
-   ```bash
-   pip install clang-format clang-tidy
-   ```
-
-2. Verify the tools are available:
-   ```bash
-   clang-format --version
-   clang-tidy --version
-   ```
-
-3. Check that the tools are in your PATH:
-   ```bash
-   which clang-format
-   which clang-tidy
-   ```
-
-### Version Mismatch
-If you need a specific version, you can install it explicitly:
+#### Issue: Tool not found after migration
+**Solution**: Clear your pre-commit cache:
 ```bash
-pip install clang-format==18.1.8
-pip install clang-tidy==18.1.8
+pre-commit clean
+pre-commit install
+```
+
+#### Issue: Version mismatch errors
+**Solution**: Ensure you're using the latest version of `cpp-linter-hooks`:
+```yaml
+rev: v1.0.0  # Update to latest version
 ```
 
 ## Support
 
-If you encounter any issues after the migration, please:
-1. Check this migration guide
-2. Search existing [issues](https://github.com/cpp-linter/cpp-linter-hooks/issues)
-3. Create a new issue with:
-   - Your operating system
+If you encounter issues after migration:
+
+1. **Check this guide**: Review the troubleshooting section above
+2. **Search existing issues**: [GitHub Issues](https://github.com/cpp-linter/cpp-linter-hooks/issues)
+3. **Report new issues**: Include the following information:
+   - Operating system and version
    - Python version
-   - The exact error message
+   - `cpp-linter-hooks` version
+   - Complete error message/stack trace
    - Your `.pre-commit-config.yaml` configuration
 
 ## References
 
-- [clang-format wheel package](https://github.com/ssciwr/clang-format-wheel)
-- [clang-tidy wheel package](https://github.com/ssciwr/clang-tidy-wheel)
-- [PyPI clang-format](https://pypi.org/project/clang-format/)
-- [PyPI clang-tidy](https://pypi.org/project/clang-tidy/)
+### Official Packages
+- [clang-format Python wheel](https://pypi.org/project/clang-format/) - PyPI package
+- [clang-tidy Python wheel](https://pypi.org/project/clang-tidy/) - PyPI package
+
+### Source Repositories
+- [clang-format wheel source](https://github.com/ssciwr/clang-format-wheel) - GitHub repository
+- [clang-tidy wheel source](https://github.com/ssciwr/clang-tidy-wheel) - GitHub repository
+
+### Documentation
+- [cpp-linter-hooks Documentation](https://github.com/cpp-linter/cpp-linter-hooks) - Main repository
+- [Pre-commit Framework](https://pre-commit.com/) - Pre-commit documentation
+
+---
+
+**Happy linting!**
