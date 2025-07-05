@@ -35,6 +35,7 @@ dependencies = [
     "clang-format==20.1.7",
     "clang-tidy==20.1.0",
     "toml>=0.10.2",
+    "packaging>=20.0",
 ]
 dynamic = ["version"]
 
