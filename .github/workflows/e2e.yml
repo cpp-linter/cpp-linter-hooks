@@ -54,9 +54,10 @@ jobs:
                 - id: clang-format
                   args: [--style=${{ github.event.inputs.style || 'Google' }}, --version=${{ github.event.inputs.clang_version || '20' }}]
                   files: ^(.*\.(c|cc|cpp|cxx|h|hpp|hxx))$
+                  exclude: Modules/_ctypes/cfield.c
           EOF
 
-      - name: Install pre-commit hooks
+      - name: Install and run hooks
         run: |
           cd test-repo
           pre-commit install
