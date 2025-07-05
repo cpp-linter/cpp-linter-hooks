@@ -6,7 +6,7 @@ requires-python = ">=3.9"
 
 [project]
 name = "cpp_linter_hooks"
-description = "Automatically formats and lints C/C++ code using clang-format and clang-tidy Python wheels"
+description = "Automatically formats and lints C/C++ code using clang-format and clang-tidy"
 readme = "README.md"
 keywords = ["clang", "clang-format", "clang-tidy", "pre-commit", "pre-commit-hooks"]
 license = "MIT"
@@ -32,8 +32,8 @@ classifiers = [
     "Topic :: Software Development :: Build Tools",
 ]
 dependencies = [
-    "clang-format",
-    "clang-tidy",
+    "clang-format==20.1.7",
+    "clang-tidy==20.1.0",
 ]
 dynamic = ["version"]
 
