@@ -1,51 +1,64 @@
 import sys
+import shutil
 from pathlib import Path
 import logging
 from typing import Optional
 
-from clang_tools.util import Version
-from clang_tools.install import is_installed as _is_installed, install_tool
-
-
 LOG = logging.getLogger(__name__)
 
+DEFAULT_CLANG_VERSION = "20"  # Default version for clang tools, can be overridden
 
-DEFAULT_CLANG_VERSION = "18"  # Default version for clang tools, can be overridden
 
-
-def is_installed(tool_name: str, version: str) -> Optional[Path]:
+def is_installed(tool_name: str, version: str = "") -> Optional[Path]:
     """Check if tool is installed.
 
-    Checks the current python prefix and PATH via clang_tools.install.is_installed.
+    With wheel packages, the tools are installed as regular Python packages
+    and available via shutil.which().
     """
-    # check in current python prefix (usual situation when we installed into pre-commit venv)
-    directory = Path(sys.executable).parent
-    path = directory / f"{tool_name}-{version}"
-    if path.is_file():
-        return path
+    # Check if tool is available in PATH
+    tool_path = shutil.which(tool_name)
+    if tool_path is not None:
+        return Path(tool_path)
 
-    # parse the user-input version as a string
-    parsed_ver = Version(version)
-    # also check using clang_tools
-    path = _is_installed(tool_name, parsed_ver)
-    if path is not None:
-        return Path(path)
+    # Check if tool is available in current Python environment
+    if sys.executable:
+        python_dir = Path(sys.executable).parent
+        tool_path = python_dir / tool_name
+        if tool_path.is_file():
+            return tool_path
 
-    # not found
+        # Also check Scripts directory on Windows
+        scripts_dir = python_dir / "Scripts"
+        if scripts_dir.exists():
+            tool_path = scripts_dir / tool_name
+            if tool_path.is_file():
+                return tool_path
+            # Try with .exe extension on Windows
+            tool_path = scripts_dir / f"{tool_name}.exe"
+            if tool_path.is_file():
+                return tool_path
+
     return None
 
 
-def ensure_installed(tool_name: str, version: str = DEFAULT_CLANG_VERSION) -> Path:
+def ensure_installed(tool_name: str, version: str = "") -> str:
     """
-    Ensure tool is available at given version.
+    Ensure tool is available. With wheel packages, we assume the tools are
+    installed as dependencies and available in PATH.
+
+    Returns the tool name (not path) since the wheel packages install the tools
+    as executables that can be called directly.
     """
-    LOG.info("Checking for %s, version %s", tool_name, version)
+    LOG.info("Checking for %s", tool_name)
     path = is_installed(tool_name, version)
     if path is not None:
-        LOG.info("%s, version %s is already installed", tool_name, version)
-        return path
+        LOG.info("%s is available at %s", tool_name, path)
+        return tool_name  # Return tool name for direct execution
 
-    LOG.info("Installing %s, version %s", tool_name, version)
-    directory = Path(sys.executable).parent
-    install_tool(tool_name, version, directory=str(directory), no_progress_bar=True)
-    return directory / f"{tool_name}-{version}"
+    # If not found, we'll still return the tool name and let subprocess handle the error
+    LOG.warning(
+        "%s not found in PATH. Make sure the %s wheel package is installed.",
+        tool_name,
+        tool_name,
+    )
+    return tool_name

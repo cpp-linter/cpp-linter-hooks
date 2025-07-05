@@ -54,7 +54,7 @@ repos:
 
 ### Custom Clang Tool Version
 
-To use specific versions of [clang-tools](https://github.com/cpp-linter/clang-tools-pip?tab=readme-ov-file#supported-versions):
+To use specific versions of clang-format and clang-tidy (using Python wheel packages):
 
 ```yaml
 repos:
@@ -66,6 +66,9 @@ repos:
       - id: clang-tidy
         args: [--checks=.clang-tidy, --version=18] # Specifies version
 ```
+
+> [!NOTE]
+> Starting from version 0.9.0, this package uses Python wheel packages ([clang-format](https://pypi.org/project/clang-format/) and [clang-tidy](https://pypi.org/project/clang-tidy/)) instead of the previous clang-tools binaries. The wheel packages provide better cross-platform compatibility and easier installation.
 
 ## Output
 

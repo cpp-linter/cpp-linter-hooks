@@ -13,7 +13,7 @@ result.txt
 testing/main.c
 */*compile_commands.json
 
-# Ignore clang-tools binaries
+# Ignore Python wheel packages (clang-format, clang-tidy)
 clang-tidy-1*
 clang-tidy-2*
 clang-format-1*

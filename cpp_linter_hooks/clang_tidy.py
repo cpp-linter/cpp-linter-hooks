@@ -11,8 +11,8 @@ parser.add_argument("--version", default=DEFAULT_CLANG_VERSION)
 
 def run_clang_tidy(args=None) -> Tuple[int, str]:
     hook_args, other_args = parser.parse_known_args(args)
-    path = ensure_installed("clang-tidy", hook_args.version)
-    command = [str(path)]
+    tool_name = ensure_installed("clang-tidy", hook_args.version)
+    command = [tool_name]
     command.extend(other_args)
 
     retval = 0
