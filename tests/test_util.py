@@ -6,7 +6,7 @@ from unittest.mock import patch
 from cpp_linter_hooks.util import ensure_installed, is_installed
 
 
-VERSIONS = [None, "18"]
+VERSIONS = [None, "20"]
 TOOLS = ["clang-format", "clang-tidy"]
 
 
@@ -37,6 +37,7 @@ def test_ensure_installed(tool, version, tmp_path, monkeypatch, caplog):
                 assert any("Ensuring" in record.message for record in caplog.records)
 
 
+@pytest.mark.benchmark
 def test_is_installed_with_shutil_which(tmp_path):
     """Test is_installed when tool is found via shutil.which."""
     tool_path = tmp_path / "clang-format"
@@ -47,6 +48,7 @@ def test_is_installed_with_shutil_which(tmp_path):
         assert result == tool_path
 
 
+@pytest.mark.benchmark
 def test_is_installed_not_found():
     """Test is_installed when tool is not found anywhere."""
     with (
@@ -57,6 +59,7 @@ def test_is_installed_not_found():
         assert result is None
 
 
+@pytest.mark.benchmark
 def test_ensure_installed_tool_not_found(caplog):
     """Test ensure_installed when tool is not found."""
     with (
