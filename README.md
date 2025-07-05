@@ -29,7 +29,7 @@ Add this configuration to your `.pre-commit-config.yaml` file:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.8.3  # Use the tag or commit you want
+    rev: v1.0.0  # Use the tag or commit you want
     hooks:
       - id: clang-format
         args: [--style=Google] # Other coding style: LLVM, GNU, Chromium, Microsoft, Mozilla, WebKit.
@@ -44,7 +44,7 @@ To use custom configurations like `.clang-format` and `.clang-tidy`:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.8.3
+    rev: v1.0.0
     hooks:
       - id: clang-format
         args: [--style=file]  # Loads style from .clang-format file
@@ -54,18 +54,21 @@ repos:
 
 ### Custom Clang Tool Version
 
-To use specific versions of [clang-tools](https://github.com/cpp-linter/clang-tools-pip?tab=readme-ov-file#supported-versions):
+To use specific versions of clang-format and clang-tidy (using Python wheel packages):
 
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.8.3
+    rev: v1.0.0
     hooks:
       - id: clang-format
         args: [--style=file, --version=18] # Specifies version
       - id: clang-tidy
         args: [--checks=.clang-tidy, --version=18] # Specifies version
 ```
+
+> [!NOTE]
+> Starting from version v1.0.0, this package uses Python wheel packages ([clang-format](https://pypi.org/project/clang-format/) and [clang-tidy](https://pypi.org/project/clang-tidy/)) instead of the previous clang-tools binaries. The wheel packages provide better cross-platform compatibility and easier installation. For more details, see the [Migration Guide](MIGRATION.md).
 
 ## Output
 
@@ -141,12 +144,12 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
 
 ### Performance Optimization
 
-> [!WARNING]
+> [!TIP]
 > If your `pre-commit` runs longer than expected, it is highly recommended to add `files` in `.pre-commit-config.yaml` to limit the scope of the hook. This helps improve performance by reducing the number of files being checked and avoids unnecessary processing. Here's an example configuration:
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v0.8.3
+  rev: v1.0.0
   hooks:
     - id: clang-format
       args: [--style=file, --version=18]
@@ -172,7 +175,7 @@ This approach ensures that only modified files are checked, further speeding up 
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v0.8.3
+    rev: v1.0.0
     hooks:
       - id: clang-format
         args: [--style=file, --version=18, --verbose]   # Add -v or --verbose for detailed output
