@@ -50,7 +50,7 @@ No action required! Your existing configuration will continue to work.
    from cpp_linter_hooks.util import ensure_installed
    path = ensure_installed("clang-format", "18")
    command = [str(path), "--version"]
-   
+
    # After
    from cpp_linter_hooks.util import ensure_installed
    tool_name = ensure_installed("clang-format", "18")

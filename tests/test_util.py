@@ -1,5 +1,4 @@
 import logging
-import sys
 import pytest
 from itertools import product
 from unittest.mock import patch
@@ -15,24 +14,27 @@ TOOLS = ["clang-format", "clang-tidy"]
 @pytest.mark.parametrize(("tool", "version"), list(product(TOOLS, VERSIONS)))
 def test_ensure_installed(tool, version, tmp_path, monkeypatch, caplog):
     """Test that ensure_installed returns the tool name for wheel packages."""
-    with monkeypatch.context() as m:
-        m.setattr(sys, "executable", str(tmp_path / "bin" / "python"))
-
+    with monkeypatch.context():
         # Mock shutil.which to simulate the tool being available
         with patch("shutil.which", return_value=str(tmp_path / tool)):
-            caplog.clear()
-            caplog.set_level(logging.INFO, logger="cpp_linter_hooks.util")
+            # Mock _get_runtime_version to return a matching version
+            mock_version = "20.1.7" if tool == "clang-format" else "20.1.0"
+            with patch(
+                "cpp_linter_hooks.util._get_runtime_version", return_value=mock_version
+            ):
+                caplog.clear()
+                caplog.set_level(logging.INFO, logger="cpp_linter_hooks.util")
 
-            if version is None:
-                result = ensure_installed(tool)
-            else:
-                result = ensure_installed(tool, version=version)
+                if version is None:
+                    result = ensure_installed(tool)
+                else:
+                    result = ensure_installed(tool, version=version)
 
-            # Should return the tool name for direct execution
-            assert result == tool
+                # Should return the tool name for direct execution
+                assert result == tool
 
-            # Check that we logged checking for the tool
-            assert any("Checking for" in record.message for record in caplog.records)
+                # Check that we logged ensuring the tool is installed
+                assert any("Ensuring" in record.message for record in caplog.records)
 
 
 def test_is_installed_with_shutil_which(tmp_path):
@@ -59,7 +61,7 @@ def test_ensure_installed_tool_not_found(caplog):
     """Test ensure_installed when tool is not found."""
     with (
         patch("shutil.which", return_value=None),
-        patch("sys.executable", "/nonexistent/python"),
+        patch("cpp_linter_hooks.util._install_tool", return_value=None),
     ):
         caplog.clear()
         caplog.set_level(logging.WARNING, logger="cpp_linter_hooks.util")
@@ -70,4 +72,7 @@ def test_ensure_installed_tool_not_found(caplog):
         assert result == "clang-format"
 
         # Should log a warning
-        assert any("not found in PATH" in record.message for record in caplog.records)
+        assert any(
+            "not found and could not be installed" in record.message
+            for record in caplog.records
+        )

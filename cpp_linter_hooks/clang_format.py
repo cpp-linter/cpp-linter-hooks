@@ -3,11 +3,11 @@ import sys
 from argparse import ArgumentParser
 from typing import Tuple
 
-from .util import ensure_installed, DEFAULT_CLANG_VERSION
+from .util import ensure_installed, DEFAULT_CLANG_FORMAT_VERSION
 
 
 parser = ArgumentParser()
-parser.add_argument("--version", default=DEFAULT_CLANG_VERSION)
+parser.add_argument("--version", default=DEFAULT_CLANG_FORMAT_VERSION)
 parser.add_argument(
     "-v", "--verbose", action="store_true", help="Enable verbose output"
 )
