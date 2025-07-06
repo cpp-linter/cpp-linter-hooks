@@ -1,10 +1,14 @@
 import sys
 import shutil
 import subprocess
-import tomllib
 from pathlib import Path
 import logging
 from typing import Optional, List
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
 
 LOG = logging.getLogger(__name__)
 
