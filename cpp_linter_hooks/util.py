@@ -132,7 +132,7 @@ def _resolve_version(versions: List[str], user_input: Optional[str]) -> Optional
         # return the latest version
         return max(matched_versions, key=parse_version)
 
-    except Exception:
+    except ValueError:
         LOG.warning("Version %s not found in available versions", user_input)
         return None
 
