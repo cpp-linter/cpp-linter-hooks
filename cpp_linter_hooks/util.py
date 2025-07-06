@@ -1,20 +1,25 @@
 import sys
 import shutil
-import toml
 import subprocess
 from pathlib import Path
 import logging
 from typing import Optional, List
-from packaging.version import Version, InvalidVersion
+
+try:
+    import tomllib
+except ModuleNotFoundError:
+    import tomli as tomllib
 
 LOG = logging.getLogger(__name__)
 
 
 def get_version_from_dependency(tool: str) -> Optional[str]:
+    """Get the version of a tool from the pyproject.toml dependencies."""
     pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
     if not pyproject_path.exists():
         return None
-    data = toml.load(pyproject_path)
+    with open(pyproject_path, "rb") as f:
+        data = tomllib.load(f)
     dependencies = data.get("project", {}).get("dependencies", [])
     for dep in dependencies:
         if dep.startswith(f"{tool}=="):
@@ -22,8 +27,8 @@ def get_version_from_dependency(tool: str) -> Optional[str]:
     return None
 
 
-DEFAULT_CLANG_FORMAT_VERSION = get_version_from_dependency("clang-format") or "20.1.7"
-DEFAULT_CLANG_TIDY_VERSION = get_version_from_dependency("clang-tidy") or "20.1.0"
+DEFAULT_CLANG_FORMAT_VERSION = get_version_from_dependency("clang-format")
+DEFAULT_CLANG_TIDY_VERSION = get_version_from_dependency("clang-tidy")
 
 
 CLANG_FORMAT_VERSIONS = [
@@ -108,29 +113,21 @@ CLANG_TIDY_VERSIONS = [
 
 
 def _resolve_version(versions: List[str], user_input: Optional[str]) -> Optional[str]:
+    """Resolve the version based on user input and available versions."""
     if user_input is None:
         return None
+    if user_input in versions:
+        return user_input
     try:
-        user_ver = Version(user_input)
-    except InvalidVersion:
+        # Check if the user input is a valid version
+        return next(v for v in versions if v.startswith(user_input) or v == user_input)
+    except StopIteration:
+        LOG.warning("Version %s not found in available versions", user_input)
         return None
-
-    candidates = [Version(v) for v in versions]
-    if user_input.count(".") == 0:
-        matches = [v for v in candidates if v.major == user_ver.major]
-    elif user_input.count(".") == 1:
-        matches = [
-            v
-            for v in candidates
-            if f"{v.major}.{v.minor}" == f"{user_ver.major}.{user_ver.minor}"
-        ]
-    else:
-        return str(user_ver) if user_ver in candidates else None
-
-    return str(max(matches)) if matches else None
 
 
 def _get_runtime_version(tool: str) -> Optional[str]:
+    """Get the runtime version of a tool."""
     try:
         output = subprocess.check_output([tool, "--version"], text=True)
         if tool == "clang-tidy":
@@ -144,6 +141,7 @@ def _get_runtime_version(tool: str) -> Optional[str]:
 
 
 def _install_tool(tool: str, version: str) -> Optional[Path]:
+    """Install a tool using pip."""
     try:
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", f"{tool}=={version}"]
@@ -155,6 +153,7 @@ def _install_tool(tool: str, version: str) -> Optional[Path]:
 
 
 def _resolve_install(tool: str, version: Optional[str]) -> Optional[Path]:
+    """Resolve the installation of a tool, checking for version and installing if necessary."""
     user_version = _resolve_version(
         CLANG_FORMAT_VERSIONS if tool == "clang-format" else CLANG_TIDY_VERSIONS,
         version,
@@ -191,6 +190,7 @@ def is_installed(tool: str) -> Optional[Path]:
 
 
 def ensure_installed(tool: str, version: Optional[str] = None) -> str:
+    """Ensure a tool is installed, resolving its version if necessary."""
     LOG.info("Ensuring %s is installed", tool)
     tool_path = _resolve_install(tool, version)
     if tool_path:

@@ -34,8 +34,7 @@ classifiers = [
 dependencies = [
     "clang-format==20.1.7",
     "clang-tidy==20.1.0",
-    "toml>=0.10.2",
-    "packaging>=20.0",
+    "tomli>=1.1.0; python_version < '3.11'",
 ]
 dynamic = ["version"]
 
