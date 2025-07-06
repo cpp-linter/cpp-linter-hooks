@@ -18,7 +18,8 @@ def get_version_from_dependency(tool: str) -> Optional[str]:
     pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
     if not pyproject_path.exists():
         return None
-    data = tomllib.load(pyproject_path)
+    with open(pyproject_path, "rb") as f:
+        data = tomllib.load(f)
     dependencies = data.get("project", {}).get("dependencies", [])
     for dep in dependencies:
         if dep.startswith(f"{tool}=="):
