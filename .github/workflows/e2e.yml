@@ -48,7 +48,7 @@ jobs:
           cat > .pre-commit-config.yaml << 'EOF'
           repos:
             - repo: https://github.com/cpp-linter/cpp-linter-hooks
-              rev: v1.0.0
+              rev: main
               hooks:
                 - id: clang-format
                   args: [--style=${{ github.event.inputs.style || 'Google' }}, --version=${{ github.event.inputs.clang_version || '20' }}]
