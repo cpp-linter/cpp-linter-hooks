@@ -113,15 +113,26 @@ CLANG_TIDY_VERSIONS = [
 
 
 def _resolve_version(versions: List[str], user_input: Optional[str]) -> Optional[str]:
-    """Resolve the version based on user input and available versions."""
+    """Resolve the latest matching version based on user input and available versions."""
     if user_input is None:
         return None
     if user_input in versions:
         return user_input
+
     try:
-        # Check if the user input is a valid version
-        return next(v for v in versions if v.startswith(user_input) or v == user_input)
-    except StopIteration:
+        # filter versions that start with the user input
+        matched_versions = [v for v in versions if v.startswith(user_input)]
+        if not matched_versions:
+            raise ValueError
+
+        # define a function to parse version strings into tuples for comparison
+        def parse_version(v: str):
+            return tuple(map(int, v.split(".")))
+
+        # return the latest version
+        return max(matched_versions, key=parse_version)
+
+    except Exception:
         LOG.warning("Version %s not found in available versions", user_input)
         return None
 
