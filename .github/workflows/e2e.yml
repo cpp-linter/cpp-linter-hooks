@@ -10,7 +10,7 @@ on:
       target_repo:
         description: 'Target repository to test against'
         required: false
-        default: 'python/cpython'
+        default: 'llvm/llvm-project'
       clang_version:
         description: 'Clang version to use'
         required: false
@@ -18,7 +18,7 @@ on:
       style:
         description: 'Clang-format style'
         required: false
-        default: 'Google'
+        default: 'file'
 
 jobs:
   e2e-test:
@@ -39,7 +39,7 @@ jobs:
 
       - name: Clone target repository
         run: |
-          git clone --depth=1 https://github.com/${{ github.event.inputs.target_repo || 'python/cpython' }}.git test-repo
+          git clone --depth=1 https://github.com/${{ github.event.inputs.target_repo || 'llvm/llvm-project' }}.git test-repo
 
       - name: Replace pre-commit configuration
         run: |
@@ -52,8 +52,6 @@ jobs:
               hooks:
                 - id: clang-format
                   args: [--style=${{ github.event.inputs.style || 'Google' }}, --version=${{ github.event.inputs.clang_version || '20' }}]
-                  files: ^(.*\.(c|cc|cpp|cxx|h|hpp|hxx))$
-                  exclude: Modules/_ctypes/cfield.c
           EOF
 
       - name: Install and run hook
