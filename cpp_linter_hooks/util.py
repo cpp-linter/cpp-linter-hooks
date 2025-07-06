@@ -11,6 +11,7 @@ LOG = logging.getLogger(__name__)
 
 
 def get_version_from_dependency(tool: str) -> Optional[str]:
+    """Get the version of a tool from the pyproject.toml dependencies."""
     pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
     if not pyproject_path.exists():
         return None
@@ -108,6 +109,7 @@ CLANG_TIDY_VERSIONS = [
 
 
 def _resolve_version(versions: List[str], user_input: Optional[str]) -> Optional[str]:
+    """Resolve the version based on user input and available versions."""
     if user_input is None:
         return None
     try:
@@ -131,6 +133,7 @@ def _resolve_version(versions: List[str], user_input: Optional[str]) -> Optional
 
 
 def _get_runtime_version(tool: str) -> Optional[str]:
+    """Get the runtime version of a tool."""
     try:
         output = subprocess.check_output([tool, "--version"], text=True)
         if tool == "clang-tidy":
@@ -144,6 +147,7 @@ def _get_runtime_version(tool: str) -> Optional[str]:
 
 
 def _install_tool(tool: str, version: str) -> Optional[Path]:
+    """Install a tool using pip."""
     try:
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", f"{tool}=={version}"]
@@ -155,6 +159,7 @@ def _install_tool(tool: str, version: str) -> Optional[Path]:
 
 
 def _resolve_install(tool: str, version: Optional[str]) -> Optional[Path]:
+    """Resolve the installation of a tool, checking for version and installing if necessary."""
     user_version = _resolve_version(
         CLANG_FORMAT_VERSIONS if tool == "clang-format" else CLANG_TIDY_VERSIONS,
         version,
@@ -191,6 +196,7 @@ def is_installed(tool: str) -> Optional[Path]:
 
 
 def ensure_installed(tool: str, version: Optional[str] = None) -> str:
+    """Ensure a tool is installed, resolving its version if necessary."""
     LOG.info("Ensuring %s is installed", tool)
     tool_path = _resolve_install(tool, version)
     if tool_path:
