@@ -11,10 +11,6 @@ on:
         description: 'Target repository to test against'
         required: false
         default: 'llvm/llvm-project'
-      clang_version:
-        description: 'Clang version to use'
-        required: false
-        default: '20'
       style:
         description: 'Clang-format style'
         required: false
@@ -23,8 +19,14 @@ on:
 jobs:
   e2e-test:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        clang_version: [13, 14, 15, 16, 17, 18, 19, 20]
+
+    name: Clang ${{ matrix.clang_version }}
     steps:
-      - name: Checkout
+      - name: Checkout workflow repo
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -32,7 +34,7 @@ jobs:
         with:
           python-version: '3.13'
 
-      - name: Install dependencies
+      - name: Install Python dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install pre-commit
@@ -41,27 +43,23 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/${{ github.event.inputs.target_repo || 'llvm/llvm-project' }}.git test-repo
 
-      - name: Replace pre-commit configuration
+      - name: Generate .pre-commit-config.yaml
         run: |
           cd test-repo
           rm -f .pre-commit-config.yaml
-          cat > .pre-commit-config.yaml << 'EOF'
+          cat > .pre-commit-config.yaml << EOF
           repos:
-            - repo: https://github.com/pre-commit/mirrors-clang-format
-              rev: v20.1.7
+            - repo: https://github.com/cpp-linter/cpp-linter-hooks
+              rev: main
               hooks:
                 - id: clang-format
+                  args: [
+                    --style=${{ github.event.inputs.style || 'file' }},
+                    --version=${{ matrix.clang_version }}
+                  ]
           EOF
-          # cat > .pre-commit-config.yaml << 'EOF'
-          # repos:
-          #   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-          #     rev: main
-          #     hooks:
-          #       - id: clang-format
-          #         args: [--style=${{ github.event.inputs.style || 'Google' }}, --version=${{ github.event.inputs.clang_version || '20' }}]
-          # EOF
 
-      - name: Install and run hook
+      - name: Install and run cpp-linter clang-format hook
         run: |
           cd test-repo
           pre-commit install
