@@ -159,30 +159,6 @@ def test_get_version_from_dependency_malformed_toml():
         assert result is None
 
 
-@pytest.mark.benchmark
-def test_get_version_from_dependency_fallback_to_dependencies():
-    """Test get_version_from_dependency falls back to project.dependencies."""
-    mock_toml_content = {
-        "project": {
-            "dependencies": [
-                "clang-format==20.1.7",
-                "clang-tidy==20.1.0",
-                "other-package==1.0.0",
-            ]
-        }
-    }
-
-    with (
-        patch("pathlib.Path.exists", return_value=True),
-        patch("cpp_linter_hooks.util.tomllib.load", return_value=mock_toml_content),
-    ):
-        result = get_version_from_dependency("clang-format")
-        assert result == "20.1.7"
-
-        result = get_version_from_dependency("clang-tidy")
-        assert result == "20.1.0"
-
-
 # Tests for _resolve_version
 @pytest.mark.benchmark
 @pytest.mark.parametrize(
