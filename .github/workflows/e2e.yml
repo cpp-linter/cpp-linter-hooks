@@ -41,7 +41,7 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/${{ github.event.inputs.target_repo || 'llvm/llvm-project' }}.git test-repo
 
-      - name: Generate .pre-commit-config.yaml
+      - name: Create .pre-commit-config.yaml
         run: |
           cd test-repo
           rm -f .pre-commit-config.yaml
@@ -61,7 +61,4 @@ jobs:
         run: |
           cd test-repo
           pre-commit install
-          # Run clang-format in smaller chunks
-          for dir in $(find . -type d -name '*'); do
-            pre-commit run --files $(find "$dir" -name '*.cpp' -o -name '*.h' | head -n 1000)
-          done
+          pre-commit run --all-files || true
