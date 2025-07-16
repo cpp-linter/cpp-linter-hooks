@@ -20,6 +20,14 @@ def get_version_from_dependency(tool: str) -> Optional[str]:
         return None
     with open(pyproject_path, "rb") as f:
         data = tomllib.load(f)
+    # First try project.optional-dependencies.tools
+    optional_deps = data.get("project", {}).get("optional-dependencies", {})
+    tools_deps = optional_deps.get("tools", [])
+    for dep in tools_deps:
+        if dep.startswith(f"{tool}=="):
+            return dep.split("==")[1]
+
+    # Fallback to project.dependencies for backward compatibility
     dependencies = data.get("project", {}).get("dependencies", [])
     for dep in dependencies:
         if dep.startswith(f"{tool}=="):
@@ -169,6 +177,14 @@ def _resolve_install(tool: str, version: Optional[str]) -> Optional[Path]:
         CLANG_FORMAT_VERSIONS if tool == "clang-format" else CLANG_TIDY_VERSIONS,
         version,
     )
+    if user_version is None:
+        user_version = (
+            DEFAULT_CLANG_FORMAT_VERSION
+            if tool == "clang-format"
+            else DEFAULT_CLANG_TIDY_VERSION
+        )
+
+    # Additional safety check in case DEFAULT versions are None
     if user_version is None:
         user_version = (
             DEFAULT_CLANG_FORMAT_VERSION

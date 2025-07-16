@@ -32,9 +32,8 @@ classifiers = [
     "Topic :: Software Development :: Build Tools",
 ]
 dependencies = [
-    "clang-format==20.1.7",
-    "clang-tidy==20.1.0",
     "tomli>=1.1.0; python_version < '3.11'",
+    "setuptools>=45.0.0", # Required for pkg_resources in clang-tidy
 ]
 dynamic = ["version"]
 
@@ -47,6 +46,12 @@ source =  "https://github.com/cpp-linter/cpp-linter-hooks"
 tracker = "https://github.com/cpp-linter/cpp-linter-hooks/issues"
 
 [project.optional-dependencies]
+# only clang tools can added to this section to make hooks work
+tools = [
+    "clang-format==20.1.7",
+    "clang-tidy==20.1.0",
+]
+
 dev = [
     "coverage",
     "pre-commit",
