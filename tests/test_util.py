@@ -102,11 +102,13 @@ def test_get_version_from_dependency_success():
     """Test get_version_from_dependency with valid pyproject.toml."""
     mock_toml_content = {
         "project": {
-            "dependencies": [
-                "clang-format==20.1.7",
-                "clang-tidy==20.1.0",
-                "other-package==1.0.0",
-            ]
+            "optional-dependencies": {
+                "tools": [
+                    "clang-format==20.1.7",
+                    "clang-tidy==20.1.0",
+                    "other-package==1.0.0",
+                ]
+            }
         }
     }
 
@@ -132,7 +134,9 @@ def test_get_version_from_dependency_missing_file():
 @pytest.mark.benchmark
 def test_get_version_from_dependency_missing_dependency():
     """Test get_version_from_dependency with missing dependency."""
-    mock_toml_content = {"project": {"dependencies": ["other-package==1.0.0"]}}
+    mock_toml_content = {
+        "project": {"optional-dependencies": {"tools": ["other-package==1.0.0"]}}
+    }
 
     with (
         patch("pathlib.Path.exists", return_value=True),
@@ -423,3 +427,22 @@ def test_version_lists_not_empty():
     assert len(CLANG_TIDY_VERSIONS) > 0
     assert all(isinstance(v, str) for v in CLANG_FORMAT_VERSIONS)
     assert all(isinstance(v, str) for v in CLANG_TIDY_VERSIONS)
+
+
+@pytest.mark.benchmark
+def test_resolve_install_with_none_default_version():
+    """Test _resolve_install when DEFAULT versions are None."""
+    with (
+        patch("shutil.which", return_value=None),
+        patch("cpp_linter_hooks.util.DEFAULT_CLANG_FORMAT_VERSION", None),
+        patch("cpp_linter_hooks.util.DEFAULT_CLANG_TIDY_VERSION", None),
+        patch(
+            "cpp_linter_hooks.util._install_tool",
+            return_value=Path("/usr/bin/clang-format"),
+        ) as mock_install,
+    ):
+        result = _resolve_install("clang-format", None)
+        assert result == Path("/usr/bin/clang-format")
+
+        # Should fallback to hardcoded version when DEFAULT is None
+        mock_install.assert_called_once_with("clang-format", None)
