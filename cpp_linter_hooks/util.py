@@ -27,11 +27,16 @@ def get_version_from_dependency(tool: str) -> Optional[str]:
         if dep.startswith(f"{tool}=="):
             return dep.split("==")[1]
 
+    # Fallback to project.dependencies for backward compatibility
+    dependencies = data.get("project", {}).get("dependencies", [])
+    for dep in dependencies:
+        if dep.startswith(f"{tool}=="):
+            return dep.split("==")[1]
     return None
 
 
-DEFAULT_CLANG_FORMAT_VERSION = get_version_from_dependency("clang-format")
-DEFAULT_CLANG_TIDY_VERSION = get_version_from_dependency("clang-tidy")
+DEFAULT_CLANG_FORMAT_VERSION = get_version_from_dependency("clang-format") or "20.1.7"
+DEFAULT_CLANG_TIDY_VERSION = get_version_from_dependency("clang-tidy") or "20.1.0"
 
 
 CLANG_FORMAT_VERSIONS = [
@@ -178,6 +183,10 @@ def _resolve_install(tool: str, version: Optional[str]) -> Optional[Path]:
             if tool == "clang-format"
             else DEFAULT_CLANG_TIDY_VERSION
         )
+
+    # Additional safety check in case DEFAULT versions are None
+    if user_version is None:
+        user_version = "20.1.7" if tool == "clang-format" else "20.1.0"
 
     path = shutil.which(tool)
     if path:

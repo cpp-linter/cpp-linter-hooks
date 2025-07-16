@@ -427,3 +427,22 @@ def test_version_lists_not_empty():
     assert len(CLANG_TIDY_VERSIONS) > 0
     assert all(isinstance(v, str) for v in CLANG_FORMAT_VERSIONS)
     assert all(isinstance(v, str) for v in CLANG_TIDY_VERSIONS)
+
+
+@pytest.mark.benchmark
+def test_resolve_install_with_none_default_version():
+    """Test _resolve_install when DEFAULT versions are None."""
+    with (
+        patch("shutil.which", return_value=None),
+        patch("cpp_linter_hooks.util.DEFAULT_CLANG_FORMAT_VERSION", None),
+        patch("cpp_linter_hooks.util.DEFAULT_CLANG_TIDY_VERSION", None),
+        patch(
+            "cpp_linter_hooks.util._install_tool",
+            return_value=Path("/usr/bin/clang-format"),
+        ) as mock_install,
+    ):
+        result = _resolve_install("clang-format", None)
+        assert result == Path("/usr/bin/clang-format")
+
+        # Should fallback to hardcoded version when DEFAULT is None
+        mock_install.assert_called_once_with("clang-format", "20.1.7")
