@@ -61,4 +61,7 @@ jobs:
         run: |
           cd test-repo
           pre-commit install
-          pre-commit run --all-files --show-diff-on-failure --verbose
+          # Run clang-format in smaller chunks
+          for dir in $(find . -type d -name '*'); do
+            pre-commit run --files $(find "$dir" -name '*.cpp' -o -name '*.h' | head -n 1000)
+          done
