@@ -9,10 +9,6 @@ on:
         description: 'Target repository to test against'
         required: false
         default: 'llvm/llvm-project'
-      style:
-        description: 'Clang-format style'
-        required: false
-        default: 'file'
 
 jobs:
   e2e-test:
@@ -52,7 +48,7 @@ jobs:
               hooks:
                 - id: clang-format
                   args: [
-                    --style=${{ github.event.inputs.style || 'file' }},
+                    --style=LLVM,
                     --version=${{ matrix.clang_version }}
                   ]
           EOF
@@ -61,4 +57,4 @@ jobs:
         run: |
           cd test-repo
           pre-commit install
-          pre-commit run --all-files || true
+          pre-commit run --all-files
