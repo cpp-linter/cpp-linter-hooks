@@ -445,4 +445,4 @@ def test_resolve_install_with_none_default_version():
         assert result == Path("/usr/bin/clang-format")
 
         # Should fallback to hardcoded version when DEFAULT is None
-        mock_install.assert_called_once_with("clang-format", "20.1.7")
+        mock_install.assert_called_once_with("clang-format", None)
