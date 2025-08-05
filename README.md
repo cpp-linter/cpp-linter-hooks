@@ -187,13 +187,13 @@ repos:
 
 ### What's the difference between [`cpp-linter-hooks`](https://github.com/cpp-linter/cpp-linter-hooks) and [`mirrors-clang-format`](https://github.com/pre-commit/mirrors-clang-format)?
 
-| Feature                          | [`cpp-linter-hooks`](https://github.com/cpp-linter/cpp-linter-hooks) | [`mirrors-clang-format`](https://github.com/pre-commit/mirrors-clang-format) |
-|----------------------------------|:---------------------------------------------------------------------:|:----------------------------------------------------------------------------:|
-| Supports `clang-format` and `clang-tidy` | ✅ (`clang-format` & `clang-tidy`)                            | ✅ (`clang-format` only)                                                    |
-| Loads style configuration        | ✅ via `--version`                                                    | ✅ (default behavior)                                                       |
-| Specify `clang-format` version   | ✅ via `--version`                                                    | ✅ via `rev`                                                                |
-| Supports passing code string     | ✅ via `--style`                                                      | ❌                                                                          |
-| Verbose output                   | ✅ via `--verbose`                                                    | ❌                                                                          |
+| Feature                          | `cpp-linter-hooks`                        | `mirrors-clang-format`                 |
+|----------------------------------|-------------------------------------------|----------------------------------------|
+| Supports `clang-format` and `clang-tidy` | ✅ (`clang-format` & `clang-tidy`)       | ✅ (`clang-format` only)        |
+| Loads style configuration        | ✅ via `--version`                        | ✅ (default behavior)                  |
+| Specify `clang-format` version   | ✅ via `--version`                        | ✅ via `rev`                           |
+| Supports passing code string     | ✅ via `--style`                          | ❌                                     |
+| Verbose output                   | ✅ via `--verbose`                        | ❌                                     |
 
 
 ## Contributing
