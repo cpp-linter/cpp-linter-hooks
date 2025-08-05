@@ -19,6 +19,8 @@ A powerful [pre-commit](https://pre-commit.com/) hook for auto-formatting and li
 - [Troubleshooting](#troubleshooting)
   - [Performance Optimization](#performance-optimization)
   - [Verbose Output](#verbose-output)
+- [FAQ](#faq)
+  - [What's the difference between `cpp-linter-hooks` and `mirrors-clang-format`?](#whats-the-difference-between-cpp-linter-hooks-and-mirrors-clang-format)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -180,6 +182,19 @@ repos:
       - id: clang-format
         args: [--style=file, --version=18, --verbose]   # Add -v or --verbose for detailed output
 ```
+
+## FAQ
+
+### What's the difference between [`cpp-linter-hooks`](https://github.com/cpp-linter/cpp-linter-hooks) and [`mirrors-clang-format`](https://github.com/pre-commit/mirrors-clang-format)?
+
+| Feature                          | `cpp-linter-hooks`                        | `mirrors-clang-format`                 |
+|----------------------------------|-------------------------------------------|----------------------------------------|
+| Supports `clang-format` and `clang-tidy` | ✅ (`clang-format` & `clang-tidy`)       | ✅ (`clang-format` only)        |
+| Loads style configuration        | ✅ via `--version`                        | ✅ (default behavior)                  |
+| Specify `clang-format` version   | ✅ via `--version`                        | ✅ via `rev`                           |
+| Supports passing code string     | ✅ via `--style`                          | ❌                                     |
+| Verbose output                   | ✅ via `--verbose`                        | ❌                                     |
+
 
 ## Contributing
 
