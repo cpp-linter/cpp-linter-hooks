@@ -165,8 +165,8 @@ def test_get_version_from_dependency_malformed_toml():
     "user_input,expected",
     [
         (None, None),
-        ("20", "20.1.7"),  # Should find latest 20.x
-        ("20.1", "20.1.7"),  # Should find latest 20.1.x
+        ("20", "20.1.8"),  # Should find latest 20.x
+        ("20.1", "20.1.8"),  # Should find latest 20.1.x
         ("20.1.7", "20.1.7"),  # Exact match
         ("18", "18.1.8"),  # Should find latest 18.x
         ("18.1", "18.1.8"),  # Should find latest 18.1.x

@@ -22,6 +22,7 @@ def generate_compilation_database():
         (['--checks="boost-*"', "--version=18"], 1),
         (['--checks="boost-*"', "--version=19"], 1),
         (['--checks="boost-*"', "--version=20"], 1),
+        (['--checks="boost-*"', "--version=21"], 1),
     ),
 )
 def test_run_clang_tidy_valid(args, expected_retval):
@@ -43,6 +44,7 @@ def test_run_clang_tidy_valid(args, expected_retval):
         (['--checks="boost-*"', "--version=18"], 1),
         (['--checks="boost-*"', "--version=19"], 1),
         (['--checks="boost-*"', "--version=20"], 1),
+        (['--checks="boost-*"', "--version=21"], 1),
     ),
 )
 def test_run_clang_tidy_invalid(args, expected_retval, tmp_path):

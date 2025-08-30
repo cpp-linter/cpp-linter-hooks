@@ -34,3 +34,10 @@ repos:
         args: [--style=file, --version=20]
       - id: clang-tidy
         args: [--checks=.clang-tidy, --version=20]
+  - repo: .
+    rev: HEAD
+    hooks:
+      - id: clang-format
+        args: [--style=file, --version=21]
+      - id: clang-tidy
+        args: [--checks=.clang-tidy, --version=20] # clang-tidy does not support version 21

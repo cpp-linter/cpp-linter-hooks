@@ -103,6 +103,8 @@ CLANG_FORMAT_VERSIONS = [
     "20.1.5",
     "20.1.6",
     "20.1.7",
+    "20.1.8",
+    "21.1.0",
 ]
 
 CLANG_TIDY_VERSIONS = [
