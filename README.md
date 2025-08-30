@@ -154,10 +154,10 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
   rev: v1.1.0
   hooks:
     - id: clang-format
-      args: [--style=file, --version=18]
+      args: [--style=file, --version=20]
       files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$ # Limits to specific dirs and file types
     - id: clang-tidy
-      args: [--checks=.clang-tidy, --version=18]
+      args: [--checks=.clang-tidy, --version=20]
       files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
 ```
 
