@@ -1,4 +1,4 @@
-# Migration: From Clang Tools Binaries to Python Wheels
+# Migration from Clang Tools Binaries to Python Wheels
 
 ## Overview
 
