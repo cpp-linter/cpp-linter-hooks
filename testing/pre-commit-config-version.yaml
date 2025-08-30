@@ -40,4 +40,4 @@ repos:
       - id: clang-format
         args: [--style=file, --version=21]
       - id: clang-tidy
-        args: [--checks=.clang-tidy, --version=21]
+        args: [--checks=.clang-tidy, --version=20] # clang-tidy does not support version 21
