@@ -49,7 +49,7 @@ tracker = "https://github.com/cpp-linter/cpp-linter-hooks/issues"
 # only clang tools can added to this section to make hooks work
 tools = [
     "clang-format==21.1.0",
-    "clang-tidy==20.1.0",
+    "clang-tidy==21.1.0",
 ]
 
 dev = [
