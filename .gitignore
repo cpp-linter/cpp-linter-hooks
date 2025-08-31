@@ -12,6 +12,7 @@ venv
 result.txt
 testing/main.c
 */*compile_commands.json
+testing/benchmark_results.txt
 
 # Ignore Python wheel packages (clang-format, clang-tidy)
 clang-tidy-1*
