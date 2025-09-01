@@ -64,9 +64,9 @@ repos:
     rev: v1.1.0
     hooks:
       - id: clang-format
-        args: [--style=file, --version=18] # Specifies version
+        args: [--style=file, --version=21] # Specifies version
       - id: clang-tidy
-        args: [--checks=.clang-tidy, --version=18] # Specifies version
+        args: [--checks=.clang-tidy, --version=21] # Specifies version
 ```
 
 > [!NOTE]
@@ -180,7 +180,7 @@ repos:
     rev: v1.1.0
     hooks:
       - id: clang-format
-        args: [--style=file, --version=18, --verbose]   # Add -v or --verbose for detailed output
+        args: [--style=file, --version=21, --verbose]   # Add -v or --verbose for detailed output
 ```
 
 ## FAQ
