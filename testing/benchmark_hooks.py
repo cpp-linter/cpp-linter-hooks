@@ -21,11 +21,11 @@ import glob
 HOOKS = [
     {
         "name": "cpp-linter-hooks",
-        "config": "testing/pre-commit-config-cpp-linter-hooks.yaml",
+        "config": "testing/benchmark_hook_1.yaml",
     },
     {
         "name": "mirrors-clang-format",
-        "config": "testing/pre-commit-config-mirrors-clang-format.yaml",
+        "config": "testing/benchmark_hook_2.yaml",
     },
 ]
 
@@ -84,7 +84,7 @@ def benchmark():
     results = {}
     for hook in HOOKS:
         times = []
-        print(f"Benchmarking {hook['name']}...")
+        print(f"\nBenchmarking {hook['name']}...")
         for i in range(REPEATS):
             safe_git_restore(TARGET_FILES)
             subprocess.run(["pre-commit", "clean"])
