@@ -13,6 +13,7 @@ Requirements:
 - Target files: testing/main.c (or adjust as needed)
 """
 
+import os
 import subprocess
 import time
 import statistics
@@ -130,6 +131,17 @@ def report(results):
         for line in lines:
             f.write(line + "\n")
     print(f"\nResults saved to {RESULTS_FILE}")
+
+    # Write to GitHub Actions summary if available
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if summary_path:
+        with open(summary_path, "a") as f:
+            f.write("## Benchmark Results\n\n")
+            f.write(header_row + "\n")
+            f.write("-+-".join("-" * w for w in col_widths) + "\n")
+            for line in lines:
+                f.write(line + "\n")
+            f.write("\n")
 
 
 def main():
