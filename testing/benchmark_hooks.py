@@ -8,37 +8,34 @@ Usage:
 Requirements:
 - pre-commit must be installed and available in PATH
 - Two config files:
-    - testing/pre-commit-config-cpp-linter-hooks.yaml
-    - testing/pre-commit-config-mirrors-clang-format.yaml
-- Target files: testing/main.c (or adjust as needed)
+    - testing/cpp-linter-hooks.yaml
+    - testing/mirrors-clang-format.yaml
+- Target files: testing/examples/*.c (or adjust as needed)
 """
 
 import os
 import subprocess
 import time
 import statistics
-import glob
 
 HOOKS = [
-    {
-        "name": "cpp-linter-hooks",
-        "config": "testing/benchmark_hook_1.yaml",
-    },
     {
         "name": "mirrors-clang-format",
         "config": "testing/benchmark_hook_2.yaml",
     },
+    {
+        "name": "cpp-linter-hooks",
+        "config": "testing/benchmark_hook_1.yaml",
+    },
 ]
-
-# Automatically find all C/C++ files in testing/ (and optionally src/, include/)
-TARGET_FILES = glob.glob("testing/test-examples/*.c", recursive=True)
 
 REPEATS = 5
 RESULTS_FILE = "testing/benchmark_results.txt"
 
 
-def git_clone():
+def prepare_code():
     try:
+        subprocess.run(["rm", "-rf", "testing/examples"], check=True)
         subprocess.run(
             [
                 "git",
@@ -46,7 +43,7 @@ def git_clone():
                 "--depth",
                 "1",
                 "https://github.com/gouravthakur39/beginners-C-program-examples.git",
-                "testing/test-examples",
+                "testing/examples",
             ],
             check=True,
         )
@@ -54,8 +51,8 @@ def git_clone():
         pass
 
 
-def run_hook(config, files):
-    cmd = ["pre-commit", "run", "--config", config, "--files"] + files
+def run_hook(config):
+    cmd = ["pre-commit", "run", "--config", config, "--all-files"]
     start = time.perf_counter()
     try:
         subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -66,30 +63,16 @@ def run_hook(config, files):
     return end - start
 
 
-def safe_git_restore(files):
-    # Only restore files tracked by git
-    tracked = []
-    for f in files:
-        result = subprocess.run(
-            ["git", "ls-files", "--error-unmatch", f],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        if result.returncode == 0:
-            tracked.append(f)
-    if tracked:
-        subprocess.run(["git", "restore"] + tracked)
-
-
 def benchmark():
     results = {}
+    os.chdir("testing/examples")
     for hook in HOOKS:
         times = []
         print(f"\nBenchmarking {hook['name']}...")
         for i in range(REPEATS):
-            safe_git_restore(TARGET_FILES)
+            prepare_code()
             subprocess.run(["pre-commit", "clean"])
-            t = run_hook(hook["config"], TARGET_FILES)
+            t = run_hook(hook["config"])
             print(f"  Run {i + 1}: {t:.3f} seconds")
             times.append(t)
         results[hook["name"]] = times
@@ -132,20 +115,27 @@ def report(results):
             f.write(line + "\n")
     print(f"\nResults saved to {RESULTS_FILE}")
 
-    # Write to GitHub Actions summary if available
+    # Write to GitHub Actions summary
     summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
     if summary_path:
         with open(summary_path, "a") as f:
             f.write("## Benchmark Results\n\n")
-            f.write(header_row + "\n")
-            f.write("-+-".join("-" * w for w in col_widths) + "\n")
-            for line in lines:
-                f.write(line + "\n")
+            # Markdown table header
+            md_header = "| " + " | ".join(headers) + " |\n"
+            md_sep = "|" + "|".join(["-" * (w + 2) for w in col_widths]) + "|\n"
+            f.write(md_header)
+            f.write(md_sep)
+            for name, times in results.items():
+                avg = statistics.mean(times)
+                std = statistics.stdev(times) if len(times) > 1 else 0.0
+                min_t = min(times)
+                max_t = max(times)
+                md_row = f"| {name} | {avg:.3f} | {std:.3f} | {min_t:.3f} | {max_t:.3f} | {len(times)} |\n"
+                f.write(md_row)
             f.write("\n")
 
 
 def main():
-    git_clone()
     results = benchmark()
     report(results)
 

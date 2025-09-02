@@ -195,6 +195,8 @@ repos:
 | Supports passing code string     | ✅ via `--style`                          | ❌                                     |
 | Verbose output                   | ✅ via `--verbose`                        | ❌                                     |
 
+> [!TIP]
+> In most cases, there is no significant performance difference between `cpp-linter-hooks` and `mirrors-clang-format`. See the [benchmark results](testing/benchmark.md) for details.
 
 ## Contributing
 
