@@ -13,8 +13,3 @@ python3 testing/benchmark_hooks.py
 ## Results
 
 The results of the benchmarking process will be saved to `testing/benchmark_results.txt`.
-
-## To Do
-
-- Run benchmark against a larger codebase, such as [TheAlgorithms/C-Plus-Plus](https://github.com/TheAlgorithms/C-Plus-Plus).
-- Run benchmark with GitHub Actions for continuous integration.
