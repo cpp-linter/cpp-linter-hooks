@@ -20,12 +20,12 @@ import statistics
 
 HOOKS = [
     {
-        "name": "mirrors-clang-format",
-        "config": "testing/benchmark_hook_2.yaml",
+        "name": "cpp-linter-hooks",
+        "config": "../testing/benchmark_hook_1.yaml",
     },
     {
-        "name": "cpp-linter-hooks",
-        "config": "testing/benchmark_hook_1.yaml",
+        "name": "mirrors-clang-format",
+        "config": "../testing/benchmark_hook_2.yaml",
     },
 ]
 
@@ -35,7 +35,6 @@ RESULTS_FILE = "testing/benchmark_results.txt"
 
 def prepare_code():
     try:
-        subprocess.run(["rm", "-rf", "testing/examples"], check=True)
         subprocess.run(
             [
                 "git",
@@ -43,7 +42,7 @@ def prepare_code():
                 "--depth",
                 "1",
                 "https://github.com/gouravthakur39/beginners-C-program-examples.git",
-                "testing/examples",
+                "examples",
             ],
             check=True,
         )
@@ -65,12 +64,13 @@ def run_hook(config):
 
 def benchmark():
     results = {}
-    os.chdir("testing/examples")
+    prepare_code()
+    os.chdir("examples")
     for hook in HOOKS:
+        subprocess.run(["git", "restore", "."], check=True)
         times = []
         print(f"\nBenchmarking {hook['name']}...")
         for i in range(REPEATS):
-            prepare_code()
             subprocess.run(["pre-commit", "clean"])
             t = run_hook(hook["config"])
             print(f"  Run {i + 1}: {t:.3f} seconds")
@@ -108,6 +108,7 @@ def report(results):
         print(" | ".join(row))
         lines.append(" | ".join(row))
     # Save to file
+    os.chdir("..")
     with open(RESULTS_FILE, "w") as f:
         f.write(header_row + "\n")
         f.write("-+-".join("-" * w for w in col_widths) + "\n")

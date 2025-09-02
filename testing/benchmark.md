@@ -18,8 +18,8 @@ Benchmark Results:
 
 Hook                 | Avg (s)          | Std (s)          | Min (s)          | Max (s)          | Runs
 ---------------------+------------------+------------------+------------------+------------------+-----------------
-mirrors-clang-format | 0.116            | 0.003            | 0.113            | 0.118            | 5
-cpp-linter-hooks     | 0.114            | 0.003            | 0.109            | 0.117            | 5
+cpp-linter-hooks     | 12.473           | 1.738            | 11.334           | 15.514           | 5
+mirrors-clang-format | 4.960            | 0.229            | 4.645            | 5.284            | 5
 
 Results saved to testing/benchmark_results.txt
 ```
