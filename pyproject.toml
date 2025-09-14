@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=45", "setuptools-scm"]
+requires = ["setuptools>=45", "setuptools-scm", "clang-format", "clang-tidy"]
 build-backend = "setuptools.build_meta"
 
 requires-python = ">=3.9"
