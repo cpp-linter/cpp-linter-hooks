@@ -57,9 +57,7 @@ def test_get_version_from_dependency_missing_file():
 @pytest.mark.benchmark
 def test_get_version_from_dependency_missing_dependency():
     """Test get_version_from_dependency with missing dependency."""
-    mock_toml_content = {
-        "build-system": {"requires": ["other-package==1.0.0"]}
-    }
+    mock_toml_content = {"build-system": {"requires": ["other-package==1.0.0"]}}
 
     with (
         patch("pathlib.Path.exists", return_value=True),
