@@ -147,7 +147,7 @@ def test_install_tool_failure():
             "subprocess.check_call",
             side_effect=subprocess.CalledProcessError(1, ["pip"]),
         ),
-        patch("cpp_linter_hooks.util.LOG") as mock_log,
+        patch("cpp_linter_hooks.util.LOG"),
     ):
         result = _install_tool("clang-format", "20.1.7")
         assert result is None
