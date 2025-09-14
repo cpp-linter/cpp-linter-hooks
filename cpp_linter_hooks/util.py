@@ -213,5 +213,5 @@ def is_installed(tool: str) -> Optional[Path]:
 
 def ensure_installed(tool: str, version: Optional[str] = None) -> None:
     """Ensure a tool is installed, resolving its version if necessary."""
-    LOG.info("Ensuring %s is installed", tool)
-    _install_tool(tool, version)
+    if version is not None:
+        _install_tool(tool, version)
