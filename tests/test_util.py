@@ -25,15 +25,14 @@ TOOLS = ["clang-format", "clang-tidy"]
 def test_get_version_from_dependency_success():
     """Test get_version_from_dependency with valid pyproject.toml."""
     mock_toml_content = {
-        "project": {
-            "build-system": {
-                "requires": [
-                    "clang-format==20.1.7",
-                    "clang-tidy==20.1.0",
-                    "other-package==1.0.0",
-                ]
-            }
-        }
+        "build-system": {
+            "requires": [
+                "clang-format==20.1.7",
+                "clang-tidy==20.1.0",
+                "other-package==1.0.0",
+            ]
+        },
+        "project": {},
     }
 
     with (
@@ -176,7 +175,7 @@ def test_resolve_install_tool_already_installed_correct_version():
         patch("shutil.which", return_value=mock_path),
     ):
         result = _resolve_install("clang-format", "20.1.7")
-        assert result == Path(mock_path)
+        assert Path(result) == Path(mock_path)
 
 
 @pytest.mark.benchmark
