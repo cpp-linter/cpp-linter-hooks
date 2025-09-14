@@ -2,9 +2,10 @@ import subprocess
 import sys
 from argparse import ArgumentParser
 from typing import Tuple
-
+import logging
 from .util import ensure_installed, DEFAULT_CLANG_FORMAT_VERSION
 
+LOG = logging.getLogger(__name__)
 
 parser = ArgumentParser()
 parser.add_argument("--version", default=DEFAULT_CLANG_FORMAT_VERSION)
@@ -23,6 +24,8 @@ def run_clang_format(args=None) -> Tuple[int, str]:
         command.append("--verbose")
 
     command.extend(other_args)
+
+    LOG.warning(command)
 
     try:
         # Run the clang-format command with captured output
