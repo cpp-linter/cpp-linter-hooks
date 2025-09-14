@@ -152,7 +152,6 @@ def _install_tool(tool: str, version: str) -> Optional[Path]:
         )
         return shutil.which(tool)
     except subprocess.CalledProcessError:
-        LOG.error("Failed to install %s==%s", tool, version)
         return None
 
 
