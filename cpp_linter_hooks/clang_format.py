@@ -15,8 +15,8 @@ parser.add_argument(
 
 def run_clang_format(args=None) -> Tuple[int, str]:
     hook_args, other_args = parser.parse_known_args(args)
-    tool_name = ensure_installed("clang-format", hook_args.version)
-    command = [tool_name, "-i"]
+    ensure_installed("clang-format", hook_args.version)
+    command = ["clang-format", "-i"]
 
     # Add verbose flag if requested
     if hook_args.verbose:

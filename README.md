@@ -54,6 +54,9 @@ repos:
         args: [--checks=.clang-tidy] # Loads checks from .clang-tidy file
 ```
 
+> [!TIP]
+> Install the latest version of `clang-format` and `clang-tidy` if not specified. You can specify the version using the `--version` argument in the `args` list as shown below.
+
 ### Custom Clang Tool Version
 
 To use specific versions of clang-format and clang-tidy (using Python wheel packages):
