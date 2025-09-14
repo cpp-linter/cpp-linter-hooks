@@ -214,7 +214,5 @@ def is_installed(tool: str) -> Optional[Path]:
 def ensure_installed(tool: str, version: Optional[str] = None) -> None:
     """Ensure a tool is installed, resolving its version if necessary."""
     LOG.info("Ensuring %s is installed", tool)
-    tool_path = _resolve_install(tool, version)
-    if tool_path:
-        LOG.info("%s available at %s", tool, tool_path)
-    LOG.warning("%s not found and could not be installed", tool)
+    _resolve_install(tool, version)
+
