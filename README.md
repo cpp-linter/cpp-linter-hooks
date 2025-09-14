@@ -55,7 +55,7 @@ repos:
 ```
 
 > [!TIP]
-> Install the latest version of `clang-format` and `clang-tidy` if not specified. You can specify the version using the `--version` argument in the `args` list as shown below.
+> By default, the latest version of [`clang-format`](https://pypi.org/project/clang-format/#history) and [`clang-tidy`](https://pypi.org/project/clang-tidy/#history) will be installed if not specified. You can specify the version using the `--version` argument in the `args` list as shown below.
 
 ### Custom Clang Tool Version
 
