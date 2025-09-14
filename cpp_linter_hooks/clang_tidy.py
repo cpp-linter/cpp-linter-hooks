@@ -24,9 +24,17 @@ def run_clang_tidy(args=None) -> Tuple[int, str]:
         if "warning:" in output or "error:" in output:
             retval = 1
         return retval, output
-    except FileNotFoundError as stderr:
-        retval = 1
-        return retval, str(stderr)
+    except FileNotFoundError as e:
+        error_msg = str(e)
+        # Provide helpful error message for missing clang-tidy
+        if "clang-tidy" in error_msg.lower():
+            error_msg += "\nHint: The clang-tidy tool may not be installed or accessible."
+            error_msg += f"\nThis hook will try to install clang-tidy version {hook_args.version}."
+        return 1, error_msg
+    except Exception as e:
+        # Catch any other unexpected errors
+        error_msg = f"Unexpected error running clang-tidy: {str(e)}"
+        return 1, error_msg
 
 
 def main() -> int:

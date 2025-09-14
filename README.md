@@ -183,6 +183,50 @@ repos:
         args: [--style=file, --version=21, --verbose]   # Add -v or --verbose for detailed output
 ```
 
+### ImportError: cannot import name 'clang_format' from 'clang_format'
+
+This error occurs when there are conflicting `clang-format` packages installed in your environment. The issue typically happens when:
+
+1. You previously installed PyPI packages like `clang-format` that provide conflicting scripts
+2. Your environment has multiple versions of clang tools installed
+3. There are leftover scripts from older versions of this hooks package
+
+**Solution 1: Remove conflicting packages**
+
+```bash
+# Remove potentially conflicting packages
+pip uninstall clang-format clang-tidy clang-tools
+
+# Reinstall cpp-linter-hooks cleanly
+pip install --force-reinstall cpp-linter-hooks
+```
+
+**Solution 2: Check for conflicting scripts**
+
+```bash
+# Check what clang-format script is being used
+which clang-format
+
+# If it points to a conflicting script, remove it
+rm $(which clang-format)  # Only if it's the conflicting script
+```
+
+**Solution 3: Use specific entry points**
+
+Ensure your `.pre-commit-config.yaml` is using the latest configuration:
+
+```yaml
+repos:
+  - repo: https://github.com/cpp-linter/cpp-linter-hooks
+    rev: v1.1.1  # Use the latest version
+    hooks:
+      - id: clang-format
+        args: [--style=file, --version=21]
+```
+
+> [!NOTE]
+> This hooks package uses `clang-format-hook` and `clang-tidy-hook` as entry points, not the generic `clang-format` script. The error usually indicates that pre-commit is trying to use a conflicting `clang-format` script instead of the correct `clang-format-hook`.
+
 ## FAQ
 
 ### What's the difference between [`cpp-linter-hooks`](https://github.com/cpp-linter/cpp-linter-hooks) and [`mirrors-clang-format`](https://github.com/pre-commit/mirrors-clang-format)?

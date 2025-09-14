@@ -1,9 +1,42 @@
 import subprocess
 import sys
+import os
+import shutil
 from argparse import ArgumentParser
 from typing import Tuple
 
 from .util import ensure_installed, DEFAULT_CLANG_FORMAT_VERSION
+
+
+def _check_for_conflicts() -> None:
+    """Check for potential conflicts with PyPI clang-format packages."""
+    # Check if there's a conflicting clang-format script
+    clang_format_path = shutil.which("clang-format")
+    if clang_format_path:
+        try:
+            # Try to read the script to see if it contains the problematic import
+            with open(clang_format_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+                if "from clang_format import clang_format" in content:
+                    print(
+                        "WARNING: Detected conflicting clang-format script at: " + clang_format_path,
+                        file=sys.stderr
+                    )
+                    print(
+                        "This may cause ImportError. Consider removing conflicting packages:",
+                        file=sys.stderr
+                    )
+                    print(
+                        "  pip uninstall clang-format clang-tidy clang-tools",
+                        file=sys.stderr
+                    )
+                    print(
+                        "For more help: https://github.com/cpp-linter/cpp-linter-hooks#importerror-cannot-import-name-clang_format-from-clang_format",
+                        file=sys.stderr
+                    )
+        except (IOError, UnicodeDecodeError):
+            # If we can't read the file, ignore the check
+            pass
 
 
 parser = ArgumentParser()
@@ -49,7 +82,16 @@ def run_clang_format(args=None) -> Tuple[int, str]:
         return retval, output
 
     except FileNotFoundError as e:
-        return 1, str(e)
+        error_msg = str(e)
+        # Provide helpful error message for missing clang-format
+        if "clang-format" in error_msg.lower():
+            error_msg += "\nHint: The clang-format tool may not be installed or accessible."
+            error_msg += f"\nThis hook will try to install clang-format version {hook_args.version}."
+        return 1, error_msg
+    except Exception as e:
+        # Catch any other unexpected errors
+        error_msg = f"Unexpected error running clang-format: {str(e)}"
+        return 1, error_msg
 
 
 def _print_verbose_info(command: list, retval: int, output: str) -> None:
@@ -61,6 +103,10 @@ def _print_verbose_info(command: list, retval: int, output: str) -> None:
 
 
 def main() -> int:
+    # Check for potential conflicts early
+    if os.environ.get("CLANG_FORMAT_HOOK_DEBUG"):
+        _check_for_conflicts()
+    
     retval, output = run_clang_format()  # pragma: no cover
 
     # Print output for errors, but not for dry-run mode
