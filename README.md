@@ -72,9 +72,6 @@ repos:
         args: [--checks=.clang-tidy, --version=21] # Specifies version
 ```
 
-> [!NOTE]
-> Starting from version **v1.0.0**, this pre-commit hook now relies on Python wheel packages — [clang-format](https://pypi.org/project/clang-format/) and [clang-tidy](https://pypi.org/project/clang-tidy/) — instead of the [clang-tools binaries](https://github.com/cpp-linter/clang-tools-static-binaries). The wheel packages are lighter, easier to install, and offer better cross-platform compatibility. For more information, see the [detailed migration notes](docs/migration-notes.md).
-
 ## Output
 
 ### clang-format Output
