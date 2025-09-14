@@ -26,20 +26,6 @@ def get_version_from_dependency(tool: str) -> Optional[str]:
     for dep in requires:
         if dep.startswith(f"{tool}=="):
             return dep.split("==")[1]
-
-    # Check project.dependencies
-    dependencies = data.get("project", {}).get("dependencies", [])
-    for dep in dependencies:
-        if dep.startswith(f"{tool}=="):
-            return dep.split("==")[1]
-
-    # Check project.optional-dependencies (all groups)
-    optional_deps = data.get("project", {}).get("optional-dependencies", {})
-    for group in optional_deps.values():
-        for dep in group:
-            if dep.startswith(f"{tool}=="):
-                return dep.split("==")[1]
-
     return None
 
 
