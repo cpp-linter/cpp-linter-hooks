@@ -3,7 +3,7 @@ import sys
 from argparse import ArgumentParser
 from typing import Tuple
 
-from .util import ensure_installed, DEFAULT_CLANG_FORMAT_VERSION
+from cpp_linter_hooks.util import _resolve_install, DEFAULT_CLANG_FORMAT_VERSION
 
 
 parser = ArgumentParser()
@@ -15,8 +15,9 @@ parser.add_argument(
 
 def run_clang_format(args=None) -> Tuple[int, str]:
     hook_args, other_args = parser.parse_known_args(args)
-    tool_name = ensure_installed("clang-format", hook_args.version)
-    command = [tool_name, "-i"]
+    if hook_args.version:
+        _resolve_install("clang-format", hook_args.version)
+    command = ["clang-format", "-i"]
 
     # Add verbose flag if requested
     if hook_args.verbose:

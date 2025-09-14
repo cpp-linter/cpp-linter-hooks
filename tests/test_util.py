@@ -1,17 +1,12 @@
-import logging
 import pytest
-from itertools import product
 from unittest.mock import patch
 from pathlib import Path
 import subprocess
 import sys
 
 from cpp_linter_hooks.util import (
-    ensure_installed,
-    is_installed,
     get_version_from_dependency,
     _resolve_version,
-    _get_runtime_version,
     _install_tool,
     _resolve_install,
     CLANG_FORMAT_VERSIONS,
@@ -25,91 +20,19 @@ VERSIONS = [None, "20"]
 TOOLS = ["clang-format", "clang-tidy"]
 
 
-@pytest.mark.benchmark
-@pytest.mark.parametrize(("tool", "version"), list(product(TOOLS, VERSIONS)))
-def test_ensure_installed(tool, version, tmp_path, monkeypatch, caplog):
-    """Test that ensure_installed returns the tool name for wheel packages."""
-    with monkeypatch.context():
-        # Mock shutil.which to simulate the tool being available
-        with patch("shutil.which", return_value=str(tmp_path / tool)):
-            # Mock _get_runtime_version to return a matching version
-            mock_version = "20.1.7" if tool == "clang-format" else "20.1.0"
-            with patch(
-                "cpp_linter_hooks.util._get_runtime_version", return_value=mock_version
-            ):
-                caplog.clear()
-                caplog.set_level(logging.INFO, logger="cpp_linter_hooks.util")
-
-                if version is None:
-                    result = ensure_installed(tool)
-                else:
-                    result = ensure_installed(tool, version=version)
-
-                # Should return the tool name for direct execution
-                assert result == tool
-
-                # Check that we logged ensuring the tool is installed
-                assert any("Ensuring" in record.message for record in caplog.records)
-
-
-@pytest.mark.benchmark
-def test_is_installed_with_shutil_which(tmp_path):
-    """Test is_installed when tool is found via shutil.which."""
-    tool_path = tmp_path / "clang-format"
-    tool_path.touch()
-
-    with patch("shutil.which", return_value=str(tool_path)):
-        result = is_installed("clang-format")
-        assert result == tool_path
-
-
-@pytest.mark.benchmark
-def test_is_installed_not_found():
-    """Test is_installed when tool is not found anywhere."""
-    with (
-        patch("shutil.which", return_value=None),
-        patch("sys.executable", "/nonexistent/python"),
-    ):
-        result = is_installed("clang-format")
-        assert result is None
-
-
-@pytest.mark.benchmark
-def test_ensure_installed_tool_not_found(caplog):
-    """Test ensure_installed when tool is not found."""
-    with (
-        patch("shutil.which", return_value=None),
-        patch("cpp_linter_hooks.util._install_tool", return_value=None),
-    ):
-        caplog.clear()
-        caplog.set_level(logging.WARNING, logger="cpp_linter_hooks.util")
-
-        result = ensure_installed("clang-format")
-
-        # Should still return the tool name
-        assert result == "clang-format"
-
-        # Should log a warning
-        assert any(
-            "not found and could not be installed" in record.message
-            for record in caplog.records
-        )
-
-
 # Tests for get_version_from_dependency
 @pytest.mark.benchmark
 def test_get_version_from_dependency_success():
     """Test get_version_from_dependency with valid pyproject.toml."""
     mock_toml_content = {
-        "project": {
-            "optional-dependencies": {
-                "tools": [
-                    "clang-format==20.1.7",
-                    "clang-tidy==20.1.0",
-                    "other-package==1.0.0",
-                ]
-            }
-        }
+        "build-system": {
+            "requires": [
+                "clang-format==20.1.7",
+                "clang-tidy==20.1.0",
+                "other-package==1.0.0",
+            ]
+        },
+        "project": {},
     }
 
     with (
@@ -134,9 +57,7 @@ def test_get_version_from_dependency_missing_file():
 @pytest.mark.benchmark
 def test_get_version_from_dependency_missing_dependency():
     """Test get_version_from_dependency with missing dependency."""
-    mock_toml_content = {
-        "project": {"optional-dependencies": {"tools": ["other-package==1.0.0"]}}
-    }
+    mock_toml_content = {"build-system": {"requires": ["other-package==1.0.0"]}}
 
     with (
         patch("pathlib.Path.exists", return_value=True),
@@ -198,48 +119,6 @@ def test_resolve_version_clang_tidy(user_input, expected):
     assert result == expected
 
 
-# Tests for _get_runtime_version
-@pytest.mark.benchmark
-def test_get_runtime_version_clang_format():
-    """Test _get_runtime_version for clang-format."""
-    mock_output = "Ubuntu clang-format version 20.1.7-1ubuntu1\n"
-
-    with patch("subprocess.check_output", return_value=mock_output):
-        result = _get_runtime_version("clang-format")
-        assert result == "20.1.7-1ubuntu1"
-
-
-@pytest.mark.benchmark
-def test_get_runtime_version_clang_tidy():
-    """Test _get_runtime_version for clang-tidy."""
-    mock_output = "LLVM (http://llvm.org/):\n  LLVM version 20.1.0\n"
-
-    with patch("subprocess.check_output", return_value=mock_output):
-        result = _get_runtime_version("clang-tidy")
-        assert result == "20.1.0"
-
-
-@pytest.mark.benchmark
-def test_get_runtime_version_exception():
-    """Test _get_runtime_version when subprocess fails."""
-    with patch(
-        "subprocess.check_output",
-        side_effect=subprocess.CalledProcessError(1, ["clang-format"]),
-    ):
-        result = _get_runtime_version("clang-format")
-        assert result is None
-
-
-@pytest.mark.benchmark
-def test_get_runtime_version_clang_tidy_single_line():
-    """Test _get_runtime_version for clang-tidy with single line output."""
-    mock_output = "LLVM version 20.1.0\n"
-
-    with patch("subprocess.check_output", return_value=mock_output):
-        result = _get_runtime_version("clang-tidy")
-        assert result is None  # Should return None for single line
-
-
 # Tests for _install_tool
 @pytest.mark.benchmark
 def test_install_tool_success():
@@ -254,7 +133,9 @@ def test_install_tool_success():
         assert result == mock_path
 
         mock_check_call.assert_called_once_with(
-            [sys.executable, "-m", "pip", "install", "clang-format==20.1.7"]
+            [sys.executable, "-m", "pip", "install", "clang-format==20.1.7"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
         )
 
 
@@ -266,14 +147,10 @@ def test_install_tool_failure():
             "subprocess.check_call",
             side_effect=subprocess.CalledProcessError(1, ["pip"]),
         ),
-        patch("cpp_linter_hooks.util.LOG") as mock_log,
+        patch("cpp_linter_hooks.util.LOG"),
     ):
         result = _install_tool("clang-format", "20.1.7")
         assert result is None
-
-        mock_log.error.assert_called_once_with(
-            "Failed to install %s==%s", "clang-format", "20.1.7"
-        )
 
 
 @pytest.mark.benchmark
@@ -292,10 +169,9 @@ def test_resolve_install_tool_already_installed_correct_version():
 
     with (
         patch("shutil.which", return_value=mock_path),
-        patch("cpp_linter_hooks.util._get_runtime_version", return_value="20.1.7"),
     ):
         result = _resolve_install("clang-format", "20.1.7")
-        assert result == Path(mock_path)
+        assert Path(result) == Path(mock_path)
 
 
 @pytest.mark.benchmark
@@ -305,22 +181,14 @@ def test_resolve_install_tool_version_mismatch():
 
     with (
         patch("shutil.which", return_value=mock_path),
-        patch("cpp_linter_hooks.util._get_runtime_version", return_value="18.1.8"),
         patch(
             "cpp_linter_hooks.util._install_tool", return_value=Path(mock_path)
         ) as mock_install,
-        patch("cpp_linter_hooks.util.LOG") as mock_log,
     ):
         result = _resolve_install("clang-format", "20.1.7")
         assert result == Path(mock_path)
 
         mock_install.assert_called_once_with("clang-format", "20.1.7")
-        mock_log.info.assert_called_once_with(
-            "%s version mismatch (%s != %s), reinstalling...",
-            "clang-format",
-            "18.1.8",
-            "20.1.7",
-        )
 
 
 @pytest.mark.benchmark
@@ -374,40 +242,6 @@ def test_resolve_install_invalid_version():
         mock_install.assert_called_once_with(
             "clang-format", DEFAULT_CLANG_FORMAT_VERSION
         )
-
-
-# Tests for ensure_installed edge cases
-@pytest.mark.benchmark
-def test_ensure_installed_version_mismatch(caplog):
-    """Test ensure_installed with version mismatch scenario."""
-    mock_path = "/usr/bin/clang-format"
-
-    with (
-        patch("shutil.which", return_value=mock_path),
-        patch("cpp_linter_hooks.util._get_runtime_version", return_value="18.1.8"),
-        patch("cpp_linter_hooks.util._install_tool", return_value=Path(mock_path)),
-    ):
-        caplog.clear()
-        caplog.set_level(logging.INFO, logger="cpp_linter_hooks.util")
-
-        result = ensure_installed("clang-format", "20.1.7")
-        assert result == "clang-format"
-
-        # Should log version mismatch
-        assert any("version mismatch" in record.message for record in caplog.records)
-
-
-@pytest.mark.benchmark
-def test_ensure_installed_no_runtime_version():
-    """Test ensure_installed when runtime version cannot be determined."""
-    mock_path = "/usr/bin/clang-format"
-
-    with (
-        patch("shutil.which", return_value=mock_path),
-        patch("cpp_linter_hooks.util._get_runtime_version", return_value=None),
-    ):
-        result = ensure_installed("clang-format", "20.1.7")
-        assert result == "clang-format"
 
 
 # Tests for constants and defaults
