@@ -174,7 +174,6 @@ def test_resolve_install_tool_already_installed_correct_version():
 
     with (
         patch("shutil.which", return_value=mock_path),
-        patch("cpp_linter_hooks.util._get_runtime_version", return_value="20.1.7"),
     ):
         result = _resolve_install("clang-format", "20.1.7")
         assert result == Path(mock_path)
@@ -187,7 +186,6 @@ def test_resolve_install_tool_version_mismatch():
 
     with (
         patch("shutil.which", return_value=mock_path),
-        patch("cpp_linter_hooks.util._get_runtime_version", return_value="18.1.8"),
         patch(
             "cpp_linter_hooks.util._install_tool", return_value=Path(mock_path)
         ) as mock_install,
