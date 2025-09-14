@@ -189,7 +189,6 @@ def test_resolve_install_tool_version_mismatch():
         patch(
             "cpp_linter_hooks.util._install_tool", return_value=Path(mock_path)
         ) as mock_install,
-        patch("cpp_linter_hooks.util.LOG") as mock_log,
     ):
         result = _resolve_install("clang-format", "20.1.7")
         assert result == Path(mock_path)
