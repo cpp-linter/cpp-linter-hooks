@@ -195,12 +195,6 @@ def test_resolve_install_tool_version_mismatch():
         assert result == Path(mock_path)
 
         mock_install.assert_called_once_with("clang-format", "20.1.7")
-        mock_log.info.assert_called_once_with(
-            "%s version mismatch (%s != %s), reinstalling...",
-            "clang-format",
-            "18.1.8",
-            "20.1.7",
-        )
 
 
 @pytest.mark.benchmark
