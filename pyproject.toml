@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=45", "setuptools-scm", "clang-format", "clang-tidy"]
+requires = ["setuptools>=45", "setuptools-scm", "clang-format==21.1.0", "clang-tidy==21.1.0"]
 build-backend = "setuptools.build_meta"
 
 requires-python = ">=3.9"
@@ -46,12 +46,6 @@ source =  "https://github.com/cpp-linter/cpp-linter-hooks"
 tracker = "https://github.com/cpp-linter/cpp-linter-hooks/issues"
 
 [project.optional-dependencies]
-# only clang tools can added to this section to make hooks work
-tools = [
-    "clang-format==21.1.0",
-    "clang-tidy==21.1.0",
-]
-
 dev = [
     "coverage",
     "pre-commit",

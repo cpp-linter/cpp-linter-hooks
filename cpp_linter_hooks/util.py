@@ -20,16 +20,10 @@ def get_version_from_dependency(tool: str) -> Optional[str]:
         return None
     with open(pyproject_path, "rb") as f:
         data = tomllib.load(f)
-    # First try project.optional-dependencies.tools
-    optional_deps = data.get("project", {}).get("optional-dependencies", {})
-    tools_deps = optional_deps.get("tools", [])
-    for dep in tools_deps:
-        if dep.startswith(f"{tool}=="):
-            return dep.split("==")[1]
-
-    # Fallback to project.dependencies for backward compatibility
-    dependencies = data.get("project", {}).get("dependencies", [])
-    for dep in dependencies:
+    # Check build-system.requires
+    build_system = data.get("build-system", {})
+    requires = build_system.get("requires", [])
+    for dep in requires:
         if dep.startswith(f"{tool}=="):
             return dep.split("==")[1]
     return None
@@ -148,20 +142,6 @@ def _resolve_version(versions: List[str], user_input: Optional[str]) -> Optional
         return None
 
 
-def _get_runtime_version(tool: str) -> Optional[str]:
-    """Get the runtime version of a tool."""
-    try:
-        output = subprocess.check_output([tool, "--version"], text=True)
-        if tool == "clang-tidy":
-            lines = output.strip().splitlines()
-            if len(lines) > 1:
-                return lines[1].split()[-1]
-        elif tool == "clang-format":
-            return output.strip().split()[-1]
-    except Exception:
-        return None
-
-
 def _install_tool(tool: str, version: str) -> Optional[Path]:
     """Install a tool using pip."""
     try:
@@ -187,31 +167,4 @@ def _resolve_install(tool: str, version: Optional[str]) -> Optional[Path]:
             else DEFAULT_CLANG_TIDY_VERSION
         )
 
-    path = shutil.which(tool)
-    if path:
-        runtime_version = _get_runtime_version(tool)
-        if runtime_version and user_version not in runtime_version:
-            LOG.info(
-                "%s version mismatch (%s != %s), reinstalling...",
-                tool,
-                runtime_version,
-                user_version,
-            )
-            return _install_tool(tool, user_version)
-        return Path(path)
-
     return _install_tool(tool, user_version)
-
-
-def is_installed(tool: str) -> Optional[Path]:
-    """Check if a tool is installed and return its path."""
-    path = shutil.which(tool)
-    if path:
-        return Path(path)
-    return None
-
-
-def ensure_installed(tool: str, version: Optional[str] = None) -> None:
-    """Ensure a tool is installed, resolving its version if necessary."""
-    if version is not None:
-        _install_tool(tool, version)
