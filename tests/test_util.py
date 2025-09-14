@@ -58,7 +58,7 @@ def test_get_version_from_dependency_missing_file():
 def test_get_version_from_dependency_missing_dependency():
     """Test get_version_from_dependency with missing dependency."""
     mock_toml_content = {
-        "project": {"build-system": {"requires": ["other-package==1.0.0"]}}
+        "build-system": {"requires": ["other-package==1.0.0"]}
     }
 
     with (
