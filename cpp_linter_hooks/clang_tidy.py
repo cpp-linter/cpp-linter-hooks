@@ -2,7 +2,7 @@ import subprocess
 from argparse import ArgumentParser
 from typing import Tuple
 
-from .util import ensure_installed, DEFAULT_CLANG_TIDY_VERSION
+from cpp_linter_hooks.util import _resolve_install, DEFAULT_CLANG_TIDY_VERSION
 
 
 parser = ArgumentParser()
@@ -11,9 +11,9 @@ parser.add_argument("--version", default=DEFAULT_CLANG_TIDY_VERSION)
 
 def run_clang_tidy(args=None) -> Tuple[int, str]:
     hook_args, other_args = parser.parse_known_args(args)
-    tool_name = ensure_installed("clang-tidy", hook_args.version)
-    command = [tool_name]
-    command.extend(other_args)
+    if hook_args.version:
+        _resolve_install("clang-tidy", hook_args.version)
+    command = ["clang-tidy"] + other_args
 
     retval = 0
     output = ""
