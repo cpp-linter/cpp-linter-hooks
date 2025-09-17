@@ -132,7 +132,7 @@ Run: `git add . && git commit -m "initial" && pre-commit run --all-files`
 
 ### Build Times and Expectations
 - Package installation: 2-3 minutes
-- Test suite (working tests): 6-8 minutes  
+- Test suite (working tests): 6-8 minutes
 - Coverage tests: 8-10 minutes
 - Individual hook execution: 15-20 seconds (first use), 1-2 seconds (subsequent)
 - Pre-commit setup: 15-20 seconds (when network allows)
