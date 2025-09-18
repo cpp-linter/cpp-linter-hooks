@@ -20,8 +20,8 @@ def get_version_from_dependency(tool: str) -> Optional[str]:
         return None
     with open(pyproject_path, "rb") as f:
         data = tomllib.load(f)
-    # Check dependencies
-    dependencies = data.get("dependencies", [])
+    # Check [project].dependencies
+    dependencies = data.get("project", {}).get("dependencies", [])
     for dep in dependencies:
         if dep.startswith(f"{tool}=="):
             return dep.split("==")[1]
