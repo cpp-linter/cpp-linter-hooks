@@ -1,1 +1,18 @@
+# Configuration for Release Drafter: https://github.com/toolmantim/release-drafter
 _extends: .github
+
+# Override the template to include default tool versions
+template: |
+  <!-- Optional: add a release summary here -->
+  
+  ## Default Tool Versions
+  
+  This release uses the following default versions:
+  - **clang-format**: `$CLANG_FORMAT_VERSION`
+  - **clang-tidy**: `$CLANG_TIDY_VERSION`
+  
+  Users can override these versions by specifying a different version in their hook configuration.
+  
+  $CHANGES
+
+  **Full Changelog**: https://github.com/$OWNER/$REPOSITORY/compare/$PREVIOUS_TAG...v$RESOLVED_VERSION
