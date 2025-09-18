@@ -25,14 +25,13 @@ TOOLS = ["clang-format", "clang-tidy"]
 def test_get_version_from_dependency_success():
     """Test get_version_from_dependency with valid pyproject.toml."""
     mock_toml_content = {
-        "build-system": {
-            "requires": [
+        "project": {
+            "dependencies": [
                 "clang-format==20.1.7",
                 "clang-tidy==20.1.0",
                 "other-package==1.0.0",
             ]
-        },
-        "project": {},
+        }
     }
 
     with (
@@ -57,7 +56,7 @@ def test_get_version_from_dependency_missing_file():
 @pytest.mark.benchmark
 def test_get_version_from_dependency_missing_dependency():
     """Test get_version_from_dependency with missing dependency."""
-    mock_toml_content = {"build-system": {"requires": ["other-package==1.0.0"]}}
+    mock_toml_content = {"project": {"dependencies": ["other-package==1.0.0"]}}
 
     with (
         patch("pathlib.Path.exists", return_value=True),
