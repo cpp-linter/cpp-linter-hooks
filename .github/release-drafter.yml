@@ -1,4 +1,4 @@
-# Configuration for Release Drafter: https://github.com/toolmantim/release-drafter
+# Configuration for Release Drafter: https://github.com/release-drafter/release-drafter
 _extends: .github
 
 # Override the template to include default tool versions
