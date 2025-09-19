@@ -32,18 +32,36 @@ jobs:
       - name: Extract default tool versions
         id: versions
         run: |
+          # Get versions from Python
           CLANG_FORMAT_VERSION=$(python -c "from cpp_linter_hooks.util import DEFAULT_CLANG_FORMAT_VERSION; print(DEFAULT_CLANG_FORMAT_VERSION)")
           CLANG_TIDY_VERSION=$(python -c "from cpp_linter_hooks.util import DEFAULT_CLANG_TIDY_VERSION; print(DEFAULT_CLANG_TIDY_VERSION)")
-          echo "CLANG_FORMAT_VERSION=$CLANG_FORMAT_VERSION" >> $GITHUB_OUTPUT
-          echo "CLANG_TIDY_VERSION=$CLANG_TIDY_VERSION" >> $GITHUB_OUTPUT
+
+          # Export to GitHub Actions environment for subsequent steps
+          echo "CLANG_FORMAT_VERSION=$CLANG_FORMAT_VERSION" >> $GITHUB_ENV
+          echo "CLANG_TIDY_VERSION=$CLANG_TIDY_VERSION" >> $GITHUB_ENV
+
+          # Log for debug
           echo "Default clang-format version: $CLANG_FORMAT_VERSION"
           echo "Default clang-tidy version: $CLANG_TIDY_VERSION"
+
+          # Generate release notes file
+          echo "## 💡 Default Clang Tool Version" > release_notes.md
+          echo "- clang-format: \`$CLANG_FORMAT_VERSION\`" >> release_notes.md
+          echo "- clang-tidy: \`$CLANG_TIDY_VERSION\`" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "You can override the default versions for this release by adding the \`--version\` argument under \`args\` in your pre-commit configuration. For details, see [Custom Clang Tool Version](https://github.com/cpp-linter/cpp-linter-hooks?tab=readme-ov-file#custom-clang-tool-version)" >> release_notes.md
+          echo "" >> release_notes.md
+          cat release_notes.md
+
+          # Export release notes content to env variable for Release Drafter
+          echo "RELEASE_BODY<<EOF" >> $GITHUB_ENV
+          cat release_notes.md >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
 
       # Draft your next Release notes as Pull Requests are merged into the default branch
       - uses: release-drafter/release-drafter@b1476f6e6eb133afa41ed8589daba6dc69b4d3f5 # v6.1.0
         with:
           commitish: 'main'
+          header: ${{ env.RELEASE_BODY }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CLANG_FORMAT_VERSION: ${{ steps.versions.outputs.CLANG_FORMAT_VERSION }}
-          CLANG_TIDY_VERSION: ${{ steps.versions.outputs.CLANG_TIDY_VERSION }}
