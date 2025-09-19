@@ -5,7 +5,7 @@ _extends: .github
 template: |
   <!-- Optional: add a release summary here -->
   
-  ## Default Tool Versions
+  ## Default Clang Tools Versions
   
   This release uses the following default versions:
   - **clang-format**: `$CLANG_FORMAT_VERSION`

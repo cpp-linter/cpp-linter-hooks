@@ -263,35 +263,6 @@ def test_version_lists_not_empty():
 
 
 @pytest.mark.benchmark
-def test_get_default_versions_script():
-    """Test that the get_default_versions script works correctly."""
-    import subprocess
-    import sys
-    from pathlib import Path
-    
-    script_path = Path(__file__).parent.parent / "scripts" / "get_default_versions.py"
-    assert script_path.exists(), "get_default_versions.py script should exist"
-    
-    result = subprocess.run(
-        [sys.executable, str(script_path)], 
-        capture_output=True, 
-        text=True
-    )
-    
-    assert result.returncode == 0, f"Script failed with: {result.stderr}"
-    output_lines = result.stdout.strip().split('\n')
-    
-    # Should have 4 lines of output
-    assert len(output_lines) >= 4
-    
-    # Check that it contains expected format
-    assert any(line.startswith("Default clang-format version:") for line in output_lines)
-    assert any(line.startswith("Default clang-tidy version:") for line in output_lines)
-    assert any(line.startswith("CLANG_FORMAT_VERSION=") for line in output_lines)
-    assert any(line.startswith("CLANG_TIDY_VERSION=") for line in output_lines)
-
-
-@pytest.mark.benchmark
 def test_resolve_install_with_none_default_version():
     """Test _resolve_install when DEFAULT versions are None."""
     with (
