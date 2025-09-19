@@ -34,8 +34,8 @@ jobs:
         run: |
           CLANG_FORMAT_VERSION=$(python -c "from cpp_linter_hooks.util import DEFAULT_CLANG_FORMAT_VERSION; print(DEFAULT_CLANG_FORMAT_VERSION)")
           CLANG_TIDY_VERSION=$(python -c "from cpp_linter_hooks.util import DEFAULT_CLANG_TIDY_VERSION; print(DEFAULT_CLANG_TIDY_VERSION)")
-          echo "CLANG_FORMAT_VERSION=$CLANG_FORMAT_VERSION" >> $GITHUB_OUTPUT
-          echo "CLANG_TIDY_VERSION=$CLANG_TIDY_VERSION" >> $GITHUB_OUTPUT
+          echo "CLANG_FORMAT_VERSION=$CLANG_FORMAT_VERSION" >> $GITHUB_ENV
+          echo "CLANG_TIDY_VERSION=$CLANG_TIDY_VERSION" >> $GITHUB_ENV
           echo "Default clang-format version: $CLANG_FORMAT_VERSION"
           echo "Default clang-tidy version: $CLANG_TIDY_VERSION"
 
@@ -45,5 +45,5 @@ jobs:
           commitish: 'main'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CLANG_FORMAT_VERSION: ${{ steps.versions.outputs.CLANG_FORMAT_VERSION }}
-          CLANG_TIDY_VERSION: ${{ steps.versions.outputs.CLANG_TIDY_VERSION }}
+          CLANG_FORMAT_VERSION: ${{ env.CLANG_FORMAT_VERSION }}
+          CLANG_TIDY_VERSION: ${{ env.CLANG_TIDY_VERSION }}
