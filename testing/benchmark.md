@@ -8,6 +8,10 @@ This document outlines the benchmarking process for comparing the performance of
 
 ```bash
 python3 testing/benchmark_hooks.py
+
+# or
+
+hyperfine -i --warmup 1 -r 5 'pre-commit run --config ../testing/benchmark_hook_1.yaml --all-files' 'pre-commit run --config ../testing/benchmark_hook_2.yaml --all-files'
 ```
 
 ## Results
