@@ -1,4 +1,4 @@
-# Configuration for Release Drafter: https://github.com/toolmantim/release-drafter
+# Configuration for Release Drafter: https://github.com/release-drafter/release-drafter
 _extends: .github
 
 # Override the template to include default tool versions
@@ -7,8 +7,8 @@ template: |
 
   ## Default Clang Tools Versions for this release
 
-  - **clang-format**: `$CLANG_FORMAT_VERSION`
-  - **clang-tidy**: `$CLANG_TIDY_VERSION`
+  - **clang-format**: $CLANG_FORMAT_VERSION
+  - **clang-tidy**: $CLANG_TIDY_VERSION
 
   You can override the default versions by adding the `--version` argument under `args` in your pre-commit configuration. For details, see [Custom Clang Tool Version](https://github.com/cpp-linter/cpp-linter-hooks?tab=readme-ov-file#custom-clang-tool-version)
 
