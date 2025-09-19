@@ -5,13 +5,12 @@ _extends: .github
 template: |
   <!-- Optional: add a release summary here -->
 
-  ## Default Clang Tools Versions
+  ## Default Clang Tools Versions for this release
 
-  This release uses the following default versions:
   - **clang-format**: `$CLANG_FORMAT_VERSION`
   - **clang-tidy**: `$CLANG_TIDY_VERSION`
 
-  Users can specify the desired version by adding the `--version` argument under `args` in their pre-commit configuration. See: [Custom Clang Tool Version](https://github.com/cpp-linter/cpp-linter-hooks?tab=readme-ov-file#custom-clang-tool-version)
+  You can override the default versions by adding the `--version` argument under `args` in your pre-commit configuration. For details, see [Custom Clang Tool Version](https://github.com/cpp-linter/cpp-linter-hooks?tab=readme-ov-file#custom-clang-tool-version)
 
   $CHANGES
 
