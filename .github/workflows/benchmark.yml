@@ -22,4 +22,5 @@ jobs:
 
       - name: Run benchmarks
         run: |
+          cargo install hyperfine
           python testing/benchmark_hooks.py
