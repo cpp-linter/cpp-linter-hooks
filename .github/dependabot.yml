@@ -17,7 +17,9 @@ updates:
     directory: /
     schedule:
       interval: "daily"
+    commit-message:
+      prefix: clang-tools
     groups:
-      pip:
+      clang-tools:
         patterns:
-          - "*"
+          - "clang-*"
