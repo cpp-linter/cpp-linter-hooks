@@ -18,7 +18,7 @@ updates:
     schedule:
       interval: "daily"
     commit-message:
-      prefix: clang-tools
+      prefix: build
     groups:
       clang-tools:
         patterns:
