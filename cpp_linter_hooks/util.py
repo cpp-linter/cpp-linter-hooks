@@ -31,7 +31,7 @@ def get_version_from_dependency(tool: str) -> Optional[str]:
 DEFAULT_CLANG_FORMAT_VERSION = get_version_from_dependency("clang-format")
 DEFAULT_CLANG_TIDY_VERSION = get_version_from_dependency("clang-tidy")
 
-
+# https://pypi.org/pypi/clang-format/json
 CLANG_FORMAT_VERSIONS = [
     "6.0.1",
     "7.1.0",
@@ -98,8 +98,11 @@ CLANG_FORMAT_VERSIONS = [
     "20.1.7",
     "20.1.8",
     "21.1.0",
+    "21.1.1",
+    "21.1.2",
 ]
 
+# https://pypi.org/pypi/clang-tidy/json
 CLANG_TIDY_VERSIONS = [
     "13.0.1.1",
     "14.0.6",
@@ -113,6 +116,7 @@ CLANG_TIDY_VERSIONS = [
     "19.1.0.1",
     "20.1.0",
     "21.1.0",
+    "21.1.1",
 ]
 
 
