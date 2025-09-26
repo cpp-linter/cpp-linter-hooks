@@ -100,6 +100,7 @@ CLANG_FORMAT_VERSIONS = [
     "20.1.8",
     "21.1.0",
     "21.1.1",
+    "21.1.2",
 ]
 
 # https://pypi.org/pypi/clang-tidy/json
