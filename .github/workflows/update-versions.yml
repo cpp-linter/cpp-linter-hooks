@@ -1,0 +1,86 @@
+name: Update Tool Versions
+
+on:
+  schedule:
+    # Run every Monday at 2 AM UTC
+    - cron: '0 2 * * 1'
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  update-versions:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Update versions
+      run: |
+        python3 scripts/update_versions.py
+
+    - name: Check for changes
+      id: verify-changed-files
+      run: |
+        if [ -n "$(git status --porcelain)" ]; then
+          echo "changed=true" >> $GITHUB_OUTPUT
+        else
+          echo "changed=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Get latest versions for PR description
+      if: steps.verify-changed-files.outputs.changed == 'true'
+      id: get-versions
+      run: |
+        CLANG_FORMAT_VERSION=$(python3 -c 'from cpp_linter_hooks.versions import CLANG_FORMAT_VERSIONS; print(CLANG_FORMAT_VERSIONS[-1])')
+        CLANG_TIDY_VERSION=$(python3 -c 'from cpp_linter_hooks.versions import CLANG_TIDY_VERSIONS; print(CLANG_TIDY_VERSIONS[-1])')
+        echo "clang_format_version=$CLANG_FORMAT_VERSION" >> $GITHUB_OUTPUT
+        echo "clang_tidy_version=$CLANG_TIDY_VERSION" >> $GITHUB_OUTPUT
+
+    - name: Create Pull Request
+      if: steps.verify-changed-files.outputs.changed == 'true'
+      uses: peter-evans/create-pull-request@271a8d0340265f705b14b6d32b9829c1cb33d45e # v7.0.8
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: |
+          chore: update clang-format and clang-tidy versions
+
+          - Updated versions automatically from PyPI
+        title: "chore: update tool versions to latest"
+        body: |
+          ## 🔄 Automated Version Update
+
+          This PR updates the hardcoded versions for clang-format and clang-tidy tools to the latest available versions from PyPI.
+
+          ### 📦 Updated Versions
+          - **clang-format**: `${{ steps.get-versions.outputs.clang_format_version }}`
+          - **clang-tidy**: `${{ steps.get-versions.outputs.clang_tidy_version }}`
+
+          ### 🤖 Automation Details
+          - This update was triggered automatically by the scheduled workflow
+          - Versions are fetched from the official PyPI APIs
+          - Only stable versions (no pre-releases) are included
+
+          ### ✅ What's Changed
+          - Updated `cpp_linter_hooks/versions.py` with latest tool versions
+          - No breaking changes expected
+          - Maintains backward compatibility
+
+          ### 🔍 Review Checklist
+          - [ ] Verify the new versions are stable releases
+          - [ ] Check that no pre-release versions were included
+          - [ ] Confirm the version format matches expectations
+
+          ---
+
+          *This PR was created automatically by the `update-versions.yml` workflow.*
+        branch: update-tool-versions
+        delete-branch: true
+        base: main
+        labels: dependencies

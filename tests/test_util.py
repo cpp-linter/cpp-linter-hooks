@@ -9,11 +9,10 @@ from cpp_linter_hooks.util import (
     _resolve_version,
     _install_tool,
     _resolve_install,
-    CLANG_FORMAT_VERSIONS,
-    CLANG_TIDY_VERSIONS,
     DEFAULT_CLANG_FORMAT_VERSION,
     DEFAULT_CLANG_TIDY_VERSION,
 )
+from cpp_linter_hooks.versions import CLANG_FORMAT_VERSIONS, CLANG_TIDY_VERSIONS
 
 
 VERSIONS = [None, "20"]
