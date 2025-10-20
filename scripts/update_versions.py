@@ -20,11 +20,12 @@ def fetch_versions_from_pypi(package_name: str) -> List[str]:
         with urllib.request.urlopen(url, timeout=10) as response:
             data = json.loads(response.read())
             versions = list(data["releases"].keys())
-            # Filter out pre-release versions and sort
+            # Filter out pre-release versions using proper regex patterns
+            pre_release_pattern = re.compile(r".*(alpha|beta|rc|dev|a\d+|b\d+).*", re.IGNORECASE)
             stable_versions = [
                 v
                 for v in versions
-                if not any(char in v for char in ["a", "b", "rc", "dev"])
+                if not pre_release_pattern.match(v)
             ]
             return sorted(stable_versions, key=lambda x: tuple(map(int, x.split("."))))
     except Exception as e:
@@ -51,7 +52,7 @@ def update_versions_file():
         "[\n" + "\n".join(f'    "{v}",' for v in clang_format_versions) + "\n]"
     )
     content = re.sub(
-        r"(CLANG_FORMAT_VERSIONS = )\[.*?\]",
+        r"(CLANG_FORMAT_VERSIONS = )\[[^\]]*\]",
         rf"\1{clang_format_list}",
         content,
         flags=re.DOTALL,
@@ -62,7 +63,7 @@ def update_versions_file():
         "[\n" + "\n".join(f'    "{v}",' for v in clang_tidy_versions) + "\n]"
     )
     content = re.sub(
-        r"(CLANG_TIDY_VERSIONS = )\[.*?\]",
+        r"(CLANG_TIDY_VERSIONS = )\[[^\]]*\]",
         rf"\1{clang_tidy_list}",
         content,
         flags=re.DOTALL,
