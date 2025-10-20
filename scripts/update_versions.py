@@ -21,12 +21,10 @@ def fetch_versions_from_pypi(package_name: str) -> List[str]:
             data = json.loads(response.read())
             versions = list(data["releases"].keys())
             # Filter out pre-release versions using proper regex patterns
-            pre_release_pattern = re.compile(r".*(alpha|beta|rc|dev|a\d+|b\d+).*", re.IGNORECASE)
-            stable_versions = [
-                v
-                for v in versions
-                if not pre_release_pattern.match(v)
-            ]
+            pre_release_pattern = re.compile(
+                r".*(alpha|beta|rc|dev|a\d+|b\d+).*", re.IGNORECASE
+            )
+            stable_versions = [v for v in versions if not pre_release_pattern.match(v)]
             return sorted(stable_versions, key=lambda x: tuple(map(int, x.split("."))))
     except Exception as e:
         print(f"Failed to fetch versions for {package_name}: {e}")
