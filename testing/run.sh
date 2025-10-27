@@ -29,11 +29,26 @@ if [[ $failed_cases -eq 21 ]]; then
     echo "=============================="
     echo "Test cpp-linter-hooks success."
     echo "=============================="
+    result="success"
     rm result.txt
-    exit 0
+    exit_code=0
 else
     echo "============================="
     echo "Test cpp-linter-hooks failed."
     echo "============================="
-    exit 1
+    result="failure"
+    exit_code=1
 fi
+
+# Add result to GitHub summary if running in GitHub Actions
+if [[ -n "$GITHUB_STEP_SUMMARY" ]]; then
+    {
+        echo "### cpp-linter-hooks Test Result"
+        echo ""
+        echo "**Result:** $result"
+        echo ""
+        echo "**Failed cases:** $failed_cases"
+    } >> "$GITHUB_STEP_SUMMARY"
+fi
+
+exit $exit_code
