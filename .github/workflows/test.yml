@@ -40,4 +40,4 @@ jobs:
           fail_ci_if_error: true # optional (default = false)
           verbose: true # optional (default = false)
       - name: Test cpp-linter-hooks
-        run: sh testing/run.sh
+        run: bash testing/run.sh
