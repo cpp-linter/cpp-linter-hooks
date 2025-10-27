@@ -44,5 +44,5 @@ jobs:
           EOF
 
           pre-commit install
-          pre-commit run -v --all-files --show-diff-on-failure
+          pre-commit run -v --all-files
         continue-on-error: true
