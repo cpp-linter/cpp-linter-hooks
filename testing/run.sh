@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 configs=(
     "pre-commit-config.yaml"
