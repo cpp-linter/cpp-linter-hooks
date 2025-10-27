@@ -1,0 +1,43 @@
+repos:
+  - repo: .
+    rev: HEAD
+    hooks:
+      - id: clang-format
+        args: [--style=LLVM, --version=16]  # to load .clang-format
+      - id: clang-tidy
+        args: [--checks=.clang-tidy, --version=16] # path/to/.clang-tidy
+  - repo: .
+    rev: HEAD
+    hooks:
+      - id: clang-format
+        args: [--style=Google, --version=17]
+      - id: clang-tidy
+        args: [--checks=.clang-tidy, --version=17]
+  - repo: .
+    rev: HEAD
+    hooks:
+      - id: clang-format
+        args: [--style=Microsoft, --version=18]
+      - id: clang-tidy
+        args: [--checks=.clang-tidy, --version=18]
+  - repo: .
+    rev: HEAD
+    hooks:
+      - id: clang-format
+        args: [--style=WebKit, --version=19]
+      - id: clang-tidy
+        args: [--checks=.clang-tidy, --version=19]
+  - repo: .
+    rev: HEAD
+    hooks:
+      - id: clang-format
+        args: [--style=Mozilla, --version=20]
+      - id: clang-tidy
+        args: [--checks=.clang-tidy, --version=20]
+  - repo: .
+    rev: HEAD
+    hooks:
+      - id: clang-format
+        args: [--style=Chromium, --version=21]
+      - id: clang-tidy
+        args: [--checks=.clang-tidy, --version=21]
