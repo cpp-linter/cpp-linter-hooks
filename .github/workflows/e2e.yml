@@ -14,7 +14,7 @@ jobs:
         clang_version: [16, 17, 18, 19, 20, 21]
         clang_style: [LLVM, Google, Chromium, Mozilla, WebKit]
 
-    name: Test clang ${{ matrix.clang_version }}
+    name: Test clang ${{ matrix.clang_version }} with style ${{ matrix.clang_style }}
     steps:
       - name: Checkout workflow repo
         uses: actions/checkout@v4
@@ -42,4 +42,4 @@ jobs:
           EOF
 
           pre-commit install
-          pre-commit run -v --all-files
+          pre-commit run -v --all-files --show-diff-on-failure
