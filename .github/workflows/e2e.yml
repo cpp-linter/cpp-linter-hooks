@@ -4,11 +4,6 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
-    inputs:
-      target_repo:
-        description: 'Target repository to test against'
-        required: false
-        default: 'llvm/llvm-project'
 
 jobs:
   e2e-test:
@@ -16,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        clang_version: ['v19.1.7', 'v20.1.8', 'v21.1.2']
+        clang_version: [16, 17, 18, 19, 20, 21]
 
     name: Test clang ${{ matrix.clang_version }}
     steps:
@@ -33,10 +28,6 @@ jobs:
           python -m pip install --upgrade pip
           python -m pip install pre-commit
 
-      - name: Clone target repository
-        run: |
-          git clone --depth=1 https://github.com/${{ github.event.inputs.target_repo || 'llvm/llvm-project' }}.git test-repo
-
       - name: Install pre-commit hooks and run
         run: |
           cd test-repo
@@ -47,6 +38,7 @@ jobs:
               rev: ${{ matrix.clang_version }}
               hooks:
                 - id: clang-format
+                  args: [--style=LLVM, --version=${{ matrix.clang_version }}]
           EOF
 
           pre-commit install
