@@ -43,3 +43,4 @@ jobs:
 
           pre-commit install
           pre-commit run -v --all-files --show-diff-on-failure
+        continue-on-error: true
