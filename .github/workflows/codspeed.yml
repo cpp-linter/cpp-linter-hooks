@@ -35,7 +35,7 @@ jobs:
         run: pip install -e .[dev]
 
       - name: Run benchmarks
-        uses: CodSpeedHQ/action@c6574d0c2a990bca2842ce9af71549c5bfd7fbe0 #v3
+        uses: CodSpeedHQ/action@4348f634fa7309fe23aac9502e88b999ec90a164 #v3
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: pytest tests/ --codspeed
