@@ -37,24 +37,18 @@ jobs:
         run: |
           git clone --depth=1 https://github.com/${{ github.event.inputs.target_repo || 'llvm/llvm-project' }}.git test-repo
 
-      - name: Create .pre-commit-config.yaml
+      - name: Install pre-commit hooks and run
         run: |
           cd test-repo
-          rm -f .pre-commit-config.yaml
+          rm -f .pre-commit-config.yaml || true
           cat > .pre-commit-config.yaml << EOF
           repos:
             - repo: https://github.com/cpp-linter/cpp-linter-hooks
-              rev: main
+              rev: ${{ github.sha }}
               hooks:
                 - id: clang-format
-                  args: [
-                    --style=LLVM,
-                    --version=${{ matrix.clang_version }}
-                  ]
+                  args: [--style=LLVM, --version=${{ matrix.clang_version }}]
           EOF
 
-      - name: Install and run cpp-linter-hooks
-        run: |
-          cd test-repo
           pre-commit install
           pre-commit run --all-files
