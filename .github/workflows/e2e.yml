@@ -30,7 +30,6 @@ jobs:
 
       - name: Install pre-commit hooks and run
         run: |
-          cd test-repo
           rm -f .pre-commit-config.yaml || true
           cat > .pre-commit-config.yaml << EOF
           repos:
