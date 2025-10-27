@@ -12,6 +12,7 @@ jobs:
       fail-fast: false
       matrix:
         clang_version: [16, 17, 18, 19, 20, 21]
+        clang_style: [LLVM, Google, Chromium, Mozilla, WebKit]
 
     name: Test clang ${{ matrix.clang_version }}
     steps:
@@ -37,7 +38,7 @@ jobs:
               rev: ${{ github.sha }}
               hooks:
                 - id: clang-format
-                  args: [--style=LLVM, --version=${{ matrix.clang_version }}]
+                  args: [--style=${{ matrix.clang_style }}, --version=${{ matrix.clang_version }}]
           EOF
 
           pre-commit install
