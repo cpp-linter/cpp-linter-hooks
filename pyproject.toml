@@ -80,3 +80,8 @@ exclude_also = [
     "__name__",
     "FileNotFoundError"
     ]
+
+[tool.pytest.ini_options]
+markers = [
+    "benchmark: mark test as a benchmark test"
+]

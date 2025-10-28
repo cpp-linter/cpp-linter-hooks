@@ -4,6 +4,7 @@ from pathlib import Path
 import subprocess
 import sys
 
+from cpp_linter_hooks import util
 from cpp_linter_hooks.util import (
     get_version_from_dependency,
     _resolve_version,
@@ -278,3 +279,42 @@ def test_resolve_install_with_none_default_version():
 
         # Should fallback to hardcoded version when DEFAULT is None
         mock_install.assert_called_once_with("clang-format", None)
+
+
+@pytest.mark.benchmark
+def test_main_success(monkeypatch):
+    # Patch _resolve_install to simulate success
+    monkeypatch.setattr(
+        "cpp_linter_hooks.util._resolve_install",
+        lambda tool, version: "/usr/bin/clang-format",
+    )
+    monkeypatch.setattr(
+        sys, "argv", ["util.py", "--tool", "clang-format", "--version", "15.0.7"]
+    )
+    exit_code = util.main()
+    assert exit_code == 0
+
+
+@pytest.mark.benchmark
+def test_main_failure(monkeypatch):
+    # Patch _resolve_install to simulate failure
+    monkeypatch.setattr(
+        "cpp_linter_hooks.util._resolve_install", lambda tool, version: None
+    )
+    monkeypatch.setattr(
+        sys, "argv", ["util.py", "--tool", "clang-format", "--version", "99.99.99"]
+    )
+    exit_code = util.main()
+    assert exit_code == 1
+
+
+@pytest.mark.benchmark
+def test_main_default_tool(monkeypatch):
+    # Patch _resolve_install to simulate success for default tool
+    monkeypatch.setattr(
+        "cpp_linter_hooks.util._resolve_install",
+        lambda tool, version: "/usr/bin/clang-format",
+    )
+    monkeypatch.setattr(sys, "argv", ["util.py"])
+    exit_code = util.main()
+    assert exit_code == 0
