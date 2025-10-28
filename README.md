@@ -13,6 +13,7 @@ A pre-commit hook that automatically formats and lints your C/C++ code using `cl
 - [Quick Start](#quick-start)
   - [Custom Configuration Files](#custom-configuration-files)
   - [Custom Clang Tool Version](#custom-clang-tool-version)
+  - [Clang Tool Wheel CLI](#clang-tool-wheel-cli)
 - [Output](#output)
   - [clang-format Output](#clang-format-output)
   - [clang-tidy Output](#clang-tidy-output)
@@ -70,6 +71,35 @@ repos:
         args: [--style=file, --version=21] # Specifies version
       - id: clang-tidy
         args: [--checks=.clang-tidy, --version=21] # Specifies version
+```
+
+### Clang Tool Wheel CLI
+
+This package also provides a CLI tool `clang-tools-wheel` to install specific versions of clang-format and clang-tidy wheels directly.
+
+It can automatically resolve and install compatible versions even if no explicit version number is provided.
+
+```bash
+# Install the package
+pip install cpp-linter-hooks
+
+# Install specific version of clang-format
+clang-tools-wheel --tool clang-format --version 21
+clang-format installed at: /home/sxp/.local/bin/clang-format
+
+# Check clang-format version
+/home/sxp/.local/bin/clang-format --version
+clang-format version 21.1.2
+
+# Install specific version of clang-tidy
+clang-tools-wheel --tool clang-tidy --version 21
+clang-tidy installed at: /home/sxp/.local/bin/clang-tidy
+
+# Check clang-tidy version
+/home/sxp/.local/bin/clang-tidy --version
+LLVM (http://llvm.org/):
+  LLVM version 21.1.1
+  Optimized build.
 ```
 
 ## Output

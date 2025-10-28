@@ -40,6 +40,7 @@ dependencies = [
 dynamic = ["version"]
 
 [project.scripts]
+clang-tools-wheel = "cpp_linter_hooks.util:main"
 clang-format-hook = "cpp_linter_hooks.clang_format:main"
 clang-tidy-hook = "cpp_linter_hooks.clang_tidy:main"
 

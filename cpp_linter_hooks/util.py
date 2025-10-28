@@ -1,6 +1,7 @@
 import sys
 import shutil
 import subprocess
+from argparse import ArgumentParser
 from pathlib import Path
 import logging
 from typing import Optional, List
@@ -86,3 +87,21 @@ def _resolve_install(tool: str, version: Optional[str]) -> Optional[Path]:
         )
 
     return _install_tool(tool, user_version)
+
+
+def main():
+    parser = ArgumentParser("Install specified clang tool wheel")
+    parser.add_argument("--tool", default="clang-format")
+    parser.add_argument("--version", default=None)
+    args = parser.parse_args()
+    path = _resolve_install(args.tool, args.version)
+    if path:
+        print(f"{args.tool} installed at: {path}")
+        return 0
+    else:
+        print(f"Failed to install {args.tool} version {args.version}")
+        return 1
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
