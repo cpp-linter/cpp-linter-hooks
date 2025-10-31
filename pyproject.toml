@@ -59,6 +59,7 @@ dev = [
 [tool.setuptools]
 zip-safe = false
 packages = ["cpp_linter_hooks"]
+include-package-data = true
 
 [tool.setuptools_scm]
 # It would be nice to include the commit hash in the version, but that
