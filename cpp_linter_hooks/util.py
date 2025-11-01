@@ -72,7 +72,7 @@ def _install_tool(tool: str, version: str) -> Optional[Path]:
         return None
 
 
-def _resolve_install(tool: str, version: Optional[str]) -> Optional[Path]:
+def resolve_install(tool: str, version: Optional[str]) -> Optional[Path]:
     """Resolve the installation of a tool, checking for version and installing if necessary."""
     user_version = _resolve_version(
         CLANG_FORMAT_VERSIONS if tool == "clang-format" else CLANG_TIDY_VERSIONS,

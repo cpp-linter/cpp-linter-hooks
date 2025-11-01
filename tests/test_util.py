@@ -8,7 +8,7 @@ from cpp_linter_hooks.util import (
     get_version_from_dependency,
     _resolve_version,
     _install_tool,
-    _resolve_install,
+    resolve_install,
     DEFAULT_CLANG_FORMAT_VERSION,
     DEFAULT_CLANG_TIDY_VERSION,
 )
@@ -159,22 +159,22 @@ def test_install_tool_success_but_not_found():
         assert result is None
 
 
-# Tests for _resolve_install
+# Tests for resolve_install
 @pytest.mark.benchmark
 def test_resolve_install_tool_already_installed_correct_version():
-    """Test _resolve_install when tool is already installed with correct version."""
+    """Test resolve_install when tool is already installed with correct version."""
     mock_path = "/usr/bin/clang-format"
 
     with (
         patch("shutil.which", return_value=mock_path),
     ):
-        result = _resolve_install("clang-format", "20.1.7")
+        result = resolve_install("clang-format", "20.1.7")
         assert Path(result) == Path(mock_path)
 
 
 @pytest.mark.benchmark
 def test_resolve_install_tool_version_mismatch():
-    """Test _resolve_install when tool has wrong version."""
+    """Test resolve_install when tool has wrong version."""
     mock_path = "/usr/bin/clang-format"
 
     with (
@@ -183,7 +183,7 @@ def test_resolve_install_tool_version_mismatch():
             "cpp_linter_hooks.util._install_tool", return_value=Path(mock_path)
         ) as mock_install,
     ):
-        result = _resolve_install("clang-format", "20.1.7")
+        result = resolve_install("clang-format", "20.1.7")
         assert result == Path(mock_path)
 
         mock_install.assert_called_once_with("clang-format", "20.1.7")
@@ -191,7 +191,7 @@ def test_resolve_install_tool_version_mismatch():
 
 @pytest.mark.benchmark
 def test_resolve_install_tool_not_installed():
-    """Test _resolve_install when tool is not installed."""
+    """Test resolve_install when tool is not installed."""
     with (
         patch("shutil.which", return_value=None),
         patch(
@@ -199,7 +199,7 @@ def test_resolve_install_tool_not_installed():
             return_value=Path("/usr/bin/clang-format"),
         ) as mock_install,
     ):
-        result = _resolve_install("clang-format", "20.1.7")
+        result = resolve_install("clang-format", "20.1.7")
         assert result == Path("/usr/bin/clang-format")
 
         mock_install.assert_called_once_with("clang-format", "20.1.7")
@@ -207,7 +207,7 @@ def test_resolve_install_tool_not_installed():
 
 @pytest.mark.benchmark
 def test_resolve_install_no_version_specified():
-    """Test _resolve_install when no version is specified."""
+    """Test resolve_install when no version is specified."""
     with (
         patch("shutil.which", return_value=None),
         patch(
@@ -215,7 +215,7 @@ def test_resolve_install_no_version_specified():
             return_value=Path("/usr/bin/clang-format"),
         ) as mock_install,
     ):
-        result = _resolve_install("clang-format", None)
+        result = resolve_install("clang-format", None)
         assert result == Path("/usr/bin/clang-format")
 
         mock_install.assert_called_once_with(
@@ -225,7 +225,7 @@ def test_resolve_install_no_version_specified():
 
 @pytest.mark.benchmark
 def test_resolve_install_invalid_version():
-    """Test _resolve_install with invalid version."""
+    """Test resolve_install with invalid version."""
     with (
         patch("shutil.which", return_value=None),
         patch(
@@ -233,7 +233,7 @@ def test_resolve_install_invalid_version():
             return_value=Path("/usr/bin/clang-format"),
         ) as mock_install,
     ):
-        result = _resolve_install("clang-format", "invalid.version")
+        result = resolve_install("clang-format", "invalid.version")
         assert result == Path("/usr/bin/clang-format")
 
         # Should fallback to default version
@@ -263,7 +263,7 @@ def test_version_lists_not_empty():
 
 @pytest.mark.benchmark
 def test_resolve_install_with_none_default_version():
-    """Test _resolve_install when DEFAULT versions are None."""
+    """Test resolve_install when DEFAULT versions are None."""
     with (
         patch("shutil.which", return_value=None),
         patch("cpp_linter_hooks.util.DEFAULT_CLANG_FORMAT_VERSION", None),
@@ -273,7 +273,7 @@ def test_resolve_install_with_none_default_version():
             return_value=Path("/usr/bin/clang-format"),
         ) as mock_install,
     ):
-        result = _resolve_install("clang-format", None)
+        result = resolve_install("clang-format", None)
         assert result == Path("/usr/bin/clang-format")
 
         # Should fallback to hardcoded version when DEFAULT is None
