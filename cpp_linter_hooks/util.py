@@ -60,7 +60,16 @@ def _resolve_version(versions: List[str], user_input: Optional[str]) -> Optional
 
 
 def _install_tool(tool: str, version: str) -> Optional[Path]:
-    """Install a tool using pip, suppressing output."""
+    """
+    Install the specified tool version into the current Python environment and return its executable path.
+    
+    Parameters:
+        tool (str): The package/executable name to install (e.g., "clang-format").
+        version (str): The exact version string to install (e.g., "14.0.6").
+    
+    Returns:
+        Path: Path to the installed tool's executable if the installation succeeds and the executable is found, `None` otherwise.
+    """
     try:
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", f"{tool}=={version}"],
@@ -73,7 +82,16 @@ def _install_tool(tool: str, version: str) -> Optional[Path]:
 
 
 def resolve_install(tool: str, version: Optional[str]) -> Optional[Path]:
-    """Resolve the installation of a tool, checking for version and installing if necessary."""
+    """
+    Resolve and install the requested clang tool version and return its executable path.
+    
+    Parameters:
+        tool (str): Tool name, expected "clang-format" or "clang-tidy".
+        version (Optional[str]): Desired version string (exact match or prefix). If None, falls back to the default version from pyproject.toml when available.
+    
+    Returns:
+        Optional[Path]: Path to the installed tool executable if installation succeeded, `None` otherwise.
+    """
     user_version = _resolve_version(
         CLANG_FORMAT_VERSIONS if tool == "clang-format" else CLANG_TIDY_VERSIONS,
         version,

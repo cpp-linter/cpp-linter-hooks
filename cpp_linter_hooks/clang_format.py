@@ -14,6 +14,20 @@ parser.add_argument(
 
 
 def run_clang_format(args=None) -> Tuple[int, str]:
+    """
+    Run clang-format with the given arguments and return its exit code and combined output.
+    
+    Parses known hook options from `args`, optionally ensures a specific clang-format version is installed, builds and executes a clang-format command (modifying files in-place by default), and captures stdout and stderr merged into a single output string.
+    
+    Parameters:
+        args (Optional[Sequence[str]]): Argument list to parse (typically sys.argv[1:]). If omitted, uses parser defaults.
+    
+    Returns:
+        tuple[int, str]: A pair (retval, output) where `output` is the concatenation of stdout and stderr.
+            `retval` is the subprocess return code, except:
+            - `-1` when the command included `--dry-run` (special sentinel to indicate dry-run mode),
+            - `1` when clang-format could not be found (FileNotFoundError converted to an exit-like code).
+    """
     hook_args, other_args = parser.parse_known_args(args)
     if hook_args.version:
         resolve_install("clang-format", hook_args.version)

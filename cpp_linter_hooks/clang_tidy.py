@@ -10,6 +10,17 @@ parser.add_argument("--version", default=DEFAULT_CLANG_TIDY_VERSION)
 
 
 def run_clang_tidy(args=None) -> Tuple[int, str]:
+    """
+    Run clang-tidy with the given command-line arguments and return a status code and captured output.
+    
+    Parameters:
+        args (Optional[Sequence[str]]): Arguments to parse and forward to clang-tidy; if None, uses sys.argv. If the parsed arguments include a --version value, the specified clang-tidy version is ensured to be installed before running.
+    
+    Returns:
+        Tuple[int, str]: A pair (status, output).
+            - status: 0 when clang-tidy executed and produced no warnings or errors; 1 when clang-tidy reports any "warning:" or "error:", or when clang-tidy cannot be executed.
+            - output: Captured stdout from clang-tidy, or the error text if execution failed.
+    """
     hook_args, other_args = parser.parse_known_args(args)
     if hook_args.version:
         resolve_install("clang-tidy", hook_args.version)
