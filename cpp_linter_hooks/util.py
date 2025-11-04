@@ -64,11 +64,14 @@ def _install_tool(tool: str, version: str) -> Optional[Path]:
     try:
         subprocess.check_call(
             [sys.executable, "-m", "pip", "install", f"{tool}=={version}"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            capture_output=True,
+            check=True,
         )
         return shutil.which(tool)
-    except subprocess.CalledProcessError:
+    except subprocess.CalledProcessError as e:
+        LOG.error("pip failed to install %s %s", tool, version)
+        LOG.error(e.stdout.decode(encoding="utf-8"))
+        LOG.error(e.stderr.decode(encoding="utf-8"))
         return None
 
 
