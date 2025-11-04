@@ -387,7 +387,7 @@ dependencies = [
     { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
 
-[package.optional-dependencies]
+[package.dev-dependencies]
 dev = [
     { name = "coverage", version = "7.10.7", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.10'" },
     { name = "coverage", version = "7.11.0", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.10'" },
@@ -400,15 +400,18 @@ dev = [
 requires-dist = [
     { name = "clang-format", specifier = "==21.1.2" },
     { name = "clang-tidy", specifier = "==21.1.1" },
-    { name = "coverage", marker = "extra == 'dev'" },
     { name = "pip", specifier = ">=20.3" },
-    { name = "pre-commit", marker = "extra == 'dev'" },
-    { name = "pytest", marker = "extra == 'dev'" },
-    { name = "pytest-codspeed", marker = "extra == 'dev'" },
     { name = "setuptools", specifier = ">=45.0.0" },
     { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=1.1.0" },
 ]
-provides-extras = ["dev"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "coverage" },
+    { name = "pre-commit" },
+    { name = "pytest" },
+    { name = "pytest-codspeed" },
+]
 
 [[package]]
 name = "distlib"

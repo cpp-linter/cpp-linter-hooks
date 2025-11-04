@@ -47,7 +47,7 @@ clang-tidy-hook = "cpp_linter_hooks.clang_tidy:main"
 source =  "https://github.com/cpp-linter/cpp-linter-hooks"
 tracker = "https://github.com/cpp-linter/cpp-linter-hooks/issues"
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "coverage",
     "pre-commit",
@@ -82,4 +82,4 @@ omit = ["tests/*"]
 exclude_also = [
     "__name__",
     "FileNotFoundError"
-    ]
+]
