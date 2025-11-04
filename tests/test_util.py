@@ -123,8 +123,11 @@ def test_install_tool_success():
     """Test _install_tool successful installation."""
     mock_path = "/usr/bin/clang-format"
 
+    def patched_run(*args, **kwargs):
+        return subprocess.CompletedProcess(args, returncode=0)
+
     with (
-        patch("subprocess.run") as mock_run,
+        patch("subprocess.run", side_effect=patched_run) as mock_run,
         patch("shutil.which", return_value=mock_path),
     ):
         result = _install_tool("clang-format", "20.1.7")
@@ -133,18 +136,20 @@ def test_install_tool_success():
         mock_run.assert_called_once_with(
             [sys.executable, "-m", "pip", "install", "clang-format==20.1.7"],
             capture_output=True,
-            check=True,
         )
 
 
 @pytest.mark.benchmark
 def test_install_tool_failure():
     """Test _install_tool when pip install fails."""
+
+    def patched_run(*args, **kwargs):
+        return subprocess.CompletedProcess(
+            args, returncode=1, stderr=b"Error", stdout=b"Installation failed"
+        )
+
     with (
-        patch(
-            "subprocess.run",
-            side_effect=subprocess.CalledProcessError(1, ["pip"]),
-        ),
+        patch("subprocess.run", side_effect=patched_run),
         patch("cpp_linter_hooks.util.LOG"),
     ):
         result = _install_tool("clang-format", "20.1.7")
