@@ -60,17 +60,18 @@ def _resolve_version(versions: List[str], user_input: Optional[str]) -> Optional
 
 
 def _install_tool(tool: str, version: str) -> Optional[Path]:
-    """Install a tool using pip, suppressing output."""
+    """Install a tool using pip, logging output on failure."""
     result = subprocess.run(
         [sys.executable, "-m", "pip", "install", f"{tool}=={version}"],
         capture_output=True,
+        text=True,
     )
     if result.returncode == 0:
         return shutil.which(tool)
     else:
         LOG.error("pip failed to install %s %s", tool, version)
-        LOG.error(result.stdout.decode(encoding="utf-8"))
-        LOG.error(result.stderr.decode(encoding="utf-8"))
+        LOG.error(result.stdout)
+        LOG.error(result.stderr)
         return None
 
 
