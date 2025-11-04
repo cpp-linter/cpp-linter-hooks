@@ -124,16 +124,16 @@ def test_install_tool_success():
     mock_path = "/usr/bin/clang-format"
 
     with (
-        patch("subprocess.check_call") as mock_check_call,
+        patch("subprocess.run") as mock_run,
         patch("shutil.which", return_value=mock_path),
     ):
         result = _install_tool("clang-format", "20.1.7")
         assert result == mock_path
 
-        mock_check_call.assert_called_once_with(
+        mock_run.assert_called_once_with(
             [sys.executable, "-m", "pip", "install", "clang-format==20.1.7"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            capture_output=True,
+            check=True,
         )
 
 
@@ -142,7 +142,7 @@ def test_install_tool_failure():
     """Test _install_tool when pip install fails."""
     with (
         patch(
-            "subprocess.check_call",
+            "subprocess.run",
             side_effect=subprocess.CalledProcessError(1, ["pip"]),
         ),
         patch("cpp_linter_hooks.util.LOG"),
@@ -154,7 +154,7 @@ def test_install_tool_failure():
 @pytest.mark.benchmark
 def test_install_tool_success_but_not_found():
     """Test _install_tool when install succeeds but tool not found in PATH."""
-    with patch("subprocess.check_call"), patch("shutil.which", return_value=None):
+    with patch("subprocess.run"), patch("shutil.which", return_value=None):
         result = _install_tool("clang-format", "20.1.7")
         assert result is None
 
