@@ -11,8 +11,8 @@ for config in "${configs[@]}"; do
     echo "===================================="
     echo "Test $config"
     echo "===================================="
-    pre-commit clean
-    pre-commit run -c testing/$config --files testing/main.c | tee -a result.txt || true
+    uvx pre-commit clean
+    uvx pre-commit run -c testing/$config --files testing/main.c | tee -a result.txt || true
     git restore testing/main.c
 done
 
