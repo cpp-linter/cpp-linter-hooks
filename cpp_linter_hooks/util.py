@@ -62,7 +62,7 @@ def _resolve_version(versions: List[str], user_input: Optional[str]) -> Optional
 def _install_tool(tool: str, version: str) -> Optional[Path]:
     """Install a tool using pip, suppressing output."""
     try:
-        subprocess.check_call(
+        subprocess.run(
             [sys.executable, "-m", "pip", "install", f"{tool}=={version}"],
             capture_output=True,
             check=True,
