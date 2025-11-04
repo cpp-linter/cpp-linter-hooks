@@ -5,9 +5,9 @@ from pathlib import Path
 import logging
 from typing import Optional, List
 
-try:
+if sys.version_info >= (3, 11):
     import tomllib
-except ModuleNotFoundError:
+else:
     import tomli as tomllib
 
 from cpp_linter_hooks.versions import CLANG_FORMAT_VERSIONS, CLANG_TIDY_VERSIONS
