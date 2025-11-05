@@ -68,11 +68,10 @@ def _install_tool(tool: str, version: str) -> Optional[Path]:
     )
     if result.returncode == 0:
         return shutil.which(tool)
-    else:
-        LOG.error("pip failed to install %s %s", tool, version)
-        LOG.error(result.stdout)
-        LOG.error(result.stderr)
-        return None
+    LOG.error("pip failed to install %s %s", tool, version)
+    LOG.error(result.stdout)
+    LOG.error(result.stderr)
+    return None
 
 
 def resolve_install(tool: str, version: Optional[str]) -> Optional[Path]:
