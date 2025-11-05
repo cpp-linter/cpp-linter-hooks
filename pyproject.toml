@@ -2,9 +2,8 @@
 requires = ["setuptools>=45", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
-requires-python = ">=3.9"
-
 [project]
+requires-python = ">=3.9"
 name = "cpp_linter_hooks"
 description = "Automatically formats and lints C/C++ code using clang-format and clang-tidy"
 readme = "README.md"
@@ -48,7 +47,7 @@ clang-tidy-hook = "cpp_linter_hooks.clang_tidy:main"
 source =  "https://github.com/cpp-linter/cpp-linter-hooks"
 tracker = "https://github.com/cpp-linter/cpp-linter-hooks/issues"
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "coverage",
     "pre-commit",
@@ -83,4 +82,4 @@ omit = ["tests/*"]
 exclude_also = [
     "__name__",
     "FileNotFoundError"
-    ]
+]

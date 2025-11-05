@@ -2,9 +2,9 @@ name: Test
 
 on:
   push:
-    branches: main
+    branches: [main]
   pull_request:
-    branches: main
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -22,16 +22,17 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
 
+      - name: Setup uv
+        uses: astral-sh/setup-uv@85856786d1ce8acfbcc2f13a5f3fbd6b938f9f41 # v7.1.2
+
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install .[dev]
+        run: uv sync --dev
 
       - name: Run tests and collect coverage
-        run: |
-          coverage run --source=tests,cpp_linter_hooks -m pytest -vv
-          coverage report
-          coverage xml
+        run: |-
+          uv run coverage run --source=tests,cpp_linter_hooks -m pytest -vv
+          uv run coverage report
+          uv run coverage xml
       - uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 #v5
         if: matrix.python-version == '3.13'
         with:
