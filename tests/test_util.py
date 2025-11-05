@@ -123,28 +123,34 @@ def test_install_tool_success():
     """Test _install_tool successful installation."""
     mock_path = "/usr/bin/clang-format"
 
+    def patched_run(*args, **kwargs):
+        return subprocess.CompletedProcess(args, returncode=0)
+
     with (
-        patch("subprocess.check_call") as mock_check_call,
+        patch("subprocess.run", side_effect=patched_run) as mock_run,
         patch("shutil.which", return_value=mock_path),
     ):
         result = _install_tool("clang-format", "20.1.7")
         assert result == mock_path
 
-        mock_check_call.assert_called_once_with(
+        mock_run.assert_called_once_with(
             [sys.executable, "-m", "pip", "install", "clang-format==20.1.7"],
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
         )
 
 
 @pytest.mark.benchmark
 def test_install_tool_failure():
     """Test _install_tool when pip install fails."""
+
+    def patched_run(*args, **kwargs):
+        return subprocess.CompletedProcess(
+            args, returncode=1, stderr="Error", stdout="Installation failed"
+        )
+
     with (
-        patch(
-            "subprocess.check_call",
-            side_effect=subprocess.CalledProcessError(1, ["pip"]),
-        ),
+        patch("subprocess.run", side_effect=patched_run),
         patch("cpp_linter_hooks.util.LOG"),
     ):
         result = _install_tool("clang-format", "20.1.7")
@@ -154,7 +160,14 @@ def test_install_tool_failure():
 @pytest.mark.benchmark
 def test_install_tool_success_but_not_found():
     """Test _install_tool when install succeeds but tool not found in PATH."""
-    with patch("subprocess.check_call"), patch("shutil.which", return_value=None):
+
+    def patched_run(*args, **kwargs):
+        return subprocess.CompletedProcess(args, returncode=0)
+
+    with (
+        patch("subprocess.run", side_effect=patched_run),
+        patch("shutil.which", return_value=None),
+    ):
         result = _install_tool("clang-format", "20.1.7")
         assert result is None
 
