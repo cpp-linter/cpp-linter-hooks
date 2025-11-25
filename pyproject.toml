@@ -35,7 +35,7 @@ dependencies = [
     "tomli>=1.1.0; python_version < '3.11'",
     "setuptools>=45.0.0", # Required for pkg_resources in clang-tidy
     "clang-format==21.1.6",
-    "clang-tidy==21.1.1",
+    "clang-tidy==21.1.6",
 ]
 dynamic = ["version"]
 
