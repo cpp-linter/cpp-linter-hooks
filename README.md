@@ -31,7 +31,7 @@ Add this configuration to your `.pre-commit-config.yaml` file:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.1.8  # Use the tag or commit you want
+    rev: v1.1.11  # Use the tag or commit you want
     hooks:
       - id: clang-format
         args: [--style=Google] # Other coding style: LLVM, GNU, Chromium, Microsoft, Mozilla, WebKit.
@@ -46,7 +46,7 @@ To use custom configurations like `.clang-format` and `.clang-tidy`:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.1.8
+    rev: v1.1.11
     hooks:
       - id: clang-format
         args: [--style=file]  # Loads style from .clang-format file
@@ -64,7 +64,7 @@ To use specific versions of clang-format and clang-tidy (using Python wheel pack
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.1.8
+    rev: v1.1.11
     hooks:
       - id: clang-format
         args: [--style=file, --version=21] # Specifies version
@@ -151,7 +151,7 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.1.8
+  rev: v1.1.11
   hooks:
     - id: clang-format
       args: [--style=file, --version=21]
@@ -177,7 +177,7 @@ This approach ensures that only modified files are checked, further speeding up 
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.1.8
+    rev: v1.1.11
     hooks:
       - id: clang-format
         args: [--style=file, --version=21, --verbose]   # Add -v or --verbose for detailed output
@@ -189,11 +189,13 @@ repos:
 
 | Feature                          | `cpp-linter-hooks`                        | `mirrors-clang-format`                 |
 |----------------------------------|-------------------------------------------|----------------------------------------|
-| Supports `clang-format` and `clang-tidy` | ✅ (`clang-format` & `clang-tidy`)       | ✅ (`clang-format` only)        |
-| Loads style configuration        | ✅ via `--version`                        | ✅ (default behavior)                  |
-| Specify `clang-format` version   | ✅ via `--version`                        | ✅ via `rev`                           |
-| Supports passing code string     | ✅ via `--style`                          | ❌                                     |
-| Verbose output                   | ✅ via `--verbose`                        | ❌                                     |
+| Supports `clang-format` and `clang-tidy` | ✅ (`clang-format` & `clang-tidy`)| ✅ (`clang-format` only)              |
+| Custom configuration files       | ✅ `.clang-format`, `.clang-tidy`         | ✅ `.clang-format`                    |
+| Specify `clang-format` and `clang-tidy` version  | ✅ via `--version`        | ✅ via `rev`                          |
+| Supports passing format style string | ✅ via `--style`                      | ❌                                    |
+| Verbose output                   | ✅ via `--verbose`                        | ❌                                    |
+| Dry-run mode                     | ✅ via `--dry-run`                        | ❌                                    |
+
 
 <!-- > [!TIP]
 > In most cases, there is no significant performance difference between `cpp-linter-hooks` and `mirrors-clang-format`. See the [benchmark results](testing/benchmark.md) for details. -->
