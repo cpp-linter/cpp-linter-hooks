@@ -32,13 +32,13 @@ jobs:
           python-version: "3.13"
 
       - name: Setup uv
-        uses: astral-sh/setup-uv@eac588ad8def6316056a12d4907a9d4d84ff7a3b # v7.3.0
+        uses: astral-sh/setup-uv@5a095e7a2014a4212f075830d4f7277575a9d098 # v7.3.1
 
       - name: Install dependencies
         run: uv sync --dev
 
       - name: Run benchmarks
-        uses: CodSpeedHQ/action@4deb3275dd364fb96fb074c953133d29ec96f80f #4.10.6
+        uses: CodSpeedHQ/action@2ac572851726409c88c02a307f1ea2632a9ea59b #4.11.0
         with:
           token: ${{ secrets.CODSPEED_TOKEN }}
           run: uv run pytest tests/ --codspeed
