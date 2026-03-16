@@ -1,2 +1,2 @@
 # Configuration for Release Drafter: https://github.com/release-drafter/release-drafter
-_extends: .github
+_extends: .github:release-drafter.yml
