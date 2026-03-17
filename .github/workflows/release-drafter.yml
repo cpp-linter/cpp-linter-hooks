@@ -62,5 +62,6 @@ jobs:
         with:
           commitish: 'main'
           header: ${{ env.RELEASE_BODY }}
+          config-name: github:cpp-linter/.github:/.github/release-drafter.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
