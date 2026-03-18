@@ -59,6 +59,17 @@ def _resolve_version(versions: List[str], user_input: Optional[str]) -> Optional
         return None
 
 
+def _is_version_installed(tool: str, version: str) -> Optional[Path]:
+    """Return the tool path if the installed version matches, otherwise None."""
+    existing = shutil.which(tool)
+    if not existing:
+        return None
+    result = subprocess.run([existing, "--version"], capture_output=True, text=True)
+    if version in result.stdout:
+        return Path(existing)
+    return None
+
+
 def _install_tool(tool: str, version: str) -> Optional[Path]:
     """Install a tool using pip, logging output on failure."""
     result = subprocess.run(
@@ -87,4 +98,6 @@ def resolve_install(tool: str, version: Optional[str]) -> Optional[Path]:
             else DEFAULT_CLANG_TIDY_VERSION
         )
 
-    return _install_tool(tool, user_version)
+    return _is_version_installed(tool, user_version) or _install_tool(
+        tool, user_version
+    )

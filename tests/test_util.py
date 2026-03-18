@@ -7,6 +7,7 @@ import sys
 from cpp_linter_hooks.util import (
     get_version_from_dependency,
     _resolve_version,
+    _is_version_installed,
     _install_tool,
     resolve_install,
     DEFAULT_CLANG_FORMAT_VERSION,
@@ -117,6 +118,51 @@ def test_resolve_version_clang_tidy(user_input, expected):
     assert result == expected
 
 
+# Tests for _is_version_installed
+@pytest.mark.benchmark
+def test_is_version_installed_not_in_path():
+    """Test _is_version_installed when tool is not in PATH."""
+    with patch("shutil.which", return_value=None):
+        result = _is_version_installed("clang-format", "20.1.7")
+        assert result is None
+
+
+@pytest.mark.benchmark
+def test_is_version_installed_version_matches():
+    """Test _is_version_installed when installed version matches."""
+    mock_path = "/usr/bin/clang-format"
+
+    def patched_run(*args, **kwargs):
+        return subprocess.CompletedProcess(
+            args, returncode=0, stdout="clang-format version 20.1.7"
+        )
+
+    with (
+        patch("shutil.which", return_value=mock_path),
+        patch("subprocess.run", side_effect=patched_run),
+    ):
+        result = _is_version_installed("clang-format", "20.1.7")
+        assert result == Path(mock_path)
+
+
+@pytest.mark.benchmark
+def test_is_version_installed_version_mismatch():
+    """Test _is_version_installed when installed version doesn't match."""
+    mock_path = "/usr/bin/clang-format"
+
+    def patched_run(*args, **kwargs):
+        return subprocess.CompletedProcess(
+            args, returncode=0, stdout="clang-format version 22.1.0"
+        )
+
+    with (
+        patch("shutil.which", return_value=mock_path),
+        patch("subprocess.run", side_effect=patched_run),
+    ):
+        result = _is_version_installed("clang-format", "20.1.7")
+        assert result is None
+
+
 # Tests for _install_tool
 @pytest.mark.benchmark
 def test_install_tool_success():
@@ -178,8 +224,14 @@ def test_resolve_install_tool_already_installed_correct_version():
     """Test resolve_install when tool is already installed with correct version."""
     mock_path = "/usr/bin/clang-format"
 
+    def patched_run(*args, **kwargs):
+        return subprocess.CompletedProcess(
+            args, returncode=0, stdout="clang-format version 20.1.7"
+        )
+
     with (
         patch("shutil.which", return_value=mock_path),
+        patch("subprocess.run", side_effect=patched_run),
     ):
         result = resolve_install("clang-format", "20.1.7")
         assert Path(result) == Path(mock_path)
@@ -187,11 +239,17 @@ def test_resolve_install_tool_already_installed_correct_version():
 
 @pytest.mark.benchmark
 def test_resolve_install_tool_version_mismatch():
-    """Test resolve_install when tool has wrong version."""
+    """Test resolve_install when tool has wrong version, triggering reinstall."""
     mock_path = "/usr/bin/clang-format"
+
+    def patched_run(*args, **kwargs):
+        return subprocess.CompletedProcess(
+            args, returncode=0, stdout="clang-format version 22.1.0"
+        )
 
     with (
         patch("shutil.which", return_value=mock_path),
+        patch("subprocess.run", side_effect=patched_run),
         patch(
             "cpp_linter_hooks.util._install_tool", return_value=Path(mock_path)
         ) as mock_install,
