@@ -55,7 +55,7 @@ repos:
 ```
 
 > [!TIP]
-> By default, the latest version of [`clang-format`](https://pypi.org/project/clang-format/#history) and [`clang-tidy`](https://pypi.org/project/clang-tidy/#history) will be installed if not specified. You can specify the version using the `--version` argument in the `args` list as shown below.
+> The `rev` tag (e.g. `v1.1.11`) is the **project** version, not the clang tool version. Each release bundles a default version of `clang-format` and `clang-tidy` — check the [release notes](https://github.com/cpp-linter/cpp-linter-hooks/releases) to see which tool version a given `rev` ships with. To pin an exact tool version independently of the project release, use `--version` as shown below.
 
 ### Custom Clang Tool Version
 
@@ -191,7 +191,8 @@ repos:
 |----------------------------------|-------------------------------------------|----------------------------------------|
 | Supports `clang-format` and `clang-tidy` | ✅ (`clang-format` & `clang-tidy`)| ✅ (`clang-format` only)              |
 | Custom configuration files       | ✅ `.clang-format`, `.clang-tidy`         | ✅ `.clang-format`                    |
-| Specify `clang-format` and `clang-tidy` version  | ✅ via `--version`        | ✅ via `rev`                          |
+| Specify tool version             | ✅ via `--version` arg (e.g. `--version=21`) | ✅ via `rev` tag (e.g. `rev: v21.1.8`) |
+| `rev` tag meaning                | Project version — see release notes for bundled tool version | Equals the clang-format version directly |
 | Supports passing format style string | ✅ via `--style`                      | ❌                                    |
 | Verbose output                   | ✅ via `--verbose`                        | ❌                                    |
 | Dry-run mode                     | ✅ via `--dry-run`                        | ❌                                    |
