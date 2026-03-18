@@ -18,9 +18,11 @@ def run_clang_tidy(args=None) -> Tuple[int, str]:
     retval = 0
     output = ""
     try:
-        sp = subprocess.run(command, stdout=subprocess.PIPE, encoding="utf-8")
+        sp = subprocess.run(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
+        )
         retval = sp.returncode
-        output = sp.stdout
+        output = (sp.stdout or "") + (sp.stderr or "")
         if "warning:" in output or "error:" in output:
             retval = 1
         return retval, output
