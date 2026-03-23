@@ -31,7 +31,7 @@ Add this configuration to your `.pre-commit-config.yaml` file:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.1.11  # Use the tag or commit you want
+    rev: v1.1.14  # Use the tag or commit you want
     hooks:
       - id: clang-format
         args: [--style=Google] # Other coding style: LLVM, GNU, Chromium, Microsoft, Mozilla, WebKit.
@@ -46,7 +46,7 @@ To use custom configurations like `.clang-format` and `.clang-tidy`:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.1.11
+    rev: v1.1.14
     hooks:
       - id: clang-format
         args: [--style=file]  # Loads style from .clang-format file
@@ -55,7 +55,7 @@ repos:
 ```
 
 > [!TIP]
-> The `rev` tag (e.g. `v1.1.11`) is the **project** version, not the clang tool version. Each release bundles a default version of `clang-format` and `clang-tidy` — check the [release notes](https://github.com/cpp-linter/cpp-linter-hooks/releases) to see which tool version a given `rev` ships with. To pin an exact tool version independently of the project release, use `--version` as shown below.
+> The `rev` tag (e.g. `v1.1.14`) is the **project** version, not the clang tool version. Each release bundles a default version of `clang-format` and `clang-tidy` — check the [release notes](https://github.com/cpp-linter/cpp-linter-hooks/releases) to see which tool version a given `rev` ships with. To pin an exact tool version independently of the project release, use `--version` as shown below.
 
 ### Custom Clang Tool Version
 
@@ -64,7 +64,7 @@ To use specific versions of clang-format and clang-tidy (using Python wheel pack
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.1.11
+    rev: v1.1.14
     hooks:
       - id: clang-format
         args: [--style=file, --version=21] # Specifies version
@@ -151,7 +151,7 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.1.11
+  rev: v1.1.14
   hooks:
     - id: clang-format
       args: [--style=file, --version=21]
@@ -177,7 +177,7 @@ This approach ensures that only modified files are checked, further speeding up 
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.1.11
+    rev: v1.1.14
     hooks:
       - id: clang-format
         args: [--style=file, --version=21, --verbose]   # Add -v or --verbose for detailed output
