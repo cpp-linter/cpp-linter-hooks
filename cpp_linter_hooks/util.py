@@ -30,8 +30,8 @@ def get_version_from_dependency(tool: str) -> Optional[str]:
     return None
 
 
-DEFAULT_CLANG_FORMAT_VERSION = get_version_from_dependency("clang-format")
-DEFAULT_CLANG_TIDY_VERSION = get_version_from_dependency("clang-tidy")
+DEFAULT_CLANG_FORMAT_VERSION = CLANG_FORMAT_VERSIONS[-1]  # latest from versions.py
+DEFAULT_CLANG_TIDY_VERSION = CLANG_TIDY_VERSIONS[-1]  # latest from versions.py
 
 
 def _resolve_version(versions: List[str], user_input: Optional[str]) -> Optional[str]:
