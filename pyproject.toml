@@ -33,8 +33,6 @@ classifiers = [
 dependencies = [
     "pip>=20.3", # Required to install clang-format and clang-tidy
     "tomli>=1.1.0; python_version < '3.11'",
-    "clang-format==22.1.1",
-    "clang-tidy==22.1.0",
 ]
 dynamic = ["version"]
 
