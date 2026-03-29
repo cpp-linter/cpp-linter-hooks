@@ -19,22 +19,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
 
-      - name: Set up Python
-        uses: actions/setup-python@e797f83bcb11b83ae66e0230d6156d7c80228e7c  # v6.0.0
-        with:
-          python-version: "3.12"
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install -e .
-
       - name: Extract default tool versions
         id: versions
         run: |
-          # Get versions from Python
-          CLANG_FORMAT_VERSION=$(python -c "from cpp_linter_hooks.util import DEFAULT_CLANG_FORMAT_VERSION; print(DEFAULT_CLANG_FORMAT_VERSION)")
-          CLANG_TIDY_VERSION=$(python -c "from cpp_linter_hooks.util import DEFAULT_CLANG_TIDY_VERSION; print(DEFAULT_CLANG_TIDY_VERSION)")
+          # Get versions directly from versions.py (no package install needed)
+          CLANG_FORMAT_VERSION=$(python3 -c "import sys; sys.path.insert(0, 'cpp_linter_hooks'); from versions import CLANG_FORMAT_VERSIONS; print(CLANG_FORMAT_VERSIONS[-1])")
+          CLANG_TIDY_VERSION=$(python3 -c "import sys; sys.path.insert(0, 'cpp_linter_hooks'); from versions import CLANG_TIDY_VERSIONS; print(CLANG_TIDY_VERSIONS[-1])")
 
           # Export to GitHub Actions environment for subsequent steps
           echo "CLANG_FORMAT_VERSION=$CLANG_FORMAT_VERSION" >> $GITHUB_ENV
