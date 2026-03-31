@@ -24,56 +24,67 @@ def _find_compile_commands() -> Optional[str]:
     return None
 
 
+def _resolve_compile_db(hook_args, other_args) -> Tuple[Optional[str], Optional[Tuple[int, str]]]:
+    """Resolve the compile_commands.json directory to pass as -p to clang-tidy.
+
+    Returns (db_path, None) on success or (None, (retval, message)) on error.
+    """
+    if hook_args.no_compile_commands:
+        return None, None
+
+    # Covers both "-p ./build" (two tokens) and "-p=./build" (one token)
+    has_p = any(a == "-p" or a.startswith("-p=") for a in other_args)
+
+    if hook_args.compile_commands:
+        if has_p:
+            print(
+                "Warning: --compile-commands ignored; -p already in args",
+                file=sys.stderr,
+            )
+            return None, None
+        p = Path(hook_args.compile_commands)
+        if not p.is_dir() or not (p / "compile_commands.json").exists():
+            return None, (
+                1,
+                f"--compile-commands: no compile_commands.json"
+                f" in '{hook_args.compile_commands}'",
+            )
+        return hook_args.compile_commands, None
+
+    if not has_p:
+        return _find_compile_commands(), None
+
+    return None, None
+
+
+def _exec_clang_tidy(command) -> Tuple[int, str]:
+    """Run clang-tidy and return (retval, output)."""
+    try:
+        sp = subprocess.run(
+            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
+        )
+        output = (sp.stdout or "") + (sp.stderr or "")
+        retval = 1 if sp.returncode != 0 or "warning:" in output or "error:" in output else 0
+        return retval, output
+    except FileNotFoundError as e:
+        return 1, str(e)
+
+
 def run_clang_tidy(args=None) -> Tuple[int, str]:
     hook_args, other_args = parser.parse_known_args(args)
     if hook_args.version:
         resolve_install("clang-tidy", hook_args.version)
 
-    # Covers both "-p ./build" (two tokens) and "-p=./build" (one token)
-    has_p = any(a == "-p" or a.startswith("-p=") for a in other_args)
-
-    compile_db_path = None
-    if not hook_args.no_compile_commands:
-        if hook_args.compile_commands:
-            if has_p:
-                print(
-                    "Warning: --compile-commands ignored; -p already in args",
-                    file=sys.stderr,
-                )
-            else:
-                p = Path(hook_args.compile_commands)
-                if not p.is_dir() or not (p / "compile_commands.json").exists():
-                    return 1, (
-                        f"--compile-commands: no compile_commands.json"
-                        f" in '{hook_args.compile_commands}'"
-                    )
-                compile_db_path = hook_args.compile_commands
-        elif not has_p:
-            compile_db_path = _find_compile_commands()
+    compile_db_path, error = _resolve_compile_db(hook_args, other_args)
+    if error is not None:
+        return error
 
     if compile_db_path:
         if hook_args.verbose:
-            print(
-                f"Using compile_commands.json from: {compile_db_path}", file=sys.stderr
-            )
+            print(f"Using compile_commands.json from: {compile_db_path}", file=sys.stderr)
         other_args = ["-p", compile_db_path] + other_args
 
-    command = ["clang-tidy"] + other_args
-
-    retval = 0
-    output = ""
-    try:
-        sp = subprocess.run(
-            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
-        )
-        retval = sp.returncode
-        output = (sp.stdout or "") + (sp.stderr or "")
-        if "warning:" in output or "error:" in output:
-            retval = 1
-        return retval, output
-    except FileNotFoundError as stderr:
-        retval = 1
-        return retval, str(stderr)
+    return _exec_clang_tidy(["clang-tidy"] + other_args)
 
 
 def main() -> int:
