@@ -13,6 +13,7 @@ A pre-commit hook that automatically formats and lints your C/C++ code using `cl
 - [Quick Start](#quick-start)
   - [Custom Configuration Files](#custom-configuration-files)
   - [Custom Clang Tool Version](#custom-clang-tool-version)
+  - [Compilation Database (CMake/Meson Projects)](#compilation-database-cmakemeson-projects)
 - [Output](#output)
   - [clang-format Output](#clang-format-output)
   - [clang-tidy Output](#clang-tidy-output)
@@ -71,6 +72,52 @@ repos:
       - id: clang-tidy
         args: [--checks=.clang-tidy, --version=21] # Specifies version
 ```
+
+### Compilation Database (CMake/Meson Projects)
+
+For CMake or Meson projects, clang-tidy works best with a `compile_commands.json`
+file that records the exact compiler flags used for each file. Without it, clang-tidy
+may report false positives from missing include paths or wrong compiler flags.
+
+The hook auto-detects `compile_commands.json` in common build directories (`build/`,
+`out/`, `cmake-build-debug/`, `_build/`) and passes `-p <dir>` to clang-tidy
+automatically — no configuration needed for most projects:
+
+```yaml
+repos:
+  - repo: https://github.com/cpp-linter/cpp-linter-hooks
+    rev: v1.2.0
+    hooks:
+      - id: clang-tidy
+        args: [--checks=.clang-tidy]
+        # Auto-detects ./build/compile_commands.json if present
+```
+
+To specify the build directory explicitly:
+
+```yaml
+      - id: clang-tidy
+        args: [--compile-commands=build, --checks=.clang-tidy]
+```
+
+To disable auto-detection (e.g. in a monorepo where auto-detect might pick the wrong database):
+
+```yaml
+      - id: clang-tidy
+        args: [--no-compile-commands, --checks=.clang-tidy]
+```
+
+To see which `compile_commands.json` the hook is using, add `-v`:
+
+```yaml
+      - id: clang-tidy
+        args: [--compile-commands=build, -v, --checks=.clang-tidy]
+```
+
+> [!NOTE]
+> Generate `compile_commands.json` with CMake using `cmake -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -Bbuild .`
+> or add `set(CMAKE_EXPORT_COMPILE_COMMANDS ON)` to your `CMakeLists.txt`.
+> `--compile-commands` takes the **directory** containing `compile_commands.json`, not the file path itself.
 
 ## Output
 
@@ -172,7 +219,9 @@ This approach ensures that only modified files are checked, further speeding up 
 ### Verbose Output
 
 > [!NOTE]
-> Use `-v` or `--verbose` in `args` of `clang-format` to show the list of processed files e.g.:
+> Use `-v` or `--verbose` in `args` to enable verbose output.
+> For `clang-format`, it shows the list of processed files.
+> For `clang-tidy`, it prints which `compile_commands.json` is being used (when auto-detected or explicitly set).
 
 ```yaml
 repos:
@@ -180,7 +229,9 @@ repos:
     rev: v1.2.0
     hooks:
       - id: clang-format
-        args: [--style=file, --version=21, --verbose]   # Add -v or --verbose for detailed output
+        args: [--style=file, --version=21, --verbose]   # Shows processed files
+      - id: clang-tidy
+        args: [--checks=.clang-tidy, --verbose]   # Shows which compile_commands.json is used
 ```
 
 ## FAQ
@@ -196,6 +247,7 @@ repos:
 | Supports passing format style string | ✅ via `--style`                      | ❌                                    |
 | Verbose output                   | ✅ via `--verbose`                        | ❌                                    |
 | Dry-run mode                     | ✅ via `--dry-run`                        | ❌                                    |
+| Compilation database support     | ✅ auto-detect or `--compile-commands`    | ❌                                    |
 
 
 <!-- > [!TIP]
