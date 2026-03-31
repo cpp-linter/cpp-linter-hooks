@@ -201,3 +201,29 @@ def test_compile_commands_explicit_with_p_conflict(tmp_path, capsys):
     cmd = mock_run.call_args[0][0]
     assert cmd.count("-p") == 1
     assert "./other" in cmd
+
+
+def test_verbose_prints_compile_db_path(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    build_dir = tmp_path / "build"
+    build_dir.mkdir()
+    (build_dir / "compile_commands.json").write_text("[]")
+    with (
+        patch("cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN),
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
+        run_clang_tidy(["--verbose", "dummy.cpp"])
+    assert "build" in capsys.readouterr().err
+
+
+def test_no_verbose_no_extra_stderr(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    build_dir = tmp_path / "build"
+    build_dir.mkdir()
+    (build_dir / "compile_commands.json").write_text("[]")
+    with (
+        patch("cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN),
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
+        run_clang_tidy(["dummy.cpp"])
+    assert capsys.readouterr().err == ""
