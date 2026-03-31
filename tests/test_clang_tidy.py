@@ -72,8 +72,12 @@ def test_compile_commands_explicit(tmp_path):
     db_dir = tmp_path / "build"
     db_dir.mkdir()
     (db_dir / "compile_commands.json").write_text("[]")
-    with patch("cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN) as mock_run, \
-            patch("cpp_linter_hooks.clang_tidy.resolve_install"):
+    with (
+        patch(
+            "cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN
+        ) as mock_run,
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
         run_clang_tidy([f"--compile-commands={db_dir}", "dummy.cpp"])
     cmd = mock_run.call_args[0][0]
     assert "-p" in cmd
@@ -85,8 +89,12 @@ def test_compile_commands_auto_detect(tmp_path, monkeypatch):
     build_dir = tmp_path / "build"
     build_dir.mkdir()
     (build_dir / "compile_commands.json").write_text("[]")
-    with patch("cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN) as mock_run, \
-            patch("cpp_linter_hooks.clang_tidy.resolve_install"):
+    with (
+        patch(
+            "cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN
+        ) as mock_run,
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
         run_clang_tidy(["dummy.cpp"])
     cmd = mock_run.call_args[0][0]
     assert "-p" in cmd
@@ -99,8 +107,12 @@ def test_compile_commands_auto_detect_fallback(tmp_path, monkeypatch):
     out_dir = tmp_path / "out"
     out_dir.mkdir()
     (out_dir / "compile_commands.json").write_text("[]")
-    with patch("cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN) as mock_run, \
-            patch("cpp_linter_hooks.clang_tidy.resolve_install"):
+    with (
+        patch(
+            "cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN
+        ) as mock_run,
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
         run_clang_tidy(["dummy.cpp"])
     cmd = mock_run.call_args[0][0]
     assert "-p" in cmd
@@ -109,8 +121,12 @@ def test_compile_commands_auto_detect_fallback(tmp_path, monkeypatch):
 
 def test_compile_commands_none(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
-    with patch("cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN) as mock_run, \
-            patch("cpp_linter_hooks.clang_tidy.resolve_install"):
+    with (
+        patch(
+            "cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN
+        ) as mock_run,
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
         run_clang_tidy(["dummy.cpp"])
     cmd = mock_run.call_args[0][0]
     assert "-p" not in cmd
@@ -122,8 +138,12 @@ def test_compile_commands_conflict_guard(tmp_path, monkeypatch):
     build_dir = tmp_path / "build"
     build_dir.mkdir()
     (build_dir / "compile_commands.json").write_text("[]")
-    with patch("cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN) as mock_run, \
-            patch("cpp_linter_hooks.clang_tidy.resolve_install"):
+    with (
+        patch(
+            "cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN
+        ) as mock_run,
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
         run_clang_tidy(["-p", "./custom", "dummy.cpp"])
     cmd = mock_run.call_args[0][0]
     assert cmd.count("-p") == 1
@@ -136,8 +156,12 @@ def test_compile_commands_no_flag(tmp_path, monkeypatch):
     build_dir = tmp_path / "build"
     build_dir.mkdir()
     (build_dir / "compile_commands.json").write_text("[]")
-    with patch("cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN) as mock_run, \
-            patch("cpp_linter_hooks.clang_tidy.resolve_install"):
+    with (
+        patch(
+            "cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN
+        ) as mock_run,
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
         run_clang_tidy(["--no-compile-commands", "dummy.cpp"])
     cmd = mock_run.call_args[0][0]
     assert "-p" not in cmd
@@ -165,8 +189,12 @@ def test_compile_commands_explicit_with_p_conflict(tmp_path, capsys):
     db_dir = tmp_path / "build"
     db_dir.mkdir()
     (db_dir / "compile_commands.json").write_text("[]")
-    with patch("cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN) as mock_run, \
-            patch("cpp_linter_hooks.clang_tidy.resolve_install"):
+    with (
+        patch(
+            "cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN
+        ) as mock_run,
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
         run_clang_tidy([f"--compile-commands={db_dir}", "-p", "./other", "dummy.cpp"])
     captured = capsys.readouterr()
     assert "Warning" in captured.err

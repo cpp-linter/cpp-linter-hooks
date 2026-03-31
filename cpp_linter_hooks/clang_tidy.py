@@ -11,7 +11,9 @@ COMPILE_DB_SEARCH_DIRS = ["build", "out", "cmake-build-debug", "_build"]
 parser = ArgumentParser()
 parser.add_argument("--version", default=DEFAULT_CLANG_TIDY_VERSION)
 parser.add_argument("--compile-commands", default=None, dest="compile_commands")
-parser.add_argument("--no-compile-commands", action="store_true", dest="no_compile_commands")
+parser.add_argument(
+    "--no-compile-commands", action="store_true", dest="no_compile_commands"
+)
 parser.add_argument("-v", "--verbose", action="store_true")
 
 
@@ -51,7 +53,9 @@ def run_clang_tidy(args=None) -> Tuple[int, str]:
 
     if compile_db_path:
         if hook_args.verbose:
-            print(f"Using compile_commands.json from: {compile_db_path}", file=sys.stderr)
+            print(
+                f"Using compile_commands.json from: {compile_db_path}", file=sys.stderr
+            )
         other_args = ["-p", compile_db_path] + other_args
 
     command = ["clang-tidy"] + other_args
