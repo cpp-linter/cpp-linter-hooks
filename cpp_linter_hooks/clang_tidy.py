@@ -24,7 +24,9 @@ def _find_compile_commands() -> Optional[str]:
     return None
 
 
-def _resolve_compile_db(hook_args, other_args) -> Tuple[Optional[str], Optional[Tuple[int, str]]]:
+def _resolve_compile_db(
+    hook_args, other_args
+) -> Tuple[Optional[str], Optional[Tuple[int, str]]]:
     """Resolve the compile_commands.json directory to pass as -p to clang-tidy.
 
     Returns (db_path, None) on success or (None, (retval, message)) on error.
@@ -64,7 +66,9 @@ def _exec_clang_tidy(command) -> Tuple[int, str]:
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
         )
         output = (sp.stdout or "") + (sp.stderr or "")
-        retval = 1 if sp.returncode != 0 or "warning:" in output or "error:" in output else 0
+        retval = (
+            1 if sp.returncode != 0 or "warning:" in output or "error:" in output else 0
+        )
         return retval, output
     except FileNotFoundError as e:
         return 1, str(e)
@@ -81,7 +85,9 @@ def run_clang_tidy(args=None) -> Tuple[int, str]:
 
     if compile_db_path:
         if hook_args.verbose:
-            print(f"Using compile_commands.json from: {compile_db_path}", file=sys.stderr)
+            print(
+                f"Using compile_commands.json from: {compile_db_path}", file=sys.stderr
+            )
         other_args = ["-p", compile_db_path] + other_args
 
     return _exec_clang_tidy(["clang-tidy"] + other_args)
