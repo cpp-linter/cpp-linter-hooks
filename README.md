@@ -73,6 +73,9 @@ repos:
         args: [--checks=.clang-tidy, --version=21] # Specifies version
 ```
 
+> [!TIP]
+> For production use, always pin the tool version explicitly with `--version` (e.g. `--version=21`) so upgrades to `cpp-linter-hooks` never silently change your linter version.
+
 ### Compilation Database (CMake/Meson Projects)
 
 For CMake or Meson projects, clang-tidy works best with a `compile_commands.json`
