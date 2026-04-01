@@ -104,7 +104,7 @@ def _exec_clang_tidy(command) -> Tuple[int, str]:
 
 
 def _looks_like_source_file(path: str) -> bool:
-    return any(suffix.lower() in SOURCE_FILE_SUFFIXES for suffix in Path(path).suffixes)
+    return Path(path).suffix.lower() in SOURCE_FILE_SUFFIXES
 
 
 def _split_source_files(args: List[str]) -> Tuple[List[str], List[str]]:
