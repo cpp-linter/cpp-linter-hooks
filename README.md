@@ -211,6 +211,17 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
       files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
 ```
 
+For `clang-tidy`, you can also process multiple files in parallel by adding `--jobs`
+or `-j`:
+
+```yaml
+- repo: https://github.com/cpp-linter/cpp-linter-hooks
+  rev: v1.2.0
+  hooks:
+    - id: clang-tidy
+      args: [--checks=.clang-tidy, --version=21, --jobs=4]
+```
+
 Alternatively, if you want to run the hooks manually on only the changed files, you can use the following command:
 
 ```bash
