@@ -152,7 +152,16 @@ def run_clang_tidy(args=None) -> Tuple[int, str]:
         other_args = ["-p", compile_db_path] + other_args
 
     clang_tidy_args, source_files = _split_source_files(other_args)
-    if hook_args.jobs > 1 and len(source_files) > 1:
+
+    # Parallel execution is unsafe when arguments include flags that write to a
+    # shared output path (e.g., --export-fixes fixes.yaml). In that case, force
+    # serial execution to avoid concurrent writes/overwrites.
+    unsafe_parallel = any(
+        arg == "--export-fixes" or arg.startswith("--export-fixes=")
+        for arg in clang_tidy_args
+    )
+
+    if hook_args.jobs > 1 and len(source_files) > 1 and not unsafe_parallel:
         return _exec_parallel_clang_tidy(
             ["clang-tidy"] + clang_tidy_args, source_files, hook_args.jobs
         )
