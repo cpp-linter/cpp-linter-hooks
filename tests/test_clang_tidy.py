@@ -261,8 +261,7 @@ def test_jobs_parallelizes_source_files_and_preserves_output_order():
                 "--jobs=4",
                 "-p",
                 "./build",
-                "--export-fixes",
-                "fixes.yaml",
+                "--header-filter=.*",
                 "a.cpp",
                 "b.cpp",
             ]
@@ -284,8 +283,7 @@ def test_jobs_parallelizes_only_trailing_source_files():
                 "--jobs=2",
                 "-p",
                 "./build",
-                "--export-fixes",
-                "fixes.yaml",
+                "--header-filter=.*",
                 "a.cpp",
                 "b.hpp",
             ]
@@ -293,6 +291,38 @@ def test_jobs_parallelizes_only_trailing_source_files():
 
     commands = {tuple(call.args[0]) for call in mock_exec.call_args_list}
     assert commands == {
-        ("clang-tidy", "-p", "./build", "--export-fixes", "fixes.yaml", "a.cpp"),
-        ("clang-tidy", "-p", "./build", "--export-fixes", "fixes.yaml", "b.hpp"),
+        ("clang-tidy", "-p", "./build", "--header-filter=.*", "a.cpp"),
+        ("clang-tidy", "-p", "./build", "--header-filter=.*", "b.hpp"),
     }
+
+
+def test_jobs_with_export_fixes_forces_serial_execution():
+    with (
+        patch(
+            "cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(0, "")
+        ) as mock_exec,
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
+        run_clang_tidy(
+            [
+                "--jobs=4",
+                "-p",
+                "./build",
+                "--export-fixes",
+                "fixes.yaml",
+                "a.cpp",
+                "b.cpp",
+            ]
+        )
+
+    mock_exec.assert_called_once_with(
+        [
+            "clang-tidy",
+            "-p",
+            "./build",
+            "--export-fixes",
+            "fixes.yaml",
+            "a.cpp",
+            "b.cpp",
+        ]
+    )
