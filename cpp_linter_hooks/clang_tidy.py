@@ -36,6 +36,7 @@ def _positive_int(value: str) -> int:
         raise ArgumentTypeError("--jobs must be greater than 0")
     return jobs
 
+
 parser = ArgumentParser()
 parser.add_argument("--version", default=DEFAULT_CLANG_TIDY_VERSION)
 parser.add_argument("--compile-commands", default=None, dest="compile_commands")

@@ -239,9 +239,7 @@ def test_jobs_one_keeps_single_invocation():
     ):
         run_clang_tidy(["--jobs=1", "-p", "./build", "a.cpp", "b.cpp"])
 
-    mock_exec.assert_called_once_with(
-        ["clang-tidy", "-p", "./build", "a.cpp", "b.cpp"]
-    )
+    mock_exec.assert_called_once_with(["clang-tidy", "-p", "./build", "a.cpp", "b.cpp"])
 
 
 def test_jobs_parallelizes_source_files_and_preserves_output_order():
