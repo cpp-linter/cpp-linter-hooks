@@ -222,6 +222,11 @@ or `-j`:
       args: [--checks=.clang-tidy, --version=21, --jobs=4]
 ```
 
+> [!WARNING]
+> When using `--jobs`/`-j`, avoid sharing options that write to a single output file
+> (for example `--export-fixes=fixes.yaml`) across parallel `clang-tidy` invocations.
+> If you need `--export-fixes`, ensure each job writes to a unique file path to avoid
+> corrupted or overwritten outputs.
 Alternatively, if you want to run the hooks manually on only the changed files, you can use the following command:
 
 ```bash
