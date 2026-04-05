@@ -192,6 +192,28 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
 
 ```
 
+> [!NOTE]
+> Add `--fix` to `args` to automatically apply clang-tidy fixes in place (equivalent to
+> passing `-fix` to clang-tidy directly). This is **opt-in** and **not the default** because
+> auto-fixing can modify source files in unexpected ways. A valid `compile_commands.json` is
+> strongly recommended when using `--fix`.
+>
+> For cases where compiler errors exist alongside style issues, pass `-fix-errors` directly
+> in `args` instead (clang-tidy native flag).
+
+```yaml
+repos:
+  - repo: https://github.com/cpp-linter/cpp-linter-hooks
+    rev: v1.2.0
+    hooks:
+      - id: clang-tidy
+        args: [--checks=.clang-tidy, --fix]
+```
+
+> [!WARNING]
+> When `--fix` (or `-fix-errors`) is active, parallel execution via `--jobs`/`-j` is
+> automatically disabled to prevent concurrent writes to the same header file.
+
 ## Troubleshooting
 
 ### Performance Optimization
@@ -266,6 +288,7 @@ repos:
 | Supports passing format style string | ✅ via `--style`                      | ❌                                    |
 | Verbose output                   | ✅ via `--verbose`                        | ❌                                    |
 | Dry-run mode                     | ✅ via `--dry-run`                        | ❌                                    |
+| Auto-fix mode                    | ✅ via `--fix` (clang-tidy only)          | ❌                                    |
 | Compilation database support     | ✅ auto-detect or `--compile-commands`    | ❌                                    |
 
 
