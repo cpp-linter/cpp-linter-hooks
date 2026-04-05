@@ -3,4 +3,4 @@ repos:
     rev: HEAD
     hooks:
       - id: clang-tidy
-        args: [--checks=.clang-tidy, -j, "2"]
+        args: [--checks=.clang-tidy, --jobs=2]
