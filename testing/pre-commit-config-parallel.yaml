@@ -1,0 +1,6 @@
+repos:
+  - repo: .
+    rev: HEAD
+    hooks:
+      - id: clang-tidy
+        args: [--checks=.clang-tidy, --jobs=2]

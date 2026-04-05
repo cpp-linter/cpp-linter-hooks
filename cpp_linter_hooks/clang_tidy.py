@@ -1,12 +1,41 @@
+from concurrent.futures import ThreadPoolExecutor
 import subprocess
 import sys
-from argparse import ArgumentParser
+from argparse import ArgumentParser, ArgumentTypeError
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import List, Optional, Tuple
 
 from cpp_linter_hooks.util import resolve_install, DEFAULT_CLANG_TIDY_VERSION
 
 COMPILE_DB_SEARCH_DIRS = ["build", "out", "cmake-build-debug", "_build"]
+SOURCE_FILE_SUFFIXES = {
+    ".c",
+    ".cc",
+    ".cp",
+    ".cpp",
+    ".cxx",
+    ".c++",
+    ".cu",
+    ".cuh",
+    ".h",
+    ".hh",
+    ".hpp",
+    ".hxx",
+    ".h++",
+    ".ipp",
+    ".inl",
+    ".ixx",
+    ".tpp",
+    ".txx",
+}
+
+
+def _positive_int(value: str) -> int:
+    jobs = int(value)
+    if jobs < 1:
+        raise ArgumentTypeError("--jobs must be greater than 0")
+    return jobs
+
 
 parser = ArgumentParser()
 parser.add_argument("--version", default=DEFAULT_CLANG_TIDY_VERSION)
@@ -14,6 +43,7 @@ parser.add_argument("--compile-commands", default=None, dest="compile_commands")
 parser.add_argument(
     "--no-compile-commands", action="store_true", dest="no_compile_commands"
 )
+parser.add_argument("-j", "--jobs", type=_positive_int, default=1)
 parser.add_argument("-v", "--verbose", action="store_true")
 
 
@@ -74,6 +104,38 @@ def _exec_clang_tidy(command) -> Tuple[int, str]:
         return 1, str(e)
 
 
+def _looks_like_source_file(path: str) -> bool:
+    return Path(path).suffix.lower() in SOURCE_FILE_SUFFIXES
+
+
+def _split_source_files(args: List[str]) -> Tuple[List[str], List[str]]:
+    split_idx = len(args)
+    source_files: List[str] = []
+    for idx in range(len(args) - 1, -1, -1):
+        if not _looks_like_source_file(args[idx]):
+            break
+        source_files.append(args[idx])
+        split_idx = idx
+    return args[:split_idx], list(reversed(source_files))
+
+
+def _combine_outputs(results: List[Tuple[int, str]]) -> str:
+    return "\n".join(output.rstrip("\n") for _, output in results if output)
+
+
+def _exec_parallel_clang_tidy(
+    command_prefix: List[str], source_files: List[str], jobs: int
+) -> Tuple[int, str]:
+    def run_file(source_file: str) -> Tuple[int, str]:
+        return _exec_clang_tidy(command_prefix + [source_file])
+
+    with ThreadPoolExecutor(max_workers=min(jobs, len(source_files))) as executor:
+        results = list(executor.map(run_file, source_files))
+
+    retval = 1 if any(retval != 0 for retval, _ in results) else 0
+    return retval, _combine_outputs(results)
+
+
 def run_clang_tidy(args=None) -> Tuple[int, str]:
     hook_args, other_args = parser.parse_known_args(args)
     if hook_args.version:
@@ -89,6 +151,21 @@ def run_clang_tidy(args=None) -> Tuple[int, str]:
                 f"Using compile_commands.json from: {compile_db_path}", file=sys.stderr
             )
         other_args = ["-p", compile_db_path] + other_args
+
+    clang_tidy_args, source_files = _split_source_files(other_args)
+
+    # Parallel execution is unsafe when arguments include flags that write to a
+    # shared output path (e.g., --export-fixes fixes.yaml). In that case, force
+    # serial execution to avoid concurrent writes/overwrites.
+    unsafe_parallel = any(
+        arg == "--export-fixes" or arg.startswith("--export-fixes=")
+        for arg in clang_tidy_args
+    )
+
+    if hook_args.jobs > 1 and len(source_files) > 1 and not unsafe_parallel:
+        return _exec_parallel_clang_tidy(
+            ["clang-tidy"] + clang_tidy_args, source_files, hook_args.jobs
+        )
 
     return _exec_clang_tidy(["clang-tidy"] + other_args)
 

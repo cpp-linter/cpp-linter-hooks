@@ -40,6 +40,32 @@ else
     exit_code=1
 fi
 
+# Test parallel execution with multiple source files
+echo "===================================="
+echo "Test pre-commit-config-parallel.yaml"
+echo "===================================="
+uvx pre-commit clean
+uvx pre-commit run -c testing/pre-commit-config-parallel.yaml \
+    --files testing/main.c testing/good.c | tee -a parallel_result.txt || true
+git restore testing/main.c
+
+parallel_failed=$(grep -c "Failed" parallel_result.txt 2>/dev/null || echo "0")
+echo "$parallel_failed parallel cases failed."
+
+if [[ $parallel_failed -ge 1 ]]; then
+    echo "========================================================"
+    echo "Parallel test passed (expected failures detected: $parallel_failed)."
+    echo "========================================================"
+    parallel_result="success"
+    rm parallel_result.txt
+else
+    echo "==========================================="
+    echo "Parallel test failed (no failures detected)."
+    echo "==========================================="
+    parallel_result="failure"
+    exit_code=1
+fi
+
 # Add result to GitHub summary if running in GitHub Actions
 if [[ -n "$GITHUB_STEP_SUMMARY" ]]; then
     {
@@ -48,6 +74,8 @@ if [[ -n "$GITHUB_STEP_SUMMARY" ]]; then
         echo "**Result:** $result"
         echo ""
         echo "**Failed cases:** $failed_cases"
+        echo ""
+        echo "**Parallel test:** $parallel_result"
     } >> "$GITHUB_STEP_SUMMARY"
 fi
 

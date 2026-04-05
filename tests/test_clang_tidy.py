@@ -1,5 +1,6 @@
 import pytest
 import subprocess
+import time
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
@@ -227,3 +228,99 @@ def test_no_verbose_no_extra_stderr(tmp_path, monkeypatch, capsys):
     ):
         run_clang_tidy(["dummy.cpp"])
     assert capsys.readouterr().err == ""
+
+
+def test_jobs_one_keeps_single_invocation():
+    with (
+        patch(
+            "cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(0, "")
+        ) as mock_exec,
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
+        run_clang_tidy(["--jobs=1", "-p", "./build", "a.cpp", "b.cpp"])
+
+    mock_exec.assert_called_once_with(["clang-tidy", "-p", "./build", "a.cpp", "b.cpp"])
+
+
+def test_jobs_parallelizes_source_files_and_preserves_output_order():
+    def fake_exec(command):
+        source_file = command[-1]
+        if source_file == "a.cpp":
+            time.sleep(0.05)
+            return 0, "a.cpp output"
+        return 1, "b.cpp output"
+
+    with (
+        patch("cpp_linter_hooks.clang_tidy._exec_clang_tidy", side_effect=fake_exec),
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
+        ret, output = run_clang_tidy(
+            [
+                "--jobs=4",
+                "-p",
+                "./build",
+                "--header-filter=.*",
+                "a.cpp",
+                "b.cpp",
+            ]
+        )
+
+    assert ret == 1
+    assert output == "a.cpp output\nb.cpp output"
+
+
+def test_jobs_parallelizes_only_trailing_source_files():
+    with (
+        patch(
+            "cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(0, "")
+        ) as mock_exec,
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
+        run_clang_tidy(
+            [
+                "--jobs=2",
+                "-p",
+                "./build",
+                "--header-filter=.*",
+                "a.cpp",
+                "b.hpp",
+            ]
+        )
+
+    commands = {tuple(call.args[0]) for call in mock_exec.call_args_list}
+    assert commands == {
+        ("clang-tidy", "-p", "./build", "--header-filter=.*", "a.cpp"),
+        ("clang-tidy", "-p", "./build", "--header-filter=.*", "b.hpp"),
+    }
+
+
+def test_jobs_with_export_fixes_forces_serial_execution():
+    with (
+        patch(
+            "cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(0, "")
+        ) as mock_exec,
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
+        run_clang_tidy(
+            [
+                "--jobs=4",
+                "-p",
+                "./build",
+                "--export-fixes",
+                "fixes.yaml",
+                "a.cpp",
+                "b.cpp",
+            ]
+        )
+
+    mock_exec.assert_called_once_with(
+        [
+            "clang-tidy",
+            "-p",
+            "./build",
+            "--export-fixes",
+            "fixes.yaml",
+            "a.cpp",
+            "b.cpp",
+        ]
+    )
