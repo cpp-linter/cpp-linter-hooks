@@ -324,3 +324,49 @@ def test_jobs_with_export_fixes_forces_serial_execution():
             "b.cpp",
         ]
     )
+
+
+def test_fix_flag_appends_fix_to_command():
+    with (
+        patch(
+            "cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(0, "")
+        ) as mock_exec,
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
+        run_clang_tidy(["--fix", "-p", "./build", "dummy.cpp"])
+
+    mock_exec.assert_called_once()
+    cmd = mock_exec.call_args[0][0]
+    assert "-fix" in cmd
+
+
+def test_fix_flag_forces_serial_execution():
+    with (
+        patch(
+            "cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(0, "")
+        ) as mock_exec,
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
+        run_clang_tidy(["--fix", "--jobs=4", "-p", "./build", "a.cpp", "b.cpp"])
+
+    mock_exec.assert_called_once()
+    cmd = mock_exec.call_args[0][0]
+    assert "-fix" in cmd
+    assert "a.cpp" in cmd
+    assert "b.cpp" in cmd
+
+
+def test_fix_errors_in_args_forces_serial_execution():
+    with (
+        patch(
+            "cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(0, "")
+        ) as mock_exec,
+        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+    ):
+        run_clang_tidy(["--jobs=4", "-p", "./build", "-fix-errors", "a.cpp", "b.cpp"])
+
+    mock_exec.assert_called_once()
+    cmd = mock_exec.call_args[0][0]
+    assert "-fix-errors" in cmd
+    assert "a.cpp" in cmd
+    assert "b.cpp" in cmd

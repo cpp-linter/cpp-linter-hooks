@@ -32,7 +32,7 @@ Add this configuration to your `.pre-commit-config.yaml` file:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.2.0  # Use the tag or commit you want
+    rev: v1.4.0  # Use the tag or commit you want
     hooks:
       - id: clang-format
         args: [--style=Google] # Other coding style: LLVM, GNU, Chromium, Microsoft, Mozilla, WebKit.
@@ -47,7 +47,7 @@ To use custom configurations like `.clang-format` and `.clang-tidy`:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.2.0
+    rev: v1.4.0
     hooks:
       - id: clang-format
         args: [--style=file]  # Loads style from .clang-format file
@@ -56,7 +56,7 @@ repos:
 ```
 
 > [!TIP]
-> The `rev` tag (e.g. `v1.2.0`) is the **project** version, not the clang tool version. Each release bundles a default version of `clang-format` and `clang-tidy` — check the [release notes](https://github.com/cpp-linter/cpp-linter-hooks/releases) to see which tool version a given `rev` ships with. To pin an exact tool version independently of the project release, use `--version` as shown below.
+> The `rev` tag (e.g. `v1.4.0`) is the **project** version, not the clang tool version. Each release bundles a default version of `clang-format` and `clang-tidy` — check the [release notes](https://github.com/cpp-linter/cpp-linter-hooks/releases) to see which tool version a given `rev` ships with. To pin an exact tool version independently of the project release, use `--version` as shown below.
 
 ### Custom Clang Tool Version
 
@@ -65,7 +65,7 @@ To use specific versions of clang-format and clang-tidy (using Python wheel pack
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.2.0
+    rev: v1.4.0
     hooks:
       - id: clang-format
         args: [--style=file, --version=21] # Specifies version
@@ -89,7 +89,7 @@ automatically — no configuration needed for most projects:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.2.0
+    rev: v1.4.0
     hooks:
       - id: clang-tidy
         args: [--checks=.clang-tidy]
@@ -192,6 +192,28 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
 
 ```
 
+> [!NOTE]
+> Add `--fix` to `args` to automatically apply clang-tidy fixes in place (equivalent to
+> passing `-fix` to clang-tidy directly). This is **opt-in** and **not the default** because
+> auto-fixing can modify source files in unexpected ways. A valid `compile_commands.json` is
+> strongly recommended when using `--fix`.
+>
+> For cases where compiler errors exist alongside style issues, pass `-fix-errors` directly
+> in `args` instead (clang-tidy native flag).
+
+```yaml
+repos:
+  - repo: https://github.com/cpp-linter/cpp-linter-hooks
+    rev: v1.4.0  # requires the version that introduced --fix
+    hooks:
+      - id: clang-tidy
+        args: [--checks=.clang-tidy, --fix]
+```
+
+> [!WARNING]
+> When `--fix` (or `-fix-errors`) is active, parallel execution via `--jobs`/`-j` is
+> automatically disabled to prevent concurrent writes to the same header file.
+
 ## Troubleshooting
 
 ### Performance Optimization
@@ -201,7 +223,7 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.2.0
+  rev: v1.4.0
   hooks:
     - id: clang-format
       args: [--style=file, --version=21]
@@ -216,7 +238,7 @@ or `-j`:
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.2.0
+  rev: v1.4.0
   hooks:
     - id: clang-tidy
       args: [--checks=.clang-tidy, --version=21, --jobs=4]
@@ -245,7 +267,7 @@ This approach ensures that only modified files are checked, further speeding up 
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.2.0
+    rev: v1.4.0
     hooks:
       - id: clang-format
         args: [--style=file, --version=21, --verbose]   # Shows processed files
@@ -266,6 +288,7 @@ repos:
 | Supports passing format style string | ✅ via `--style`                      | ❌                                    |
 | Verbose output                   | ✅ via `--verbose`                        | ❌                                    |
 | Dry-run mode                     | ✅ via `--dry-run`                        | ❌                                    |
+| Auto-fix mode                    | ✅ via `--fix` (clang-tidy only)          | ❌                                    |
 | Compilation database support     | ✅ auto-detect or `--compile-commands`    | ❌                                    |
 
 

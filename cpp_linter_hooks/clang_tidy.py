@@ -45,6 +45,7 @@ parser.add_argument(
 )
 parser.add_argument("-j", "--jobs", type=_positive_int, default=1)
 parser.add_argument("-v", "--verbose", action="store_true")
+parser.add_argument("--fix", action="store_true", help="Apply fixes in place (-fix)")
 
 
 def _find_compile_commands() -> Optional[str]:
@@ -154,11 +155,21 @@ def run_clang_tidy(args=None) -> Tuple[int, str]:
 
     clang_tidy_args, source_files = _split_source_files(other_args)
 
+    if (
+        hook_args.fix
+        and "-fix" not in clang_tidy_args
+        and "-fix-errors" not in clang_tidy_args
+    ):
+        clang_tidy_args.append("-fix")
+
     # Parallel execution is unsafe when arguments include flags that write to a
-    # shared output path (e.g., --export-fixes fixes.yaml). In that case, force
-    # serial execution to avoid concurrent writes/overwrites.
+    # shared output path (e.g., --export-fixes fixes.yaml) or that apply in-place
+    # fixes (-fix, -fix-errors), since multiple clang-tidy processes may attempt
+    # to modify the same header file concurrently.
     unsafe_parallel = any(
-        arg == "--export-fixes" or arg.startswith("--export-fixes=")
+        arg == "--export-fixes"
+        or arg.startswith("--export-fixes=")
+        or arg in ("-fix", "-fix-errors")
         for arg in clang_tidy_args
     )
 
@@ -167,7 +178,7 @@ def run_clang_tidy(args=None) -> Tuple[int, str]:
             ["clang-tidy"] + clang_tidy_args, source_files, hook_args.jobs
         )
 
-    return _exec_clang_tidy(["clang-tidy"] + other_args)
+    return _exec_clang_tidy(["clang-tidy"] + clang_tidy_args + source_files)
 
 
 def main() -> int:
