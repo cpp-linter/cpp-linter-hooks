@@ -28,7 +28,7 @@ run_test() {
     local expect_nonzero="$4"
 
     echo "---- $description ----"
-    uvx pre-commit clean -q
+    uvx pre-commit clean
 
     local output
     # shellcheck disable=SC2086  # word-splitting of $files is intentional
