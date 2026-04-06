@@ -335,6 +335,7 @@ def test_fix_flag_appends_fix_to_command():
     ):
         run_clang_tidy(["--fix", "-p", "./build", "dummy.cpp"])
 
+    mock_exec.assert_called_once()
     cmd = mock_exec.call_args[0][0]
     assert "-fix" in cmd
 
