@@ -175,7 +175,9 @@ def test_clang_format_google_style_matches_good_c(unformatted_file):
 @pytest.mark.parametrize("verbose_flag", ["--verbose", "-v"])
 def test_clang_format_verbose_flag_succeeds(verbose_flag, unformatted_file):
     """Both --verbose and -v flags must be accepted and not break formatting."""
-    ret, output = run_clang_format([verbose_flag, "--style=Google", str(unformatted_file)])
+    ret, output = run_clang_format(
+        [verbose_flag, "--style=Google", str(unformatted_file)]
+    )
 
     assert ret == 0
     assert isinstance(output, str)
