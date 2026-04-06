@@ -4,7 +4,7 @@ These tests call the hook functions directly and validate end-to-end behaviour
 for the key scenarios exercised by the pre-commit configuration files:
 
 * pre-commit-config.yaml          – basic style-from-file with .clang-format
-* pre-commit-config-version.yaml  – explicit tool versions 16–21
+* pre-commit-config-version.yaml  – explicit tool versions 16–22
 * pre-commit-config-verbose.yaml  – --verbose / -v flags
 * pre-commit-config-style.yaml    – LLVM, Google, Microsoft, WebKit, Mozilla, Chromium
 
@@ -88,12 +88,12 @@ def test_clang_format_style_from_file_is_idempotent(clang_format_workspace):
 
 
 # ---------------------------------------------------------------------------
-# pre-commit-config-version.yaml scenario – explicit versions 16–21
+# pre-commit-config-version.yaml scenario – explicit versions 16–22
 # ---------------------------------------------------------------------------
 
 
 @pytest.mark.benchmark
-@pytest.mark.parametrize("version", ["16", "17", "18", "19", "20", "21"])
+@pytest.mark.parametrize("version", ["16", "17", "18", "19", "20", "21", "22"])
 def test_clang_format_style_from_file_with_version(tmp_path, monkeypatch, version):
     """--style=file combined with an explicit --version reformats the file."""
     shutil.copy(TESTING_DIR / ".clang-format", tmp_path / ".clang-format")

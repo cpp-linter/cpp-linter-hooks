@@ -59,10 +59,10 @@ run_test \
     "testing/main.c" \
     "true"
 
-# ── Version config: explicit versions 16–21 ──────────────────────────────────
+# ── Version config: explicit versions 16–22 ──────────────────────────────────
 # Expected: at least clang-format v16 rewrites the file → failure reported.
 run_test \
-    "versions 16-21: clang-format + clang-tidy" \
+    "versions 16-22: clang-format + clang-tidy" \
     "testing/pre-commit-config-version.yaml" \
     "testing/main.c" \
     "true"
