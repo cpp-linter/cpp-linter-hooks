@@ -362,9 +362,7 @@ def test_fix_errors_in_args_forces_serial_execution():
         ) as mock_exec,
         patch("cpp_linter_hooks.clang_tidy.resolve_install"),
     ):
-        run_clang_tidy(
-            ["--jobs=4", "-p", "./build", "-fix-errors", "a.cpp", "b.cpp"]
-        )
+        run_clang_tidy(["--jobs=4", "-p", "./build", "-fix-errors", "a.cpp", "b.cpp"])
 
     mock_exec.assert_called_once()
     cmd = mock_exec.call_args[0][0]
