@@ -21,7 +21,7 @@ from pathlib import Path
 from cpp_linter_hooks.clang_format import run_clang_format
 from cpp_linter_hooks.clang_tidy import run_clang_tidy
 
-TESTING_DIR = Path("testing")
+TESTING_DIR = Path(__file__).parent.parent / "testing"
 MAIN_C = TESTING_DIR / "main.c"
 GOOD_C = TESTING_DIR / "good.c"
 
@@ -61,13 +61,14 @@ def clang_format_workspace(tmp_path, monkeypatch):
 def test_clang_format_style_from_file_reformats(clang_format_workspace):
     """--style=file reads .clang-format and reformats the unformatted file."""
     test_file = clang_format_workspace
-    original = test_file.read_text()
+    # Reset to unformatted content each time (handles repeated benchmark calls)
+    test_file.write_bytes(MAIN_C.read_bytes())
 
     ret, output = run_clang_format(["--style=file", str(test_file)])
 
     assert ret == 0
     assert isinstance(output, str)
-    assert test_file.read_text() != original, "file should have been reformatted"
+    assert test_file.read_bytes() != MAIN_C.read_bytes(), "file should have been reformatted"
 
 
 @pytest.mark.benchmark
@@ -124,13 +125,14 @@ STYLE_PRESETS = ["LLVM", "Google", "Microsoft", "WebKit", "Mozilla", "Chromium"]
 @pytest.mark.parametrize("style", STYLE_PRESETS)
 def test_clang_format_style_preset_reformats_unformatted_file(style, unformatted_file):
     """Each style preset should reformat the unformatted main.c."""
-    original = unformatted_file.read_text()
+    # Reset to unformatted content each time (handles repeated benchmark calls)
+    unformatted_file.write_bytes(MAIN_C.read_bytes())
 
     ret, output = run_clang_format([f"--style={style}", str(unformatted_file)])
 
     assert ret == 0
     assert isinstance(output, str)
-    assert unformatted_file.read_text() != original, (
+    assert unformatted_file.read_bytes() != MAIN_C.read_bytes(), (
         f"style={style}: file should have been reformatted"
     )
 
