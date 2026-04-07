@@ -68,7 +68,9 @@ def test_clang_format_style_from_file_reformats(clang_format_workspace):
 
     assert ret == 0
     assert isinstance(output, str)
-    assert test_file.read_bytes() != MAIN_C.read_bytes(), "file should have been reformatted"
+    assert test_file.read_bytes() != MAIN_C.read_bytes(), (
+        "file should have been reformatted"
+    )
 
 
 @pytest.mark.benchmark
