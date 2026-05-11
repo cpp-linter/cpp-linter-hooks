@@ -82,6 +82,7 @@ CLANG_FORMAT_VERSIONS = [
     "22.1.2",
     "22.1.3",
     "22.1.4",
+    "22.1.5",
 ]
 
 # Updated automatically by GitHub Actions - DO NOT EDIT MANUALLY
