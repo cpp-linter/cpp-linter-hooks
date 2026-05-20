@@ -42,6 +42,7 @@ comparison.
 - [Troubleshooting](#troubleshooting)
   - [Performance Optimization](#performance-optimization)
   - [Verbose Output](#verbose-output)
+- [Examples](#examples)
 - [FAQ](#faq)
   - [What's the difference between `cpp-linter-hooks` and `mirrors-clang-format`?](#whats-the-difference-between-cpp-linter-hooks-and-mirrors-clang-format)
 - [Contributing](#contributing)
@@ -296,6 +297,14 @@ repos:
       - id: clang-tidy
         args: [--checks=.clang-tidy, --verbose]   # Shows which compile_commands.json is used
 ```
+
+## Examples
+
+Two self-contained templates plus quick snippets for other common setups.
+
+- [CMake minimal config](examples/cmake/) — covers ~80% of C++ projects
+- [Large project `files:` regex](examples/large-project/) — scoping hooks for speed
+- [Quick snippets](examples/README.md) — Meson, clang-format-only, monorepo, CI, `compile_commands.json`
 
 ## FAQ
 

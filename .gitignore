@@ -13,7 +13,6 @@ result.txt
 testing/main.c
 */*compile_commands.json
 testing/benchmark_results.txt
-examples/*
 
 # Ignore Python wheel packages (clang-format, clang-tidy)
 clang-tidy-1*
@@ -23,3 +22,6 @@ clang-format-2*
 
 # Ignore CodeSpeed folder
 .codspeed/
+
+# Others
+plan.md
