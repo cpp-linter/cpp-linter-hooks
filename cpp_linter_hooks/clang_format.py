@@ -1,3 +1,5 @@
+"""Pre-commit hook wrapper for clang-format."""
+
 import subprocess
 import sys
 from argparse import ArgumentParser
@@ -14,6 +16,7 @@ parser.add_argument(
 
 
 def run_clang_format(args=None) -> Tuple[int, str]:
+    """Run clang-format with hook-specific arguments removed."""
     hook_args, other_args = parser.parse_known_args(args)
     _, version_error = resolve_install_with_diagnostics(
         "clang-format", hook_args.version, hook_args.verbose
@@ -65,6 +68,7 @@ def _print_verbose_info(command: list, retval: int, output: str) -> None:
 
 
 def main() -> int:
+    """Run clang-format as a command-line entry point."""
     retval, output = run_clang_format()  # pragma: no cover
 
     # Print output for errors, but not for dry-run mode

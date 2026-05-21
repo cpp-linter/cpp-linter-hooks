@@ -7,7 +7,7 @@ If you already have a CMake project, you need **two files**:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.4.0
+    rev: v1.4.2
     hooks:
       - id: clang-format
         args: [--style=file, --version=21]
