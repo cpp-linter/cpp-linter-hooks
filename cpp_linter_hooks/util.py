@@ -143,8 +143,7 @@ def resolve_install_with_diagnostics(
             )
 
     return (
-        _is_version_installed(tool, user_version)
-        or _install_tool(tool, user_version),
+        _is_version_installed(tool, user_version) or _install_tool(tool, user_version),
         None,
     )
 
