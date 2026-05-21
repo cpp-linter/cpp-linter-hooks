@@ -32,6 +32,7 @@ comparison.
 ## Table of Contents
 
 - [Why cpp-linter-hooks?](#why-cpp-linter-hooks)
+- [Requirements](#requirements)
 - [Quick Start](#quick-start)
   - [Custom Configuration Files](#custom-configuration-files)
   - [Custom Clang Tool Version](#custom-clang-tool-version)
@@ -49,6 +50,10 @@ comparison.
 - [Contributing](#contributing)
 - [License](#license)
 
+## Requirements
+
+`cpp-linter-hooks` v1.5.0 and later requires Python 3.10 or newer.
+
 ## Quick Start
 
 Add this configuration to your `.pre-commit-config.yaml` file:
@@ -56,7 +61,7 @@ Add this configuration to your `.pre-commit-config.yaml` file:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.4.2  # Use the tag or commit you want
+    rev: v1.5.0  # Use the tag or commit you want
     hooks:
       - id: clang-format
         args: [--style=Google] # Other coding style: LLVM, GNU, Chromium, Microsoft, Mozilla, WebKit.
@@ -71,7 +76,7 @@ To use custom configurations like `.clang-format` and `.clang-tidy`:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.4.2
+    rev: v1.5.0
     hooks:
       - id: clang-format
         args: [--style=file]  # Loads style from .clang-format file
@@ -80,7 +85,7 @@ repos:
 ```
 
 > [!TIP]
-> The `rev` tag (e.g. `v1.4.2`) is the **project** version, not the clang tool version. Each release bundles a default version of `clang-format` and `clang-tidy` — check the [release notes](https://github.com/cpp-linter/cpp-linter-hooks/releases) to see which tool version a given `rev` ships with. To pin an exact tool version independently of the project release, use `--version` as shown below.
+> The `rev` tag (e.g. `v1.5.0`) is the **project** version, not the clang tool version. Each release bundles a default version of `clang-format` and `clang-tidy` — check the [release notes](https://github.com/cpp-linter/cpp-linter-hooks/releases) to see which tool version a given `rev` ships with. To pin an exact tool version independently of the project release, use `--version` as shown below.
 
 ### Custom Clang Tool Version
 
@@ -89,7 +94,7 @@ To use specific versions of clang-format and clang-tidy (using Python wheel pack
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.4.2
+    rev: v1.5.0
     hooks:
       - id: clang-format
         args: [--style=file, --version=21] # Specifies version
@@ -113,7 +118,7 @@ automatically — no configuration needed for most projects:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.4.2
+    rev: v1.5.0
     hooks:
       - id: clang-tidy
         args: [--checks=.clang-tidy]
@@ -228,7 +233,7 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.4.2  # requires the version that introduced --fix
+    rev: v1.5.0  # includes --fix support
     hooks:
       - id: clang-tidy
         args: [--checks=.clang-tidy, --fix]
@@ -247,7 +252,7 @@ repos:
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.4.2
+  rev: v1.5.0
   hooks:
     - id: clang-format
       args: [--style=file, --version=21]
@@ -262,7 +267,7 @@ or `-j`:
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.4.2
+  rev: v1.5.0
   hooks:
     - id: clang-tidy
       args: [--checks=.clang-tidy, --version=21, --jobs=4]
@@ -291,7 +296,7 @@ This approach ensures that only modified files are checked, further speeding up 
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.4.2
+    rev: v1.5.0
     hooks:
       - id: clang-format
         args: [--style=file, --version=21, --verbose]   # Shows processed files

@@ -3,7 +3,7 @@ requires = ["setuptools>=45", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 name = "cpp_linter_hooks"
 description = "Automatically formats and lints C/C++ code using clang-format and clang-tidy"
 readme = "README.md"
@@ -22,7 +22,6 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
@@ -31,7 +30,7 @@ classifiers = [
     "Topic :: Software Development :: Build Tools",
 ]
 dependencies = [
-    "pip>=20.3", # Required to install clang-format and clang-tidy
+    "pip>=26.1", # Required to install clang-format and clang-tidy
     "tomli>=1.1.0; python_version < '3.11'",
 ]
 dynamic = ["version"]
@@ -48,7 +47,7 @@ tracker = "https://github.com/cpp-linter/cpp-linter-hooks/issues"
 dev = [
     "coverage",
     "pre-commit",
-    "pytest",
+    "pytest>=9.0.3",
     "pytest-codspeed",
 ]
 
