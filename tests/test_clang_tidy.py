@@ -4,7 +4,7 @@ import time
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from cpp_linter_hooks.clang_tidy import run_clang_tidy
+from cpp_linter_hooks.clang_tidy import _exec_clang_tidy, run_clang_tidy
 
 
 @pytest.fixture(scope="function")
@@ -65,7 +65,10 @@ _MOCK_RUN = MagicMock(returncode=0, stdout="", stderr="")
 def _patch():
     return (
         patch("cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN),
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     )
 
 
@@ -77,7 +80,10 @@ def test_compile_commands_explicit(tmp_path):
         patch(
             "cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN
         ) as mock_run,
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         run_clang_tidy([f"--compile-commands={db_dir}", "dummy.cpp"])
     cmd = mock_run.call_args[0][0]
@@ -94,7 +100,10 @@ def test_compile_commands_auto_detect(tmp_path, monkeypatch):
         patch(
             "cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN
         ) as mock_run,
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         run_clang_tidy(["dummy.cpp"])
     cmd = mock_run.call_args[0][0]
@@ -112,7 +121,10 @@ def test_compile_commands_auto_detect_fallback(tmp_path, monkeypatch):
         patch(
             "cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN
         ) as mock_run,
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         run_clang_tidy(["dummy.cpp"])
     cmd = mock_run.call_args[0][0]
@@ -126,7 +138,10 @@ def test_compile_commands_none(tmp_path, monkeypatch):
         patch(
             "cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN
         ) as mock_run,
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         run_clang_tidy(["dummy.cpp"])
     cmd = mock_run.call_args[0][0]
@@ -143,7 +158,10 @@ def test_compile_commands_conflict_guard(tmp_path, monkeypatch):
         patch(
             "cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN
         ) as mock_run,
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         run_clang_tidy(["-p", "./custom", "dummy.cpp"])
     cmd = mock_run.call_args[0][0]
@@ -161,7 +179,10 @@ def test_compile_commands_no_flag(tmp_path, monkeypatch):
         patch(
             "cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN
         ) as mock_run,
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         run_clang_tidy(["--no-compile-commands", "dummy.cpp"])
     cmd = mock_run.call_args[0][0]
@@ -171,18 +192,28 @@ def test_compile_commands_no_flag(tmp_path, monkeypatch):
 def test_compile_commands_invalid_path(tmp_path):
     # Case 1: directory does not exist
     fake_dir = tmp_path / "nonexistent"
-    with patch("cpp_linter_hooks.clang_tidy.resolve_install"):
+    with patch(
+        "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+        return_value=(None, None),
+    ):
         ret, output = run_clang_tidy([f"--compile-commands={fake_dir}", "dummy.cpp"])
     assert ret == 1
     assert "nonexistent" in output
+    assert "cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON" in output
+    assert "meson setup builddir" in output
 
     # Case 2: directory exists but has no compile_commands.json
     empty_dir = tmp_path / "empty_build"
     empty_dir.mkdir()
-    with patch("cpp_linter_hooks.clang_tidy.resolve_install"):
+    with patch(
+        "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+        return_value=(None, None),
+    ):
         ret, output = run_clang_tidy([f"--compile-commands={empty_dir}", "dummy.cpp"])
     assert ret == 1
     assert "empty_build" in output
+    assert "cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON" in output
+    assert "meson setup builddir" in output
 
 
 def test_compile_commands_explicit_with_p_conflict(tmp_path, capsys):
@@ -194,7 +225,10 @@ def test_compile_commands_explicit_with_p_conflict(tmp_path, capsys):
         patch(
             "cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN
         ) as mock_run,
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         run_clang_tidy([f"--compile-commands={db_dir}", "-p", "./other", "dummy.cpp"])
     captured = capsys.readouterr()
@@ -211,10 +245,74 @@ def test_verbose_prints_compile_db_path(tmp_path, monkeypatch, capsys):
     (build_dir / "compile_commands.json").write_text("[]")
     with (
         patch("cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN),
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         run_clang_tidy(["--verbose", "dummy.cpp"])
     assert "build" in capsys.readouterr().err
+
+
+def test_verbose_prints_compile_db_generation_hint_when_not_found(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.chdir(tmp_path)
+    with (
+        patch("cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
+    ):
+        run_clang_tidy(["--verbose", "dummy.cpp"])
+
+    stderr = capsys.readouterr().err
+    assert "No compile_commands.json was found" in stderr
+    assert "cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON" in stderr
+    assert "meson setup builddir" in stderr
+
+
+def test_invalid_version_returns_supported_versions():
+    with patch(
+        "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+        return_value=(None, "Unsupported clang-tidy version '99'.\nSupported versions"),
+    ):
+        ret, output = run_clang_tidy(["--version=99", "dummy.cpp"])
+
+    assert ret == 1
+    assert "Unsupported clang-tidy version '99'" in output
+    assert "Supported versions" in output
+
+
+def test_exec_clang_tidy_appends_compile_db_hint():
+    completed = MagicMock(
+        returncode=1,
+        stdout="",
+        stderr="Error while trying to load a compilation database: missing\n",
+    )
+    with patch("cpp_linter_hooks.clang_tidy.subprocess.run", return_value=completed):
+        ret, output = _exec_clang_tidy(["clang-tidy", "-p", "missing", "a.cpp"])
+
+    assert ret == 1
+    assert "Error while trying to load a compilation database" in output
+    assert "cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON" in output
+    assert "meson setup builddir" in output
+
+
+def test_exec_clang_tidy_appends_msvc_hint():
+    completed = MagicMock(
+        returncode=1,
+        stdout="",
+        stderr="fatal error: 'vcruntime.h' file not found\n",
+    )
+    with patch("cpp_linter_hooks.clang_tidy.subprocess.run", return_value=completed):
+        ret, output = _exec_clang_tidy(["clang-tidy", "a.cpp"])
+
+    assert ret == 1
+    assert "Windows/MSVC clang-tidy hints" in output
+    assert "Visual Studio Developer Command Prompt" in output
+    assert "--extra-arg-before=--driver-mode=cl" in output
 
 
 def test_no_verbose_no_extra_stderr(tmp_path, monkeypatch, capsys):
@@ -224,7 +322,10 @@ def test_no_verbose_no_extra_stderr(tmp_path, monkeypatch, capsys):
     (build_dir / "compile_commands.json").write_text("[]")
     with (
         patch("cpp_linter_hooks.clang_tidy.subprocess.run", return_value=_MOCK_RUN),
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         run_clang_tidy(["dummy.cpp"])
     assert capsys.readouterr().err == ""
@@ -235,7 +336,10 @@ def test_jobs_one_keeps_single_invocation():
         patch(
             "cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(0, "")
         ) as mock_exec,
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         run_clang_tidy(["--jobs=1", "-p", "./build", "a.cpp", "b.cpp"])
 
@@ -252,7 +356,10 @@ def test_jobs_parallelizes_source_files_and_preserves_output_order():
 
     with (
         patch("cpp_linter_hooks.clang_tidy._exec_clang_tidy", side_effect=fake_exec),
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         ret, output = run_clang_tidy(
             [
@@ -274,7 +381,10 @@ def test_jobs_parallelizes_only_trailing_source_files():
         patch(
             "cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(0, "")
         ) as mock_exec,
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         run_clang_tidy(
             [
@@ -299,7 +409,10 @@ def test_jobs_with_export_fixes_forces_serial_execution():
         patch(
             "cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(0, "")
         ) as mock_exec,
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         run_clang_tidy(
             [
@@ -331,7 +444,10 @@ def test_fix_flag_appends_fix_to_command():
         patch(
             "cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(0, "")
         ) as mock_exec,
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         run_clang_tidy(["--fix", "-p", "./build", "dummy.cpp"])
 
@@ -345,7 +461,10 @@ def test_fix_flag_forces_serial_execution():
         patch(
             "cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(0, "")
         ) as mock_exec,
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         run_clang_tidy(["--fix", "--jobs=4", "-p", "./build", "a.cpp", "b.cpp"])
 
@@ -361,7 +480,10 @@ def test_fix_errors_in_args_forces_serial_execution():
         patch(
             "cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(0, "")
         ) as mock_exec,
-        patch("cpp_linter_hooks.clang_tidy.resolve_install"),
+        patch(
+            "cpp_linter_hooks.clang_tidy.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ),
     ):
         run_clang_tidy(["--jobs=4", "-p", "./build", "-fix-errors", "a.cpp", "b.cpp"])
 

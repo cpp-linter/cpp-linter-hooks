@@ -9,6 +9,7 @@ from cpp_linter_hooks.util import (
     _resolve_version,
     _is_version_installed,
     _install_tool,
+    resolve_install_with_diagnostics,
     resolve_install,
     DEFAULT_CLANG_FORMAT_VERSION,
     DEFAULT_CLANG_TIDY_VERSION,
@@ -305,12 +306,39 @@ def test_resolve_install_invalid_version():
         ) as mock_install,
     ):
         result = resolve_install("clang-format", "invalid.version")
-        assert result == Path("/usr/bin/clang-format")
+        assert result is None
 
-        # Should fallback to default version
-        mock_install.assert_called_once_with(
-            "clang-format", DEFAULT_CLANG_FORMAT_VERSION
-        )
+        mock_install.assert_not_called()
+
+
+@pytest.mark.benchmark
+def test_resolve_install_with_diagnostics_invalid_version_lists_supported_versions():
+    path, error = resolve_install_with_diagnostics("clang-tidy", "99")
+
+    assert path is None
+    assert error is not None
+    assert "Unsupported clang-tidy version '99'" in error
+    assert "Supported clang-tidy wheel versions:" in error
+    assert CLANG_TIDY_VERSIONS[-1] in error
+
+
+@pytest.mark.benchmark
+def test_resolve_install_with_diagnostics_verbose_prints_resolved_version(capsys):
+    with (
+        patch("shutil.which", return_value=None),
+        patch(
+            "cpp_linter_hooks.util._install_tool",
+            return_value=Path("/usr/bin/clang-tidy"),
+        ),
+    ):
+        path, error = resolve_install_with_diagnostics("clang-tidy", "21", True)
+
+    assert path == Path("/usr/bin/clang-tidy")
+    assert error is None
+    assert (
+        "Resolved clang-tidy --version=21 to Python wheel version 21.1.6"
+        in capsys.readouterr().err
+    )
 
 
 # Tests for constants and defaults

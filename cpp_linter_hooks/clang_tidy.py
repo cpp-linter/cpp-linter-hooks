@@ -5,7 +5,7 @@ from argparse import ArgumentParser, ArgumentTypeError
 from pathlib import Path
 from typing import List, Optional, Tuple
 
-from cpp_linter_hooks.util import resolve_install, DEFAULT_CLANG_TIDY_VERSION
+from cpp_linter_hooks.util import resolve_install_with_diagnostics
 
 COMPILE_DB_SEARCH_DIRS = ["build", "out", "cmake-build-debug", "_build"]
 SOURCE_FILE_SUFFIXES = {
@@ -28,6 +28,18 @@ SOURCE_FILE_SUFFIXES = {
     ".tpp",
     ".txx",
 }
+COMPILE_COMMANDS_HINT = """\
+Generate compile_commands.json with one of:
+  CMake: cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+  Meson: meson setup builddir
+Then run clang-tidy with --compile-commands=build or --compile-commands=builddir."""
+
+MSVC_HINT = """\
+Windows/MSVC clang-tidy hints:
+  - Run from a Visual Studio Developer Command Prompt, or call vcvars64.bat first.
+  - Make sure the Windows SDK and MSVC include paths are visible in that shell.
+  - For MSVC-style compile databases, try --extra-arg-before=--driver-mode=cl.
+  - If using CMake, generate compile_commands.json from the same toolchain."""
 
 
 def _positive_int(value: str) -> int:
@@ -38,7 +50,7 @@ def _positive_int(value: str) -> int:
 
 
 parser = ArgumentParser()
-parser.add_argument("--version", default=DEFAULT_CLANG_TIDY_VERSION)
+parser.add_argument("--version", default=None)
 parser.add_argument("--compile-commands", default=None, dest="compile_commands")
 parser.add_argument(
     "--no-compile-commands", action="store_true", dest="no_compile_commands"
@@ -53,6 +65,17 @@ def _find_compile_commands() -> Optional[str]:
         if (Path(d) / "compile_commands.json").exists():
             return d
     return None
+
+
+def _compile_commands_not_found_message(path: Optional[str] = None) -> str:
+    if path is None:
+        return "No compile_commands.json was found in common build directories.\n\n" + (
+            COMPILE_COMMANDS_HINT
+        )
+    return (
+        f"--compile-commands: no compile_commands.json in '{path}'.\n\n"
+        f"{COMPILE_COMMANDS_HINT}"
+    )
 
 
 def _resolve_compile_db(
@@ -79,8 +102,7 @@ def _resolve_compile_db(
         if not p.is_dir() or not (p / "compile_commands.json").exists():
             return None, (
                 1,
-                f"--compile-commands: no compile_commands.json"
-                f" in '{hook_args.compile_commands}'",
+                _compile_commands_not_found_message(hook_args.compile_commands),
             )
         return hook_args.compile_commands, None
 
@@ -90,6 +112,60 @@ def _resolve_compile_db(
     return None, None
 
 
+def _looks_like_compile_db_error(output: str) -> bool:
+    lower_output = output.lower()
+    compile_db_error = "compile_commands.json" in lower_output and any(
+        pattern in lower_output
+        for pattern in (
+            "not found",
+            "no such file",
+            "missing",
+            "error",
+            "could not",
+        )
+    )
+    return compile_db_error or any(
+        pattern in lower_output
+        for pattern in (
+            "error while trying to load a compilation database",
+            "could not auto-detect compilation database",
+            "no compilation database found",
+        )
+    )
+
+
+def _looks_like_msvc_error(output: str) -> bool:
+    lower_output = output.lower()
+    cl_driver_error = "cl.exe" in lower_output and any(
+        pattern in lower_output
+        for pattern in ("not found", "doesn't exist", "unable to execute")
+    )
+    msvc_patterns = (
+        "unable to find a visual studio installation",
+        "visual studio installation",
+        "vcruntime.h",
+        "windows.h' file not found",
+        "sal.h' file not found",
+        "msvc",
+        "unknown argument: '/",
+        "unsupported option '/",
+        "argument unused during compilation: '/",
+    )
+    return cl_driver_error or any(pattern in lower_output for pattern in msvc_patterns)
+
+
+def _append_guidance(output: str) -> str:
+    hints: List[str] = []
+    if _looks_like_compile_db_error(output) and COMPILE_COMMANDS_HINT not in output:
+        hints.append(COMPILE_COMMANDS_HINT)
+    if _looks_like_msvc_error(output) and MSVC_HINT not in output:
+        hints.append(MSVC_HINT)
+    if not hints:
+        return output
+    separator = "\n\n" if output.rstrip("\n") else ""
+    return output.rstrip("\n") + separator + "\n\n".join(hints)
+
+
 def _exec_clang_tidy(command) -> Tuple[int, str]:
     """Run clang-tidy and return (retval, output)."""
     try:
@@ -97,6 +173,7 @@ def _exec_clang_tidy(command) -> Tuple[int, str]:
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
         )
         output = (sp.stdout or "") + (sp.stderr or "")
+        output = _append_guidance(output)
         retval = (
             1 if sp.returncode != 0 or "warning:" in output or "error:" in output else 0
         )
@@ -139,8 +216,11 @@ def _exec_parallel_clang_tidy(
 
 def run_clang_tidy(args=None) -> Tuple[int, str]:
     hook_args, other_args = parser.parse_known_args(args)
-    if hook_args.version:
-        resolve_install("clang-tidy", hook_args.version)
+    _, version_error = resolve_install_with_diagnostics(
+        "clang-tidy", hook_args.version, hook_args.verbose
+    )
+    if version_error is not None:
+        return 1, version_error
 
     compile_db_path, error = _resolve_compile_db(hook_args, other_args)
     if error is not None:
@@ -152,6 +232,10 @@ def run_clang_tidy(args=None) -> Tuple[int, str]:
                 f"Using compile_commands.json from: {compile_db_path}", file=sys.stderr
             )
         other_args = ["-p", compile_db_path] + other_args
+    elif hook_args.verbose and not hook_args.no_compile_commands:
+        has_p = any(a == "-p" or a.startswith("-p=") for a in other_args)
+        if not has_p:
+            print(_compile_commands_not_found_message(), file=sys.stderr)
 
     clang_tidy_args, source_files = _split_source_files(other_args)
 

@@ -3,11 +3,11 @@ import sys
 from argparse import ArgumentParser
 from typing import Tuple
 
-from cpp_linter_hooks.util import resolve_install, DEFAULT_CLANG_FORMAT_VERSION
+from cpp_linter_hooks.util import resolve_install_with_diagnostics
 
 
 parser = ArgumentParser()
-parser.add_argument("--version", default=DEFAULT_CLANG_FORMAT_VERSION)
+parser.add_argument("--version", default=None)
 parser.add_argument(
     "-v", "--verbose", action="store_true", help="Enable verbose output"
 )
@@ -15,8 +15,11 @@ parser.add_argument(
 
 def run_clang_format(args=None) -> Tuple[int, str]:
     hook_args, other_args = parser.parse_known_args(args)
-    if hook_args.version:
-        resolve_install("clang-format", hook_args.version)
+    _, version_error = resolve_install_with_diagnostics(
+        "clang-format", hook_args.version, hook_args.verbose
+    )
+    if version_error is not None:
+        return 1, version_error
     command = ["clang-format", "-i"]
 
     # Add verbose flag if requested

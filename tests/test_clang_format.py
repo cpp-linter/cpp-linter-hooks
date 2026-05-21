@@ -1,5 +1,6 @@
 import pytest
 from pathlib import Path
+from unittest.mock import patch
 
 from cpp_linter_hooks.clang_format import run_clang_format
 
@@ -103,3 +104,35 @@ def test_run_clang_format_verbose_error(tmp_path):
     assert ret != 0
     # Should have error message in output
     assert "Invalid value for -style" in output
+
+
+def test_run_clang_format_invalid_version_returns_supported_versions():
+    with patch(
+        "cpp_linter_hooks.clang_format.resolve_install_with_diagnostics",
+        return_value=(
+            None,
+            "Unsupported clang-format version '99'.\nSupported versions",
+        ),
+    ):
+        ret, output = run_clang_format(["--version=99", "dummy.cpp"])
+
+    assert ret == 1
+    assert "Unsupported clang-format version '99'" in output
+    assert "Supported versions" in output
+
+
+def test_run_clang_format_verbose_passes_version_diagnostics():
+    with (
+        patch(
+            "cpp_linter_hooks.clang_format.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ) as mock_resolve,
+        patch("cpp_linter_hooks.clang_format.subprocess.run") as mock_run,
+    ):
+        mock_run.return_value.returncode = 0
+        mock_run.return_value.stdout = ""
+        mock_run.return_value.stderr = ""
+        ret, output = run_clang_format(["--verbose", "--version=21", "dummy.cpp"])
+
+    assert (ret, output) == (0, "")
+    mock_resolve.assert_called_once_with("clang-format", "21", True)
