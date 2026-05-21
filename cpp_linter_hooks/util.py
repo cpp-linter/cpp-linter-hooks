@@ -1,3 +1,5 @@
+"""Shared helpers for resolving and installing clang tool wheels."""
+
 import sys
 import shutil
 import subprocess
@@ -35,10 +37,12 @@ DEFAULT_CLANG_TIDY_VERSION = CLANG_TIDY_VERSIONS[-1]  # latest from versions.py
 
 
 def _versions_for_tool(tool: str) -> List[str]:
+    """Return supported Python wheel versions for a clang tool."""
     return CLANG_FORMAT_VERSIONS if tool == "clang-format" else CLANG_TIDY_VERSIONS
 
 
 def _default_version_for_tool(tool: str) -> Optional[str]:
+    """Return the default Python wheel version for a clang tool."""
     return (
         DEFAULT_CLANG_FORMAT_VERSION
         if tool == "clang-format"
@@ -47,6 +51,7 @@ def _default_version_for_tool(tool: str) -> Optional[str]:
 
 
 def _supported_versions_message(tool: str) -> str:
+    """Build a user-facing list of supported wheel versions for a clang tool."""
     versions = ", ".join(_versions_for_tool(tool))
     return f"Supported {tool} wheel versions: {versions}"
 
@@ -66,6 +71,7 @@ def _resolve_version(versions: List[str], user_input: Optional[str]) -> Optional
 
         # define a function to parse version strings into tuples for comparison
         def parse_version(v: str):
+            """Convert a dotted version string into an integer tuple."""
             return tuple(map(int, v.split(".")))
 
         # return the latest version

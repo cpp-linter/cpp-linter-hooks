@@ -1,3 +1,5 @@
+"""Pre-commit hook wrapper for clang-tidy."""
+
 from concurrent.futures import ThreadPoolExecutor
 import subprocess
 import sys
@@ -43,6 +45,7 @@ Windows/MSVC clang-tidy hints:
 
 
 def _positive_int(value: str) -> int:
+    """Parse a positive integer for the --jobs option."""
     jobs = int(value)
     if jobs < 1:
         raise ArgumentTypeError("--jobs must be greater than 0")
@@ -61,6 +64,7 @@ parser.add_argument("--fix", action="store_true", help="Apply fixes in place (-f
 
 
 def _find_compile_commands() -> Optional[str]:
+    """Return the first common directory containing compile_commands.json."""
     for d in COMPILE_DB_SEARCH_DIRS:
         if (Path(d) / "compile_commands.json").exists():
             return d
@@ -68,6 +72,7 @@ def _find_compile_commands() -> Optional[str]:
 
 
 def _compile_commands_not_found_message(path: Optional[str] = None) -> str:
+    """Build a user-facing message for missing compile_commands.json files."""
     if path is None:
         return "No compile_commands.json was found in common build directories.\n\n" + (
             COMPILE_COMMANDS_HINT
@@ -113,6 +118,7 @@ def _resolve_compile_db(
 
 
 def _looks_like_compile_db_error(output: str) -> bool:
+    """Return whether clang-tidy output indicates a compile database problem."""
     lower_output = output.lower()
     compile_db_error = "compile_commands.json" in lower_output and any(
         pattern in lower_output
@@ -135,6 +141,7 @@ def _looks_like_compile_db_error(output: str) -> bool:
 
 
 def _looks_like_msvc_error(output: str) -> bool:
+    """Return whether clang-tidy output indicates an MSVC setup problem."""
     lower_output = output.lower()
     cl_driver_error = "cl.exe" in lower_output and any(
         pattern in lower_output
@@ -155,6 +162,7 @@ def _looks_like_msvc_error(output: str) -> bool:
 
 
 def _append_guidance(output: str) -> str:
+    """Append troubleshooting guidance when clang-tidy output matches known errors."""
     hints: List[str] = []
     if _looks_like_compile_db_error(output) and COMPILE_COMMANDS_HINT not in output:
         hints.append(COMPILE_COMMANDS_HINT)
@@ -183,10 +191,12 @@ def _exec_clang_tidy(command) -> Tuple[int, str]:
 
 
 def _looks_like_source_file(path: str) -> bool:
+    """Return whether a path has a recognized C or C++ source suffix."""
     return Path(path).suffix.lower() in SOURCE_FILE_SUFFIXES
 
 
 def _split_source_files(args: List[str]) -> Tuple[List[str], List[str]]:
+    """Split clang-tidy options from trailing source file arguments."""
     split_idx = len(args)
     source_files: List[str] = []
     for idx in range(len(args) - 1, -1, -1):
@@ -198,13 +208,17 @@ def _split_source_files(args: List[str]) -> Tuple[List[str], List[str]]:
 
 
 def _combine_outputs(results: List[Tuple[int, str]]) -> str:
+    """Join non-empty clang-tidy outputs from multiple executions."""
     return "\n".join(output.rstrip("\n") for _, output in results if output)
 
 
 def _exec_parallel_clang_tidy(
     command_prefix: List[str], source_files: List[str], jobs: int
 ) -> Tuple[int, str]:
+    """Run clang-tidy over source files in parallel and combine the results."""
+
     def run_file(source_file: str) -> Tuple[int, str]:
+        """Run clang-tidy for a single source file."""
         return _exec_clang_tidy(command_prefix + [source_file])
 
     with ThreadPoolExecutor(max_workers=min(jobs, len(source_files))) as executor:
@@ -215,6 +229,7 @@ def _exec_parallel_clang_tidy(
 
 
 def run_clang_tidy(args=None) -> Tuple[int, str]:
+    """Run clang-tidy with hook-specific argument handling."""
     hook_args, other_args = parser.parse_known_args(args)
     _, version_error = resolve_install_with_diagnostics(
         "clang-tidy", hook_args.version, hook_args.verbose
@@ -266,6 +281,7 @@ def run_clang_tidy(args=None) -> Tuple[int, str]:
 
 
 def main() -> int:
+    """Run clang-tidy as a command-line entry point."""
     retval, output = run_clang_tidy()
     if retval != 0:
         print(output)
