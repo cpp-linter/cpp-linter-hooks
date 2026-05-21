@@ -43,6 +43,7 @@ comparison.
   - [Performance Optimization](#performance-optimization)
   - [Verbose Output](#verbose-output)
 - [Examples](#examples)
+- [Used By](#used-by)
 - [FAQ](#faq)
   - [What's the difference between `cpp-linter-hooks` and `mirrors-clang-format`?](#whats-the-difference-between-cpp-linter-hooks-and-mirrors-clang-format)
 - [Contributing](#contributing)
@@ -305,6 +306,16 @@ Two self-contained templates plus quick snippets for other common setups.
 - [CMake minimal config](examples/cmake/) — covers ~80% of C++ projects
 - [Large project `files:` regex](examples/large-project/) — scoping hooks for speed
 - [Quick snippets](examples/README.md) — Meson, clang-format-only, monorepo, CI, `compile_commands.json`
+
+## Used By
+
+![bazel-contrib](https://github.com/bazel-contrib.png?size=20) bazel-contrib&nbsp;&nbsp;
+![CodSpeedHQ](https://github.com/CodSpeedHQ.png?size=20) CodSpeedHQ&nbsp;&nbsp;
+![jupyter-xeus](https://github.com/jupyter-xeus.png?size=20) jupyter-xeus&nbsp;&nbsp;
+![rancher-sandbox](https://github.com/rancher-sandbox.png?size=20) rancher-sandbox&nbsp;&nbsp;
+![computationalgeography](https://github.com/computationalgeography.png?size=20) computationalgeography&nbsp;&nbsp;
+![IMSY-DKFZ](https://github.com/IMSY-DKFZ.png?size=20) IMSY-DKFZ and
+[many more](https://github.com/search?q=repo%3A%20https%3A%2F%2Fgithub.com%2Fcpp-linter%2Fcpp-linter-hooks&type=code).
 
 ## FAQ
 
