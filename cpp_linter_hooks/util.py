@@ -3,7 +3,7 @@ import shutil
 import subprocess
 from pathlib import Path
 import logging
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -34,6 +34,23 @@ DEFAULT_CLANG_FORMAT_VERSION = CLANG_FORMAT_VERSIONS[-1]  # latest from versions
 DEFAULT_CLANG_TIDY_VERSION = CLANG_TIDY_VERSIONS[-1]  # latest from versions.py
 
 
+def _versions_for_tool(tool: str) -> List[str]:
+    return CLANG_FORMAT_VERSIONS if tool == "clang-format" else CLANG_TIDY_VERSIONS
+
+
+def _default_version_for_tool(tool: str) -> Optional[str]:
+    return (
+        DEFAULT_CLANG_FORMAT_VERSION
+        if tool == "clang-format"
+        else DEFAULT_CLANG_TIDY_VERSION
+    )
+
+
+def _supported_versions_message(tool: str) -> str:
+    versions = ", ".join(_versions_for_tool(tool))
+    return f"Supported {tool} wheel versions: {versions}"
+
+
 def _resolve_version(versions: List[str], user_input: Optional[str]) -> Optional[str]:
     """Resolve the latest matching version based on user input and available versions."""
     if user_input is None:
@@ -57,6 +74,23 @@ def _resolve_version(versions: List[str], user_input: Optional[str]) -> Optional
     except ValueError:
         LOG.warning("Version %s not found in available versions", user_input)
         return None
+
+
+def resolve_tool_version(
+    tool: str, version: Optional[str]
+) -> Tuple[Optional[str], Optional[str]]:
+    """Resolve a requested tool version or return a user-facing error message."""
+    if version is None:
+        return _default_version_for_tool(tool), None
+
+    resolved = _resolve_version(_versions_for_tool(tool), version)
+    if resolved is None:
+        return (
+            None,
+            f"Unsupported {tool} version '{version}'.\n"
+            f"{_supported_versions_message(tool)}",
+        )
+    return resolved, None
 
 
 def _is_version_installed(tool: str, version: str) -> Optional[Path]:
@@ -85,19 +119,39 @@ def _install_tool(tool: str, version: str) -> Optional[Path]:
     return None
 
 
-def resolve_install(tool: str, version: Optional[str]) -> Optional[Path]:
-    """Resolve the installation of a tool, checking for version and installing if necessary."""
-    user_version = _resolve_version(
-        CLANG_FORMAT_VERSIONS if tool == "clang-format" else CLANG_TIDY_VERSIONS,
-        version,
-    )
-    if user_version is None:
-        user_version = (
-            DEFAULT_CLANG_FORMAT_VERSION
-            if tool == "clang-format"
-            else DEFAULT_CLANG_TIDY_VERSION
-        )
+def resolve_install_with_diagnostics(
+    tool: str, version: Optional[str], verbose: bool = False
+) -> Tuple[Optional[Path], Optional[str]]:
+    """Resolve/install a tool, returning a user-facing error for bad versions."""
+    user_version, error = resolve_tool_version(tool, version)
+    if error is not None:
+        return None, error
 
-    return _is_version_installed(tool, user_version) or _install_tool(
-        tool, user_version
+    if verbose:
+        if version is None:
+            print(
+                f"Using default {tool} Python wheel version {user_version}",
+                file=sys.stderr,
+            )
+        elif version == user_version:
+            print(f"Using {tool} Python wheel version {user_version}", file=sys.stderr)
+        else:
+            print(
+                f"Resolved {tool} --version={version} to Python wheel version "
+                f"{user_version}",
+                file=sys.stderr,
+            )
+
+    return (
+        _is_version_installed(tool, user_version)
+        or _install_tool(tool, user_version),
+        None,
     )
+
+
+def resolve_install(tool: str, version: Optional[str]) -> Optional[Path]:
+    """Resolve/install a tool, logging bad-version diagnostics."""
+    path, error = resolve_install_with_diagnostics(tool, version)
+    if error is not None:
+        LOG.error(error)
+    return path
