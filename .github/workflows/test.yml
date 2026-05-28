@@ -9,9 +9,11 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
         python-version: ["3.14", "3.13", "3.12", "3.11", "3.10", "3.9"]
     steps:
       - name: Checkout
@@ -34,7 +36,7 @@ jobs:
           uv run coverage report
           uv run coverage xml
       - uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 #v5
-        if: matrix.python-version == '3.13'
+        if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
