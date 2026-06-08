@@ -6,6 +6,8 @@
 [![Test](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/test.yml/badge.svg)](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/test.yml)
 [![CodeQL](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/codeql.yml/badge.svg)](https://github.com/cpp-linter/cpp-linter-hooks/actions/workflows/codeql.yml)
 
+> 🏠 [← Back to cpp-linter hub](https://cpp-linter.github.io/)
+
 A pre-commit hook repository for C/C++ projects that installs and runs
 `clang-format` and `clang-tidy` through the
 [pre-commit](https://pre-commit.com/) framework.
@@ -321,6 +323,8 @@ Two self-contained templates plus quick snippets for other common setups.
 ![computationalgeography](https://github.com/computationalgeography.png?size=20) computationalgeography&nbsp;&nbsp;
 ![IMSY-DKFZ](https://github.com/IMSY-DKFZ.png?size=20) IMSY-DKFZ and
 [many more](https://github.com/search?q=repo%3A%20https%3A%2F%2Fgithub.com%2Fcpp-linter%2Fcpp-linter-hooks&type=code).
+
+See the [cpp-linter hub](https://cpp-linter.github.io/) for the full list of organizations using cpp-linter tools.
 
 ## FAQ
 
