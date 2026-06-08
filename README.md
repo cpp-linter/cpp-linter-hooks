@@ -29,9 +29,16 @@ this project also provides `clang-tidy`, compile database discovery, explicit
 tool-version selection, and richer diagnostics. See the [FAQ](#faq) for the full
 comparison.
 
+> [!TIP]
+> Using GitHub Actions for CI? Check out
+> **[cpp-linter-action](https://github.com/cpp-linter/cpp-linter-action)** —
+> our companion GitHub Action that runs the same tools in CI with rich PR reviews,
+> thread comments, step summaries, and file annotations.
+
 ## Table of Contents
 
 - [Why cpp-linter-hooks?](#why-cpp-linter-hooks)
+- [GitHub Actions? Try cpp-linter-action](#github-actions-try-cpp-linter-action)
 - [Requirements](#requirements)
 - [Quick Start](#quick-start)
   - [Custom Configuration Files](#custom-configuration-files)
