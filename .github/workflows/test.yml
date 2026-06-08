@@ -25,7 +25,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Setup uv
-        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
 
       - name: Install dependencies
         run: uv sync --dev
@@ -35,7 +35,7 @@ jobs:
           uv run coverage run --source=tests,cpp_linter_hooks -m pytest -vv
           uv run coverage report
           uv run coverage xml
-      - uses: codecov/codecov-action@e79a6962e0d4c0c17b229090214935d2e33f8354 #v5
+      - uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f #v5
         if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.13'
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
