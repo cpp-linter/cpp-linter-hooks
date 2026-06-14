@@ -104,3 +104,14 @@ CLANG_TIDY_VERSIONS = [
     "22.1.0",
     "22.1.0.1",
 ]
+
+# Updated automatically by GitHub Actions - DO NOT EDIT MANUALLY
+CLANG_INCLUDE_CLEANER_VERSIONS = [
+    "22.1.7",
+]
+
+# Updated automatically by GitHub Actions - DO NOT EDIT MANUALLY
+CLANG_APPLY_REPLACEMENTS_VERSIONS = [
+    "16.0.0",
+    "17.0.6",
+]

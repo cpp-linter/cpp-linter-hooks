@@ -12,7 +12,12 @@ if sys.version_info >= (3, 11):
 else:
     import tomli as tomllib
 
-from cpp_linter_hooks.versions import CLANG_FORMAT_VERSIONS, CLANG_TIDY_VERSIONS
+from cpp_linter_hooks.versions import (
+    CLANG_FORMAT_VERSIONS,
+    CLANG_TIDY_VERSIONS,
+    CLANG_INCLUDE_CLEANER_VERSIONS,
+    CLANG_APPLY_REPLACEMENTS_VERSIONS,
+)
 
 LOG = logging.getLogger(__name__)
 
@@ -34,20 +39,30 @@ def get_version_from_dependency(tool: str) -> Optional[str]:
 
 DEFAULT_CLANG_FORMAT_VERSION = CLANG_FORMAT_VERSIONS[-1]  # latest from versions.py
 DEFAULT_CLANG_TIDY_VERSION = CLANG_TIDY_VERSIONS[-1]  # latest from versions.py
+DEFAULT_CLANG_INCLUDE_CLEANER_VERSION = CLANG_INCLUDE_CLEANER_VERSIONS[-1]
+DEFAULT_CLANG_APPLY_REPLACEMENTS_VERSION = CLANG_APPLY_REPLACEMENTS_VERSIONS[-1]
 
 
 def _versions_for_tool(tool: str) -> List[str]:
     """Return supported Python wheel versions for a clang tool."""
-    return CLANG_FORMAT_VERSIONS if tool == "clang-format" else CLANG_TIDY_VERSIONS
+    _tool_map = {
+        "clang-format": CLANG_FORMAT_VERSIONS,
+        "clang-tidy": CLANG_TIDY_VERSIONS,
+        "clang-include-cleaner": CLANG_INCLUDE_CLEANER_VERSIONS,
+        "clang-apply-replacements": CLANG_APPLY_REPLACEMENTS_VERSIONS,
+    }
+    return _tool_map[tool]
 
 
 def _default_version_for_tool(tool: str) -> Optional[str]:
     """Return the default Python wheel version for a clang tool."""
-    return (
-        DEFAULT_CLANG_FORMAT_VERSION
-        if tool == "clang-format"
-        else DEFAULT_CLANG_TIDY_VERSION
-    )
+    _default_map = {
+        "clang-format": DEFAULT_CLANG_FORMAT_VERSION,
+        "clang-tidy": DEFAULT_CLANG_TIDY_VERSION,
+        "clang-include-cleaner": DEFAULT_CLANG_INCLUDE_CLEANER_VERSION,
+        "clang-apply-replacements": DEFAULT_CLANG_APPLY_REPLACEMENTS_VERSION,
+    }
+    return _default_map[tool]
 
 
 def _supported_versions_message(tool: str) -> str:

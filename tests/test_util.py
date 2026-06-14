@@ -13,8 +13,15 @@ from cpp_linter_hooks.util import (
     resolve_install,
     DEFAULT_CLANG_FORMAT_VERSION,
     DEFAULT_CLANG_TIDY_VERSION,
+    DEFAULT_CLANG_INCLUDE_CLEANER_VERSION,
+    DEFAULT_CLANG_APPLY_REPLACEMENTS_VERSION,
 )
-from cpp_linter_hooks.versions import CLANG_FORMAT_VERSIONS, CLANG_TIDY_VERSIONS
+from cpp_linter_hooks.versions import (
+    CLANG_FORMAT_VERSIONS,
+    CLANG_TIDY_VERSIONS,
+    CLANG_INCLUDE_CLEANER_VERSIONS,
+    CLANG_APPLY_REPLACEMENTS_VERSIONS,
+)
 
 
 VERSIONS = [None, "20"]
@@ -377,3 +384,207 @@ def test_resolve_install_with_none_default_version():
 
         # Should fallback to hardcoded version when DEFAULT is None
         mock_install.assert_called_once_with("clang-format", None)
+
+
+# ---------------------------------------------------------------------------
+# Tests for new wheel tools: clang-include-cleaner and clang-apply-replacements
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.benchmark
+def test_clang_include_cleaner_versions_not_empty():
+    """Test that clang-include-cleaner version list is not empty."""
+    assert len(CLANG_INCLUDE_CLEANER_VERSIONS) > 0
+    assert all(isinstance(v, str) for v in CLANG_INCLUDE_CLEANER_VERSIONS)
+
+
+@pytest.mark.benchmark
+def test_clang_apply_replacements_versions_not_empty():
+    """Test that clang-apply-replacements version list is not empty."""
+    assert len(CLANG_APPLY_REPLACEMENTS_VERSIONS) > 0
+    assert all(isinstance(v, str) for v in CLANG_APPLY_REPLACEMENTS_VERSIONS)
+
+
+@pytest.mark.benchmark
+def test_default_clang_include_cleaner_version():
+    """Test that default version for clang-include-cleaner is set."""
+    assert DEFAULT_CLANG_INCLUDE_CLEANER_VERSION is not None
+    assert isinstance(DEFAULT_CLANG_INCLUDE_CLEANER_VERSION, str)
+    assert DEFAULT_CLANG_INCLUDE_CLEANER_VERSION == CLANG_INCLUDE_CLEANER_VERSIONS[-1]
+
+
+@pytest.mark.benchmark
+def test_default_clang_apply_replacements_version():
+    """Test that default version for clang-apply-replacements is set."""
+    assert DEFAULT_CLANG_APPLY_REPLACEMENTS_VERSION is not None
+    assert isinstance(DEFAULT_CLANG_APPLY_REPLACEMENTS_VERSION, str)
+    assert DEFAULT_CLANG_APPLY_REPLACEMENTS_VERSION == CLANG_APPLY_REPLACEMENTS_VERSIONS[-1]
+
+
+@pytest.mark.benchmark
+def test_resolve_install_include_cleaner():
+    """Test resolve_install for clang-include-cleaner."""
+    mock_path = "/usr/bin/clang-include-cleaner"
+    with (
+        patch("shutil.which", return_value=None),
+        patch(
+            "cpp_linter_hooks.util._install_tool",
+            return_value=Path(mock_path),
+        ) as mock_install,
+    ):
+        result = resolve_install("clang-include-cleaner", "22.1.7")
+        assert Path(result) == Path(mock_path)
+        mock_install.assert_called_once_with("clang-include-cleaner", "22.1.7")
+
+
+@pytest.mark.benchmark
+def test_resolve_install_include_cleaner_no_version():
+    """Test resolve_install for clang-include-cleaner with no version (uses default)."""
+    with (
+        patch("shutil.which", return_value=None),
+        patch(
+            "cpp_linter_hooks.util._install_tool",
+            return_value=Path("/usr/bin/clang-include-cleaner"),
+        ) as mock_install,
+    ):
+        result = resolve_install("clang-include-cleaner", None)
+        assert result == Path("/usr/bin/clang-include-cleaner")
+        mock_install.assert_called_once_with(
+            "clang-include-cleaner", DEFAULT_CLANG_INCLUDE_CLEANER_VERSION
+        )
+
+
+@pytest.mark.benchmark
+def test_resolve_install_include_cleaner_invalid_version():
+    """Test resolve_install for clang-include-cleaner with invalid version."""
+    with (
+        patch("shutil.which", return_value=None),
+        patch(
+            "cpp_linter_hooks.util._install_tool",
+            return_value=Path("/usr/bin/clang-include-cleaner"),
+        ) as mock_install,
+    ):
+        result = resolve_install("clang-include-cleaner", "99.0.0")
+        assert result is None
+        mock_install.assert_not_called()
+
+
+@pytest.mark.benchmark
+def test_resolve_install_apply_replacements():
+    """Test resolve_install for clang-apply-replacements."""
+    mock_path = "/usr/bin/clang-apply-replacements"
+    with (
+        patch("shutil.which", return_value=None),
+        patch(
+            "cpp_linter_hooks.util._install_tool",
+            return_value=Path(mock_path),
+        ) as mock_install,
+    ):
+        result = resolve_install("clang-apply-replacements", "17.0.6")
+        assert Path(result) == Path(mock_path)
+        mock_install.assert_called_once_with("clang-apply-replacements", "17.0.6")
+
+
+@pytest.mark.benchmark
+def test_resolve_install_apply_replacements_no_version():
+    """Test resolve_install for clang-apply-replacements with no version (uses default)."""
+    with (
+        patch("shutil.which", return_value=None),
+        patch(
+            "cpp_linter_hooks.util._install_tool",
+            return_value=Path("/usr/bin/clang-apply-replacements"),
+        ) as mock_install,
+    ):
+        result = resolve_install("clang-apply-replacements", None)
+        assert result == Path("/usr/bin/clang-apply-replacements")
+        mock_install.assert_called_once_with(
+            "clang-apply-replacements", DEFAULT_CLANG_APPLY_REPLACEMENTS_VERSION
+        )
+
+
+@pytest.mark.benchmark
+def test_resolve_install_apply_replacements_invalid_version():
+    """Test resolve_install for clang-apply-replacements with invalid version."""
+    with (
+        patch("shutil.which", return_value=None),
+        patch(
+            "cpp_linter_hooks.util._install_tool",
+            return_value=Path("/usr/bin/clang-apply-replacements"),
+        ) as mock_install,
+    ):
+        result = resolve_install("clang-apply-replacements", "99.0.0")
+        assert result is None
+        mock_install.assert_not_called()
+
+
+@pytest.mark.benchmark
+@pytest.mark.parametrize(
+    "user_input,expected",
+    [
+        ("22", "22.1.7"),
+        ("22.1", "22.1.7"),
+        ("22.1.7", "22.1.7"),
+        ("99", None),
+    ],
+)
+def test_resolve_version_clang_include_cleaner(user_input, expected):
+    """Test _resolve_version for clang-include-cleaner versions."""
+    result = _resolve_version(CLANG_INCLUDE_CLEANER_VERSIONS, user_input)
+    assert result == expected
+
+
+@pytest.mark.benchmark
+@pytest.mark.parametrize(
+    "user_input,expected",
+    [
+        ("16", "16.0.0"),
+        ("17", "17.0.6"),
+        ("17.0.6", "17.0.6"),
+        ("99", None),
+    ],
+)
+def test_resolve_version_clang_apply_replacements(user_input, expected):
+    """Test _resolve_version for clang-apply-replacements versions."""
+    result = _resolve_version(CLANG_APPLY_REPLACEMENTS_VERSIONS, user_input)
+    assert result == expected
+
+
+@pytest.mark.benchmark
+def test_resolve_install_with_diagnostics_include_cleaner_invalid():
+    path, error = resolve_install_with_diagnostics("clang-include-cleaner", "99")
+
+    assert path is None
+    assert error is not None
+    assert "Unsupported clang-include-cleaner version '99'" in error
+    assert "Supported clang-include-cleaner wheel versions:" in error
+    assert CLANG_INCLUDE_CLEANER_VERSIONS[-1] in error
+
+
+@pytest.mark.benchmark
+def test_resolve_install_with_diagnostics_apply_replacements_invalid():
+    path, error = resolve_install_with_diagnostics("clang-apply-replacements", "99")
+
+    assert path is None
+    assert error is not None
+    assert "Unsupported clang-apply-replacements version '99'" in error
+    assert "Supported clang-apply-replacements wheel versions:" in error
+    assert CLANG_APPLY_REPLACEMENTS_VERSIONS[-1] in error
+
+
+@pytest.mark.benchmark
+def test_resolve_install_with_diagnostics_include_cleaner_verbose(capsys):
+    with (
+        patch("shutil.which", return_value=None),
+        patch(
+            "cpp_linter_hooks.util._install_tool",
+            return_value=Path("/usr/bin/clang-include-cleaner"),
+        ),
+    ):
+        path, error = resolve_install_with_diagnostics("clang-include-cleaner", "22", True)
+
+    assert path == Path("/usr/bin/clang-include-cleaner")
+    assert error is None
+    assert (
+        "Resolved clang-include-cleaner --version=22 to Python wheel version 22.1.7"
+        in capsys.readouterr().err
+    )
