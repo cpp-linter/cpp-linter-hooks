@@ -19,26 +19,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3  # v6.0.0
 
-      - name: Extract default tool versions
-        id: versions
+      - name: Generate release notes header
         run: |
-          # Get versions directly from versions.py (no package install needed)
-          CLANG_FORMAT_VERSION=$(python3 -c "import sys; sys.path.insert(0, 'cpp_linter_hooks'); from versions import CLANG_FORMAT_VERSIONS; print(CLANG_FORMAT_VERSIONS[-1])")
-          CLANG_TIDY_VERSION=$(python3 -c "import sys; sys.path.insert(0, 'cpp_linter_hooks'); from versions import CLANG_TIDY_VERSIONS; print(CLANG_TIDY_VERSIONS[-1])")
-
-          # Export to GitHub Actions environment for subsequent steps
-          echo "CLANG_FORMAT_VERSION=$CLANG_FORMAT_VERSION" >> $GITHUB_ENV
-          echo "CLANG_TIDY_VERSION=$CLANG_TIDY_VERSION" >> $GITHUB_ENV
-
-          # Log for debug
-          echo "Default clang-format version: $CLANG_FORMAT_VERSION"
-          echo "Default clang-tidy version: $CLANG_TIDY_VERSION"
-
-          # Generate release notes file
-          echo "## 💡 Default Clang Tool Version" > release_notes.md
-          echo "clang-format: \`$CLANG_FORMAT_VERSION\` · clang-tidy: \`$CLANG_TIDY_VERSION\`" >> release_notes.md
+          echo "## 💡 Default Clang Tool Versions" > release_notes.md
           echo "" >> release_notes.md
-          echo "You can override the default versions for by adding the \`--version\` argument under \`args\` in your pre-commit config. See [Custom Clang Tool Version](https://github.com/cpp-linter/cpp-linter-hooks?tab=readme-ov-file#custom-clang-tool-version) for details." >> release_notes.md
+          echo "Versions are resolved **dynamically from PyPI** at hook runtime. " >> release_notes.md
+          echo "The latest stable versions are always used by default — " >> release_notes.md
+          echo "no manual updates required." >> release_notes.md
+          echo "" >> release_notes.md
+          echo "You can pin a specific version by adding the \`--version\` argument " >> release_notes.md
+          echo "under \`args\` in your pre-commit config. " >> release_notes.md
+          echo "See [Custom Clang Tool Version](https://github.com/cpp-linter/cpp-linter-hooks?tab=readme-ov-file#custom-clang-tool-version) for details." >> release_notes.md
           echo "" >> release_notes.md
           cat release_notes.md
 
