@@ -1,4 +1,4 @@
-"""Tests for cpp_linter_hooks.util – dynamic PyPI version resolution."""
+"""Tests for cpp_linter_hooks.util -- dynamic PyPI version resolution."""
 
 import pytest
 from unittest.mock import patch
@@ -41,7 +41,7 @@ def _pypi_side_effect(tool: str):
 
 @pytest.mark.benchmark
 def test_get_pypi_versions_success():
-    """Fetch versions from PyPI JSON API – happy path."""
+    """Fetch versions from PyPI JSON API -- happy path."""
     _get_pypi_versions.cache_clear()
     mock_data = {
         "releases": {
@@ -70,7 +70,7 @@ def test_get_pypi_versions_success():
 
 @pytest.mark.benchmark
 def test_get_pypi_versions_network_failure():
-    """PyPI is unreachable – return (None, [])."""
+    """PyPI is unreachable -- return (None, [])."""
     _get_pypi_versions.cache_clear()
     with patch("urllib.request.urlopen", side_effect=OSError("network down")):
         latest, versions = _get_pypi_versions("clang-format")
