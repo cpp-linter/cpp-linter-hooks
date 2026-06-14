@@ -5,113 +5,89 @@ import shutil
 import subprocess
 from pathlib import Path
 import logging
-from typing import Optional, List, Tuple
-
-if sys.version_info >= (3, 11):
-    import tomllib
-else:
-    import tomli as tomllib
-
-from cpp_linter_hooks.versions import (
-    CLANG_FORMAT_VERSIONS,
-    CLANG_TIDY_VERSIONS,
-    CLANG_INCLUDE_CLEANER_VERSIONS,
-    CLANG_APPLY_REPLACEMENTS_VERSIONS,
-)
+from typing import Optional, Tuple
+from functools import lru_cache
+import json
+import urllib.request
+import re
 
 LOG = logging.getLogger(__name__)
 
 
-def get_version_from_dependency(tool: str) -> Optional[str]:
-    """Get the version of a tool from the pyproject.toml dependencies."""
-    pyproject_path = Path(__file__).parent.parent / "pyproject.toml"
-    if not pyproject_path.exists():
-        return None
-    with open(pyproject_path, "rb") as f:
-        data = tomllib.load(f)
-    # Check [project].dependencies
-    dependencies = data.get("project", {}).get("dependencies", [])
-    for dep in dependencies:
-        if dep.startswith(f"{tool}=="):
-            return dep.split("==")[1]
-    return None
+@lru_cache(maxsize=4)
+def _get_pypi_versions(tool: str) -> Tuple[Optional[str], list]:
+    """Fetch (latest_version, [stable_versions_descending]) from PyPI JSON API.
 
-
-DEFAULT_CLANG_FORMAT_VERSION = CLANG_FORMAT_VERSIONS[-1]  # latest from versions.py
-DEFAULT_CLANG_TIDY_VERSION = CLANG_TIDY_VERSIONS[-1]  # latest from versions.py
-DEFAULT_CLANG_INCLUDE_CLEANER_VERSION = CLANG_INCLUDE_CLEANER_VERSIONS[-1]
-DEFAULT_CLANG_APPLY_REPLACEMENTS_VERSION = CLANG_APPLY_REPLACEMENTS_VERSIONS[-1]
-
-
-def _versions_for_tool(tool: str) -> List[str]:
-    """Return supported Python wheel versions for a clang tool."""
-    _tool_map = {
-        "clang-format": CLANG_FORMAT_VERSIONS,
-        "clang-tidy": CLANG_TIDY_VERSIONS,
-        "clang-include-cleaner": CLANG_INCLUDE_CLEANER_VERSIONS,
-        "clang-apply-replacements": CLANG_APPLY_REPLACEMENTS_VERSIONS,
-    }
-    return _tool_map[tool]
-
-
-def _default_version_for_tool(tool: str) -> Optional[str]:
-    """Return the default Python wheel version for a clang tool."""
-    _default_map = {
-        "clang-format": DEFAULT_CLANG_FORMAT_VERSION,
-        "clang-tidy": DEFAULT_CLANG_TIDY_VERSION,
-        "clang-include-cleaner": DEFAULT_CLANG_INCLUDE_CLEANER_VERSION,
-        "clang-apply-replacements": DEFAULT_CLANG_APPLY_REPLACEMENTS_VERSION,
-    }
-    return _default_map[tool]
-
-
-def _supported_versions_message(tool: str) -> str:
-    """Build a user-facing list of supported wheel versions for a clang tool."""
-    versions = ", ".join(_versions_for_tool(tool))
-    return f"Supported {tool} wheel versions: {versions}"
-
-
-def _resolve_version(versions: List[str], user_input: Optional[str]) -> Optional[str]:
-    """Resolve the latest matching version based on user input and available versions."""
-    if user_input is None:
-        return None
-    if user_input in versions:
-        return user_input
-
+    Results are cached per tool name so repeated calls within the same
+    process reuse the last HTTP response.
+    """
     try:
-        # filter versions that start with the user input
-        matched_versions = [v for v in versions if v.startswith(user_input)]
-        if not matched_versions:
-            raise ValueError
+        url = f"https://pypi.org/pypi/{tool}/json"
+        with urllib.request.urlopen(url, timeout=10) as response:
+            data = json.loads(response.read())
+    except Exception as exc:
+        LOG.warning("Failed to fetch versions for %s from PyPI: %s", tool, exc)
+        return None, []
 
-        # define a function to parse version strings into tuples for comparison
-        def parse_version(v: str):
-            """Convert a dotted version string into an integer tuple."""
-            return tuple(map(int, v.split(".")))
+    all_versions = list(data["releases"].keys())
 
-        # return the latest version
-        return max(matched_versions, key=parse_version)
+    # Filter out pre-release versions
+    pre_release_pattern = re.compile(
+        r".*(alpha|beta|rc|dev|a\d+|b\d+).*", re.IGNORECASE
+    )
+    stable = [v for v in all_versions if not pre_release_pattern.match(v)]
 
-    except ValueError:
-        LOG.warning("Version %s not found in available versions", user_input)
-        return None
+    if not stable:
+        LOG.warning("No stable versions found for %s on PyPI", tool)
+        return None, []
+
+    # Sort ascending by version tuple
+    stable.sort(key=lambda x: tuple(map(int, x.split("."))))
+
+    latest = stable[-1]
+    # Return descending for prefix matching (newest first)
+    return latest, list(reversed(stable))
 
 
-def resolve_tool_version(
-    tool: str, version: Optional[str]
+def _resolve_version_from_pypi(
+    tool: str, user_input: Optional[str]
 ) -> Tuple[Optional[str], Optional[str]]:
-    """Resolve a requested tool version or return a user-facing error message."""
-    if version is None:
-        return _default_version_for_tool(tool), None
+    """Resolve a version dynamically from PyPI.
 
-    resolved = _resolve_version(_versions_for_tool(tool), version)
-    if resolved is None:
+    Returns (resolved_version, error_message).  The error_message is
+    suitable for displaying directly to the end user.
+    """
+    latest, versions = _get_pypi_versions(tool)
+
+    if not versions:
         return (
             None,
-            f"Unsupported {tool} version '{version}'.\n"
-            f"{_supported_versions_message(tool)}",
+            f"Could not find any stable versions of {tool} on PyPI. "
+            "Check your network connection.",
         )
-    return resolved, None
+
+    if user_input is None:
+        return latest, None
+
+    # Exact match
+    if user_input in versions:
+        return user_input, None
+
+    # Prefix match (e.g. "20" → "20.1.8").  Versions are newest-first,
+    # so the first matching entry is the latest for that prefix.
+    matched = [v for v in versions if v.startswith(user_input)]
+    if matched:
+        return matched[0], None
+
+    # No match – help the user
+    sample = ", ".join(versions[:15])
+    return (
+        None,
+        f"Unsupported {tool} version '{user_input}'.\n"
+        f"Latest stable version: {latest}\n"
+        f"Available versions (sample): {sample}\n"
+        f"Run `pip index versions {tool}` to see all available versions.",
+    )
 
 
 def _is_version_installed(tool: str, version: str) -> Optional[Path]:
@@ -143,15 +119,19 @@ def _install_tool(tool: str, version: str) -> Optional[Path]:
 def resolve_install_with_diagnostics(
     tool: str, version: Optional[str], verbose: bool = False
 ) -> Tuple[Optional[Path], Optional[str]]:
-    """Resolve/install a tool, returning a user-facing error for bad versions."""
-    user_version, error = resolve_tool_version(tool, version)
+    """Resolve/install a tool, returning a user-facing error for bad versions.
+
+    Tool versions are resolved dynamically from PyPI — no hardcoded
+    list is maintained in-tree.
+    """
+    user_version, error = _resolve_version_from_pypi(tool, version)
     if error is not None:
         return None, error
 
     if verbose:
         if version is None:
             print(
-                f"Using default {tool} Python wheel version {user_version}",
+                f"Using latest {tool} Python wheel version {user_version}",
                 file=sys.stderr,
             )
         elif version == user_version:
