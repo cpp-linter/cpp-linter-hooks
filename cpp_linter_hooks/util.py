@@ -71,7 +71,8 @@ def _resolve_version_from_pypi(
             if installed:
                 LOG.info(
                     "PyPI unreachable; using locally installed %s %s",
-                    tool, installed,
+                    tool,
+                    installed,
                 )
                 return installed, None
         return (
