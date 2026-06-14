@@ -56,10 +56,24 @@ def _resolve_version_from_pypi(
 
     Returns (resolved_version, error_message).  The error_message is
     suitable for displaying directly to the end user.
+
+    When PyPI is unreachable and no explicit version was requested,
+    falls back to whatever version is already installed on the host
+    so that pre-installed tools keep working offline.
     """
     latest, versions = _get_pypi_versions(tool)
 
     if not versions:
+        if user_input is None:
+            # PyPI is unreachable, but the user didn't ask for a specific
+            # version – try the locally installed tool as a fallback.
+            installed = _detect_installed_version(tool)
+            if installed:
+                LOG.info(
+                    "PyPI unreachable; using locally installed %s %s",
+                    tool, installed,
+                )
+                return installed, None
         return (
             None,
             f"Could not find any stable versions of {tool} on PyPI. "
@@ -88,6 +102,26 @@ def _resolve_version_from_pypi(
         f"Available versions (sample): {sample}\n"
         f"Run `pip index versions {tool}` to see all available versions.",
     )
+
+
+def _detect_installed_version(tool: str) -> Optional[str]:
+    """Return the version of *tool* already on PATH, or None.
+
+    Used as a fallback when PyPI is unreachable and no explicit version
+    was requested.  Extracts the version string from ``<tool> --version``
+    output (e.g. ``"clang-format version 18.1.8"`` → ``"18.1.8"``).
+    """
+    existing = shutil.which(tool)
+    if not existing:
+        return None
+    try:
+        result = subprocess.run(
+            [existing, "--version"], capture_output=True, text=True, timeout=10
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    match = re.search(r"(\d+\.\d+\.\d+(?:\.\d+)?)", result.stdout)
+    return match.group(1) if match else None
 
 
 def _is_version_installed(tool: str, version: str) -> Optional[Path]:

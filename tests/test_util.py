@@ -9,6 +9,7 @@ import sys
 from cpp_linter_hooks.util import (
     _get_pypi_versions,
     _resolve_version_from_pypi,
+    _detect_installed_version,
     _is_version_installed,
     _install_tool,
     resolve_install_with_diagnostics,
@@ -153,12 +154,84 @@ def test_resolve_version_from_pypi_not_found(tool, user_input):
 
 @pytest.mark.benchmark
 def test_resolve_version_from_pypi_network_down():
-    """When PyPI is unreachable, return a user-friendly error."""
-    with patch("cpp_linter_hooks.util._get_pypi_versions", return_value=(None, [])):
+    """When PyPI is unreachable and no tool is installed, return an error."""
+    with (
+        patch("cpp_linter_hooks.util._get_pypi_versions", return_value=(None, [])),
+        patch("cpp_linter_hooks.util._detect_installed_version", return_value=None),
+    ):
         version, error = _resolve_version_from_pypi("clang-format", None)
     assert version is None
     assert "Could not find any stable versions" in error
     assert "network" in error.lower()
+
+
+@pytest.mark.benchmark
+def test_resolve_version_from_pypi_offline_fallback():
+    """When PyPI is unreachable but the tool is pre-installed, use it."""
+    with (
+        patch("cpp_linter_hooks.util._get_pypi_versions", return_value=(None, [])),
+        patch(
+            "cpp_linter_hooks.util._detect_installed_version",
+            return_value="18.1.8",
+        ),
+    ):
+        version, error = _resolve_version_from_pypi("clang-format", None)
+    assert version == "18.1.8"
+    assert error is None
+
+
+@pytest.mark.benchmark
+def test_resolve_version_from_pypi_offline_no_fallback_with_version():
+    """When PyPI is unreachable AND user specified a version, fail."""
+    with (
+        patch("cpp_linter_hooks.util._get_pypi_versions", return_value=(None, [])),
+        patch(
+            "cpp_linter_hooks.util._detect_installed_version",
+            return_value="18.1.8",
+        ),
+    ):
+        version, error = _resolve_version_from_pypi("clang-format", "20")
+    assert version is None
+    assert "Could not find any stable versions" in error
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# _detect_installed_version
+# ═══════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.benchmark
+def test_detect_installed_version_success():
+    """Extract version from --version output."""
+
+    def patched_run(*args, **_kwargs):
+        return subprocess.CompletedProcess(
+            args, returncode=0, stdout="clang-format version 18.1.8\n"
+        )
+
+    with (
+        patch("shutil.which", return_value="/usr/bin/clang-format"),
+        patch("subprocess.run", side_effect=patched_run),
+    ):
+        version = _detect_installed_version("clang-format")
+    assert version == "18.1.8"
+
+
+@pytest.mark.benchmark
+def test_detect_installed_version_not_found():
+    with patch("shutil.which", return_value=None):
+        version = _detect_installed_version("clang-format")
+    assert version is None
+
+
+@pytest.mark.benchmark
+def test_detect_installed_version_subprocess_error():
+    with (
+        patch("shutil.which", return_value="/usr/bin/clang-format"),
+        patch("subprocess.run", side_effect=OSError),
+    ):
+        version = _detect_installed_version("clang-format")
+    assert version is None
 
 
 # ═══════════════════════════════════════════════════════════════════════
