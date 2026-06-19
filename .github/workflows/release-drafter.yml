@@ -23,12 +23,9 @@ jobs:
         run: |
           echo "## 💡 Default Clang Tool Versions" > release_notes.md
           echo "" >> release_notes.md
-          echo "Versions are resolved **dynamically from PyPI** at hook runtime. " >> release_notes.md
-          echo "The latest stable versions are always used by default — " >> release_notes.md
-          echo "no manual updates required." >> release_notes.md
-          echo "" >> release_notes.md
-          echo "You can pin a specific version by adding the \`--version\` argument " >> release_notes.md
-          echo "under \`args\` in your pre-commit config. " >> release_notes.md
+          echo "Versions are resolved dynamically from PyPI at hook runtime. " >> release_notes.md
+          echo "The latest stable versions are always used by default — no manual updates required." >> release_notes.md
+          echo "You can pin a specific version by adding the \`--version\` argument under \`args\` in your pre-commit config." >> release_notes.md
           echo "See [Custom Clang Tool Version](https://github.com/cpp-linter/cpp-linter-hooks?tab=readme-ov-file#custom-clang-tool-version) for details." >> release_notes.md
           echo "" >> release_notes.md
           cat release_notes.md
