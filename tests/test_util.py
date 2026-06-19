@@ -20,8 +20,6 @@ from cpp_linter_hooks.util import (
 
 MOCK_PYPI_FORMAT = ("22.1.5", ["22.1.5", "22.1.4", "20.1.8", "20.1.7", "18.1.8"])
 MOCK_PYPI_TIDY = ("21.1.6", ["21.1.6", "21.1.1", "20.1.0", "19.1.0.1", "18.1.8"])
-MOCK_PYPI_INCLUDE_CLEANER = ("22.1.7", ["22.1.7", "22.1.5"])
-MOCK_PYPI_APPLY_REPLACEMENTS = ("17.0.6", ["17.0.6", "16.0.0"])
 
 
 def _pypi_side_effect(tool: str):
@@ -29,8 +27,6 @@ def _pypi_side_effect(tool: str):
     mapping = {
         "clang-format": MOCK_PYPI_FORMAT,
         "clang-tidy": MOCK_PYPI_TIDY,
-        "clang-include-cleaner": MOCK_PYPI_INCLUDE_CLEANER,
-        "clang-apply-replacements": MOCK_PYPI_APPLY_REPLACEMENTS,
     }
     return mapping.get(tool, (None, []))
 
@@ -105,8 +101,6 @@ def test_get_pypi_versions_all_prerelease():
         # No version → latest
         ("clang-format", None, "22.1.5"),
         ("clang-tidy", None, "21.1.6"),
-        ("clang-include-cleaner", None, "22.1.7"),
-        ("clang-apply-replacements", None, "17.0.6"),
         # Exact match
         ("clang-format", "20.1.8", "20.1.8"),
         ("clang-tidy", "19.1.0.1", "19.1.0.1"),
@@ -115,8 +109,6 @@ def test_get_pypi_versions_all_prerelease():
         ("clang-format", "20.1", "20.1.8"),
         ("clang-tidy", "21", "21.1.6"),
         ("clang-tidy", "21.1", "21.1.6"),
-        ("clang-include-cleaner", "22", "22.1.7"),
-        ("clang-apply-replacements", "16", "16.0.0"),
     ],
 )
 def test_resolve_version_from_pypi_success(tool, user_input, expected):
@@ -136,8 +128,6 @@ def test_resolve_version_from_pypi_success(tool, user_input, expected):
         ("clang-format", "20.99"),
         ("clang-tidy", "99"),
         ("clang-tidy", "22.99"),
-        ("clang-include-cleaner", "99"),
-        ("clang-apply-replacements", "99"),
     ],
 )
 def test_resolve_version_from_pypi_not_found(tool, user_input):
@@ -485,156 +475,5 @@ def test_resolve_install_with_diagnostics_verbose_latest(capsys):
     assert error is None
     assert (
         "Using latest clang-format Python wheel version 22.1.5"
-        in capsys.readouterr().err
-    )
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# New wheel tools
-# ═══════════════════════════════════════════════════════════════════════
-
-
-@pytest.mark.benchmark
-def test_resolve_install_include_cleaner():
-    mock_path = "/usr/bin/clang-include-cleaner"
-    with (
-        patch("shutil.which", return_value=None),
-        patch(
-            "cpp_linter_hooks.util._install_tool", return_value=Path(mock_path)
-        ) as mock_install,
-        patch(
-            "cpp_linter_hooks.util._get_pypi_versions", side_effect=_pypi_side_effect
-        ),
-    ):
-        result = resolve_install("clang-include-cleaner", "22.1.7")
-    assert Path(result) == Path(mock_path)
-    mock_install.assert_called_once_with("clang-include-cleaner", "22.1.7")
-
-
-@pytest.mark.benchmark
-def test_resolve_install_include_cleaner_default():
-    with (
-        patch("shutil.which", return_value=None),
-        patch(
-            "cpp_linter_hooks.util._install_tool",
-            return_value=Path("/usr/bin/clang-include-cleaner"),
-        ) as mock_install,
-        patch(
-            "cpp_linter_hooks.util._get_pypi_versions", side_effect=_pypi_side_effect
-        ),
-    ):
-        result = resolve_install("clang-include-cleaner", None)
-    assert result == Path("/usr/bin/clang-include-cleaner")
-    mock_install.assert_called_once_with("clang-include-cleaner", "22.1.7")
-
-
-@pytest.mark.benchmark
-def test_resolve_install_include_cleaner_invalid():
-    with (
-        patch("shutil.which", return_value=None),
-        patch("cpp_linter_hooks.util._install_tool") as mock_install,
-        patch(
-            "cpp_linter_hooks.util._get_pypi_versions", side_effect=_pypi_side_effect
-        ),
-    ):
-        result = resolve_install("clang-include-cleaner", "99.0.0")
-    assert result is None
-    mock_install.assert_not_called()
-
-
-@pytest.mark.benchmark
-def test_resolve_install_apply_replacements():
-    mock_path = "/usr/bin/clang-apply-replacements"
-    with (
-        patch("shutil.which", return_value=None),
-        patch(
-            "cpp_linter_hooks.util._install_tool", return_value=Path(mock_path)
-        ) as mock_install,
-        patch(
-            "cpp_linter_hooks.util._get_pypi_versions", side_effect=_pypi_side_effect
-        ),
-    ):
-        result = resolve_install("clang-apply-replacements", "17.0.6")
-    assert Path(result) == Path(mock_path)
-    mock_install.assert_called_once_with("clang-apply-replacements", "17.0.6")
-
-
-@pytest.mark.benchmark
-def test_resolve_install_apply_replacements_default():
-    with (
-        patch("shutil.which", return_value=None),
-        patch(
-            "cpp_linter_hooks.util._install_tool",
-            return_value=Path("/usr/bin/clang-apply-replacements"),
-        ) as mock_install,
-        patch(
-            "cpp_linter_hooks.util._get_pypi_versions", side_effect=_pypi_side_effect
-        ),
-    ):
-        result = resolve_install("clang-apply-replacements", None)
-    assert result == Path("/usr/bin/clang-apply-replacements")
-    mock_install.assert_called_once_with("clang-apply-replacements", "17.0.6")
-
-
-@pytest.mark.benchmark
-def test_resolve_install_apply_replacements_invalid():
-    with (
-        patch("shutil.which", return_value=None),
-        patch("cpp_linter_hooks.util._install_tool") as mock_install,
-        patch(
-            "cpp_linter_hooks.util._get_pypi_versions", side_effect=_pypi_side_effect
-        ),
-    ):
-        result = resolve_install("clang-apply-replacements", "99.0.0")
-    assert result is None
-    mock_install.assert_not_called()
-
-
-@pytest.mark.benchmark
-def test_resolve_install_with_diagnostics_include_cleaner_invalid():
-    with patch(
-        "cpp_linter_hooks.util._get_pypi_versions", side_effect=_pypi_side_effect
-    ):
-        path, error = resolve_install_with_diagnostics("clang-include-cleaner", "99")
-
-    assert path is None
-    assert error is not None
-    assert "Unsupported clang-include-cleaner version '99'" in error
-    assert "Latest stable version: 22.1.7" in error
-
-
-@pytest.mark.benchmark
-def test_resolve_install_with_diagnostics_apply_replacements_invalid():
-    with patch(
-        "cpp_linter_hooks.util._get_pypi_versions", side_effect=_pypi_side_effect
-    ):
-        path, error = resolve_install_with_diagnostics("clang-apply-replacements", "99")
-
-    assert path is None
-    assert error is not None
-    assert "Unsupported clang-apply-replacements version '99'" in error
-    assert "Latest stable version: 17.0.6" in error
-
-
-@pytest.mark.benchmark
-def test_resolve_install_with_diagnostics_include_cleaner_verbose(capsys):
-    with (
-        patch("shutil.which", return_value=None),
-        patch(
-            "cpp_linter_hooks.util._install_tool",
-            return_value=Path("/usr/bin/clang-include-cleaner"),
-        ),
-        patch(
-            "cpp_linter_hooks.util._get_pypi_versions", side_effect=_pypi_side_effect
-        ),
-    ):
-        path, error = resolve_install_with_diagnostics(
-            "clang-include-cleaner", "22", True
-        )
-
-    assert path == Path("/usr/bin/clang-include-cleaner")
-    assert error is None
-    assert (
-        "Resolved clang-include-cleaner --version=22 to Python wheel version 22.1.7"
         in capsys.readouterr().err
     )
