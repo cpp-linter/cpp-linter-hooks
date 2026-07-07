@@ -1,0 +1,19 @@
+README.md
+  s_f9a3c515b69bc2::t_c7ca1265ae6d1d 67,82,91,100,124,239,258,273,302
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.10",
+  "base_commit_sha": "2baf3e77325b61632b124740c507b50b2e8dfbea",
+  "prompts": {},
+  "sessions": {
+    "s_f9a3c515b69bc2": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019f3e85-b052-7dd3-a065-08a17dfe926d",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "shenxianpeng <xianpeng.shen@gmail.com>"
+    }
+  }
+}
