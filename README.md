@@ -317,15 +317,24 @@ Two self-contained templates plus quick snippets for other common setups.
 
 ## Used By
 
-![bazel-contrib](https://github.com/bazel-contrib.png?size=20) bazel-contrib&nbsp;&nbsp;
-![CodSpeedHQ](https://github.com/CodSpeedHQ.png?size=20) CodSpeedHQ&nbsp;&nbsp;
-![jupyter-xeus](https://github.com/jupyter-xeus.png?size=20) jupyter-xeus&nbsp;&nbsp;
-![rancher-sandbox](https://github.com/rancher-sandbox.png?size=20) rancher-sandbox&nbsp;&nbsp;
-![computationalgeography](https://github.com/computationalgeography.png?size=20) computationalgeography&nbsp;&nbsp;
-![IMSY-DKFZ](https://github.com/IMSY-DKFZ.png?size=20) IMSY-DKFZ and
-[many more](https://github.com/search?q=repo%3A%20https%3A%2F%2Fgithub.com%2Fcpp-linter%2Fcpp-linter-hooks&type=code).
-
-See the [cpp-linter hub](https://cpp-linter.github.io/) for the full list of organizations using cpp-linter tools.
+<p align="center">
+  <a href="https://github.com/bazel-contrib"><img src="https://avatars.githubusercontent.com/u/91752542?s=200&v=4" alt="bazel-contrib" width="28"/></a>
+  <strong>bazel-contrib</strong>&nbsp;&nbsp;
+  <a href="https://github.com/CodSpeedHQ"><img src="https://avatars.githubusercontent.com/u/116658140?s=200&v=4" alt="CodSpeedHQ" width="28"/></a>
+  <strong>CodSpeedHQ</strong>&nbsp;&nbsp;
+  <a href="https://github.com/jupyter-xeus"><img src="https://avatars.githubusercontent.com/u/58793052?s=200&v=4" alt="jupyter-xeus" width="28"/></a>
+  <strong>jupyter-xeus</strong>&nbsp;&nbsp;
+  </br>
+  <a href="https://github.com/rancher-sandbox"><img src="https://avatars.githubusercontent.com/u/78982867?s=200&v=4" alt="rancher-sandbox" width="28"/></a>
+  <strong>rancher-sandbox</strong>&nbsp;&nbsp;
+  <a href="https://github.com/computationalgeography"><img src="https://avatars.githubusercontent.com/u/68274590?s=200&v=4" alt="computationalgeography" width="28"/></a>
+  <strong>computationalgeography</strong>&nbsp;&nbsp;
+  <a href="https://github.com/IMSY-DKFZ"><img src="https://avatars.githubusercontent.com/u/64467378?s=200&v=4" alt="IMSY-DKFZ" width="28"/></a>
+  <strong>IMSY-DKFZ</strong>&nbsp;&nbsp;
+  <strong> and <a href="https://github.com/search?q=repo%3A%20https%3A%2F%2Fgithub.com%2Fcpp-linter%2Fcpp-linter-hooks&type=code">many more</a>.</strong>
+  </br></br>
+  See the <a href="https://cpp-linter.github.io/">cpp-linter hub</a> for the full list of organizations using cpp-linter tools.
+</p>
 
 ## FAQ
 
