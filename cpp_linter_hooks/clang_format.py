@@ -31,6 +31,11 @@ def run_clang_format(args=None) -> Tuple[int, str]:
 
     command.extend(other_args)
 
+    # Auto-inject --Werror when --dry-run is used, so clang-format returns
+    # non-zero when formatting changes are needed (mirrors-clang-format behavior).
+    if "--dry-run" in command and "--Werror" not in command:
+        command.append("--Werror")
+
     try:
         # Run the clang-format command with captured output
         sp = subprocess.run(
@@ -43,11 +48,7 @@ def run_clang_format(args=None) -> Tuple[int, str]:
         # Combine stdout and stderr for complete output
         output = (sp.stdout or "") + (sp.stderr or "")
 
-        # Handle special case for dry-run mode
-        if "--dry-run" in command:
-            retval = -1  # Special code to identify dry-run mode
-        else:
-            retval = sp.returncode
+        retval = sp.returncode
 
         # Print verbose information if requested
         if hook_args.verbose:
@@ -71,12 +72,10 @@ def main() -> int:
     """Run clang-format as a command-line entry point."""
     retval, output = run_clang_format()  # pragma: no cover
 
-    # Print output for errors, but not for dry-run mode
-    if retval != 0 and retval != -1 and output.strip():  # pragma: no cover
+    if retval != 0 and output.strip():  # pragma: no cover
         print(output)
 
-    # Convert dry-run special code to success
-    return 0 if retval == -1 else retval  # pragma: no cover
+    return retval  # pragma: no cover
 
 
 if __name__ == "__main__":

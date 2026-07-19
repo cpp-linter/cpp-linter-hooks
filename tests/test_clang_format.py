@@ -54,22 +54,23 @@ def test_run_clang_format_invalid(args, expected_retval, tmp_path):
 
 
 @pytest.mark.benchmark
-@pytest.mark.parametrize(
-    ("args", "expected_retval"),
-    (
-        (
-            [
-                "--style=Google",
-            ],
-            1,
-        ),
-    ),
-)
-def test_run_clang_format_dry_run(args, expected_retval, tmp_path):
-    # copy test file to tmp_path to prevent modifying repo data
+def test_run_clang_format_dry_run_unformatted(tmp_path):
+    """Dry-run detects unformatted files and returns non-zero."""
     test_file = tmp_path / "main.c"
-    ret, _ = run_clang_format(["--dry-run", str(test_file)])
-    assert ret == -1  # Dry run should not fail
+    test_file.write_bytes(Path("testing/main.c").read_bytes())
+    ret, output = run_clang_format(["--dry-run", "--style=Google", str(test_file)])
+    assert ret == 1  # Should report failure (unformatted)
+    assert output.strip()  # Should report which file needs formatting
+
+
+@pytest.mark.benchmark
+def test_run_clang_format_dry_run_formatted(tmp_path):
+    """Dry-run on already-formatted files returns success."""
+    test_file = tmp_path / "good.c"
+    test_file.write_bytes(Path("testing/good.c").read_bytes())
+    ret, output = run_clang_format(["--dry-run", "--style=Google", str(test_file)])
+    assert ret == 0  # Already formatted
+    assert not output.strip()  # No diff output
 
 
 @pytest.mark.benchmark
