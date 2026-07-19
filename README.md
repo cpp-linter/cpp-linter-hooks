@@ -318,11 +318,11 @@ Two self-contained templates plus quick snippets for other common setups.
 ## Used By
 
 <p align="center">
-  <a href="https://github.com/boschresearch"><img src="https://avatars.githubusercontent.com/u/35259117?s=200&v=4" alt="bazel-contrib" width="28"/></a>
+  <a href="https://github.com/boschresearch"><img src="https://avatars.githubusercontent.com/u/35259117?s=200&v=4" alt="Bosch Research" width="28"/></a>
   <strong>Bosch Research</strong>&nbsp;&nbsp;
-  <a href="https://github.com/boschresearch"><img src="https://avatars.githubusercontent.com/u/35259117?s=200&v=4" alt="bazel-contrib" width="28"/></a>
+  <a href="https://github.com/mit-acl"><img src="https://avatars.githubusercontent.com/u/48329234?s=200&v=4" alt="MIT ACL" width="28"/></a>
   <strong>MIT ACL</strong>&nbsp;&nbsp;
-  <a href="https://github.com/mit-acl"><img src="https://avatars.githubusercontent.com/u/48329234?s=200&v=4" alt="bazel-contrib" width="28"/></a>
+  <a href="https://github.com/bazel-contrib"><img src="https://avatars.githubusercontent.com/u/91752542?s=200&v=4" alt="bazel-contrib" width="28"/></a>
   <strong>Bazel Contrib</strong>&nbsp;&nbsp;
   <a href="https://github.com/CodSpeedHQ"><img src="https://avatars.githubusercontent.com/u/116658140?s=200&v=4" alt="CodSpeedHQ" width="28"/></a>
   <strong>CodSpeed</strong>&nbsp;&nbsp;
