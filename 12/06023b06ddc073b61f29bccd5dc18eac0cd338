@@ -1,0 +1,21 @@
+cpp_linter_hooks/clang_format.py
+  s_b425b4023be6c5::t_1892fe486717e0 34-38,51,75,78
+tests/test_clang_format.py
+  s_b425b4023be6c5::t_69c5044d805fda 57-58,60-73
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.14",
+  "base_commit_sha": "1206023b06ddc073b61f29bccd5dc18eac0cd338",
+  "prompts": {},
+  "sessions": {
+    "s_b425b4023be6c5": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019f7b4a-de39-71d7-8f90-e04a13b9facb",
+        "model": "unknown"
+      },
+      "human_author": "shenxianpeng <xianpeng.shen@gmail.com>"
+    }
+  }
+}
