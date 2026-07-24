@@ -121,8 +121,8 @@ def _detect_installed_version(tool: str) -> Optional[str]:
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
-    match = re.search(r"(\d+\.\d+\.\d+(?:\.\d+)?)", result.stdout)
-    return match.group(1) if match else None
+    matches = re.findall(r"\d+\.\d+\.\d+(?:\.\d+)?", result.stdout)
+    return matches[0] if matches else None
 
 
 def _is_version_installed(tool: str, version: str) -> Optional[Path]:
