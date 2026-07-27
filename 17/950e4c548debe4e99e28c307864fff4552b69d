@@ -1,0 +1,34 @@
+cpp_linter_hooks/clang_format.py
+  s_6fe80215ed91be::t_cbf3fb51734802 43
+  s_6fe80215ed91be::t_34571c3c080a23 16,41
+tests/test_clang_tidy.py
+  s_6fe80215ed91be::t_c5b078e154279b 13-15
+  s_6fe80215ed91be::t_24d2241b539ffa 4-6
+cpp_linter_hooks/util.py
+  s_6fe80215ed91be::t_2a55d6c31e4678 9,11-12,18,28,53-54,80-83,103-108,112,124-128,136,141
+  s_6fe80215ed91be::t_c95576974b2081 3-5,8,142-143,149,155,166-167,198
+cpp_linter_hooks/clang_tidy.py
+  s_6fe80215ed91be::t_23f7aa3cbcfa7e 6,65,73,87,165,176,179,195,198,207,213-214,217,228
+tests/test_clang_format.py
+  s_6fe80215ed91be::t_968e993365886c 4-5
+tests/test_integration.py
+  s_6fe80215ed91be::t_b6c4cb2818996f 17,204
+tests/test_util.py
+  s_6fe80215ed91be::t_355eb4d9296748 5-8,12,14-15,17
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "17950e4c548debe4e99e28c307864fff4552b69d",
+  "prompts": {},
+  "sessions": {
+    "s_6fe80215ed91be": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019fa49e-e6fe-75f6-b4be-b978c59012d6",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "shenxianpeng <xianpeng.shen@gmail.com>"
+    }
+  }
+}
