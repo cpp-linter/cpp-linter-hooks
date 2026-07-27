@@ -25,7 +25,7 @@ def _get_pypi_versions(tool: str) -> tuple[str | None, list]:
         url = f"https://pypi.org/pypi/{tool}/json"
         with urllib.request.urlopen(url, timeout=10) as response:
             data = json.loads(response.read())
-    except (urllib.error.URLError, json.JSONDecodeError) as exc:
+    except (OSError, json.JSONDecodeError) as exc:
         LOG.warning("Failed to fetch versions for %s from PyPI: %s", tool, exc)
         return None, []
 

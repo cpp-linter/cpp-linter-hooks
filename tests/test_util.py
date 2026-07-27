@@ -294,6 +294,7 @@ def test_install_tool_success():
         [sys.executable, "-m", "pip", "install", "clang-format==20.1.7"],
         capture_output=True,
         text=True,
+        check=False,
     )
 
 
