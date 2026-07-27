@@ -3,10 +3,8 @@
 import subprocess
 import sys
 from argparse import ArgumentParser
-from typing import Tuple
 
 from cpp_linter_hooks.util import resolve_install_with_diagnostics
-
 
 parser = ArgumentParser()
 parser.add_argument("--version", default=None)
@@ -15,7 +13,7 @@ parser.add_argument(
 )
 
 
-def run_clang_format(args=None) -> Tuple[int, str]:
+def run_clang_format(args=None) -> tuple[int, str]:
     """Run clang-format with hook-specific arguments removed."""
     hook_args, other_args = parser.parse_known_args(args)
     _, version_error = resolve_install_with_diagnostics(
@@ -40,9 +38,9 @@ def run_clang_format(args=None) -> Tuple[int, str]:
         # Run the clang-format command with captured output
         sp = subprocess.run(
             command,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            capture_output=True,
             encoding="utf-8",
+            check=False,
         )
 
         # Combine stdout and stderr for complete output

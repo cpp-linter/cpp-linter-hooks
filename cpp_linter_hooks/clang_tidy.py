@@ -1,11 +1,10 @@
 """Pre-commit hook wrapper for clang-tidy."""
 
-from concurrent.futures import ThreadPoolExecutor
 import subprocess
 import sys
 from argparse import ArgumentParser, ArgumentTypeError
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 from cpp_linter_hooks.util import resolve_install_with_diagnostics
 
@@ -63,7 +62,7 @@ parser.add_argument("-v", "--verbose", action="store_true")
 parser.add_argument("--fix", action="store_true", help="Apply fixes in place (-fix)")
 
 
-def _find_compile_commands() -> Optional[str]:
+def _find_compile_commands() -> str | None:
     """Return the first common directory containing compile_commands.json."""
     for d in COMPILE_DB_SEARCH_DIRS:
         if (Path(d) / "compile_commands.json").exists():
@@ -71,7 +70,7 @@ def _find_compile_commands() -> Optional[str]:
     return None
 
 
-def _compile_commands_not_found_message(path: Optional[str] = None) -> str:
+def _compile_commands_not_found_message(path: str | None = None) -> str:
     """Build a user-facing message for missing compile_commands.json files."""
     if path is None:
         return "No compile_commands.json was found in common build directories.\n\n" + (
@@ -85,7 +84,7 @@ def _compile_commands_not_found_message(path: Optional[str] = None) -> str:
 
 def _resolve_compile_db(
     hook_args, other_args
-) -> Tuple[Optional[str], Optional[Tuple[int, str]]]:
+) -> tuple[str | None, tuple[int, str] | None]:
     """Resolve the compile_commands.json directory to pass as -p to clang-tidy.
 
     Returns (db_path, None) on success or (None, (retval, message)) on error.
@@ -163,7 +162,7 @@ def _looks_like_msvc_error(output: str) -> bool:
 
 def _append_guidance(output: str) -> str:
     """Append troubleshooting guidance when clang-tidy output matches known errors."""
-    hints: List[str] = []
+    hints: list[str] = []
     if _looks_like_compile_db_error(output) and COMPILE_COMMANDS_HINT not in output:
         hints.append(COMPILE_COMMANDS_HINT)
     if _looks_like_msvc_error(output) and MSVC_HINT not in output:
@@ -174,12 +173,10 @@ def _append_guidance(output: str) -> str:
     return output.rstrip("\n") + separator + "\n\n".join(hints)
 
 
-def _exec_clang_tidy(command) -> Tuple[int, str]:
+def _exec_clang_tidy(command) -> tuple[int, str]:
     """Run clang-tidy and return (retval, output)."""
     try:
-        sp = subprocess.run(
-            command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding="utf-8"
-        )
+        sp = subprocess.run(command, capture_output=True, encoding="utf-8", check=False)
         output = (sp.stdout or "") + (sp.stderr or "")
         output = _append_guidance(output)
         retval = (
@@ -195,10 +192,10 @@ def _looks_like_source_file(path: str) -> bool:
     return Path(path).suffix.lower() in SOURCE_FILE_SUFFIXES
 
 
-def _split_source_files(args: List[str]) -> Tuple[List[str], List[str]]:
+def _split_source_files(args: list[str]) -> tuple[list[str], list[str]]:
     """Split clang-tidy options from trailing source file arguments."""
     split_idx = len(args)
-    source_files: List[str] = []
+    source_files: list[str] = []
     for idx in range(len(args) - 1, -1, -1):
         if not _looks_like_source_file(args[idx]):
             break
@@ -207,17 +204,17 @@ def _split_source_files(args: List[str]) -> Tuple[List[str], List[str]]:
     return args[:split_idx], list(reversed(source_files))
 
 
-def _combine_outputs(results: List[Tuple[int, str]]) -> str:
+def _combine_outputs(results: list[tuple[int, str]]) -> str:
     """Join non-empty clang-tidy outputs from multiple executions."""
     return "\n".join(output.rstrip("\n") for _, output in results if output)
 
 
 def _exec_parallel_clang_tidy(
-    command_prefix: List[str], source_files: List[str], jobs: int
-) -> Tuple[int, str]:
+    command_prefix: list[str], source_files: list[str], jobs: int
+) -> tuple[int, str]:
     """Run clang-tidy over source files in parallel and combine the results."""
 
-    def run_file(source_file: str) -> Tuple[int, str]:
+    def run_file(source_file: str) -> tuple[int, str]:
         """Run clang-tidy for a single source file."""
         return _exec_clang_tidy(command_prefix + [source_file])
 
@@ -228,7 +225,7 @@ def _exec_parallel_clang_tidy(
     return retval, _combine_outputs(results)
 
 
-def run_clang_tidy(args=None) -> Tuple[int, str]:
+def run_clang_tidy(args=None) -> tuple[int, str]:
     """Run clang-tidy with hook-specific argument handling."""
     hook_args, other_args = parser.parse_known_args(args)
     _, version_error = resolve_install_with_diagnostics(
