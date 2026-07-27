@@ -1,17 +1,18 @@
-import pytest
 import subprocess
 import time
 from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from cpp_linter_hooks.clang_tidy import _exec_clang_tidy, run_clang_tidy
 
 
 @pytest.fixture(scope="function")
 def generate_compilation_database():
-    subprocess.run(["mkdir", "-p", "build"])
-    subprocess.run(["cmake", "-Bbuild", "testing/"])
-    subprocess.run(["cmake", "-Bbuild", "testing/"])
+    subprocess.run(["mkdir", "-p", "build"], check=True)
+    subprocess.run(["cmake", "-Bbuild", "testing/"], check=True)
+    subprocess.run(["cmake", "-Bbuild", "testing/"], check=True)
 
 
 @pytest.mark.benchmark

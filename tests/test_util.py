@@ -1,19 +1,20 @@
 """Tests for cpp_linter_hooks.util -- dynamic PyPI version resolution."""
 
-import pytest
-from unittest.mock import patch
-from pathlib import Path
 import subprocess
 import sys
+from pathlib import Path
+from unittest.mock import patch
+
+import pytest
 
 from cpp_linter_hooks.util import (
-    _get_pypi_versions,
-    _resolve_version_from_pypi,
     _detect_installed_version,
-    _is_version_installed,
+    _get_pypi_versions,
     _install_tool,
-    resolve_install_with_diagnostics,
+    _is_version_installed,
+    _resolve_version_from_pypi,
     resolve_install,
+    resolve_install_with_diagnostics,
 )
 
 # ── sample PyPI responses for consistent test data ──────────────────────

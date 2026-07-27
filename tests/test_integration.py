@@ -14,9 +14,9 @@ extending the parametrize list.
 """
 
 import shutil
+from pathlib import Path
 
 import pytest
-from pathlib import Path
 
 from cpp_linter_hooks.clang_format import run_clang_format
 from cpp_linter_hooks.clang_tidy import run_clang_tidy
@@ -201,7 +201,7 @@ def test_clang_tidy_parallel_execution_completes(tmp_path):
     main_file.write_bytes(MAIN_C.read_bytes())
     good_file.write_bytes(GOOD_C.read_bytes())
 
-    ret, output = run_clang_tidy(
+    ret, _output = run_clang_tidy(
         [
             "--no-compile-commands",
             "--jobs=2",
