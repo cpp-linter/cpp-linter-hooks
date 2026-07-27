@@ -1,0 +1,21 @@
+.github/workflows/test.yml
+  s_26d97c573c68a2::t_72ad6b9ff7a0ad 23,38
+.github/workflows/codspeed.yml
+  s_26d97c573c68a2::t_c2626d5cc38de2 30
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.6.16",
+  "base_commit_sha": "289831235365ff715647b80d19df550a3e3d8707",
+  "prompts": {},
+  "sessions": {
+    "s_26d97c573c68a2": {
+      "agent_id": {
+        "tool": "pi",
+        "id": "019fa4c7-18a9-71af-b410-64b2ea72d084",
+        "model": "deepseek-v4-flash"
+      },
+      "human_author": "shenxianpeng <xianpeng.shen@gmail.com>"
+    }
+  }
+}
