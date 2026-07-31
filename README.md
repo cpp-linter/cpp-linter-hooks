@@ -312,6 +312,7 @@ repos:
 Two self-contained templates plus quick snippets for other common setups.
 
 - [CMake minimal config](examples/cmake/) — covers ~80% of C++ projects
+- [Meson minimal config](examples/meson/) — dedicated Meson `compile_commands.json` setup
 - [Large project `files:` regex](examples/large-project/) — scoping hooks for speed
 - [Quick snippets](examples/README.md) — Meson, clang-format-only, monorepo, CI, `compile_commands.json`
 

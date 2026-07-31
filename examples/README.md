@@ -1,6 +1,7 @@
 # Examples
 
 - [CMake project](cmake/) — the default for ~80% of C++ projects
+- [Meson project](meson/) — for Meson build trees with `compile_commands.json`
 - [Large project `files:` regex](large-project/) — scoping hooks for speed
 
 ## Quick snippets
