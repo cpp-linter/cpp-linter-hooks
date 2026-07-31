@@ -18,4 +18,3 @@
 ## Extra details
 
 <!-- Attach sample file, stack trace, and any config snippets -->
-
