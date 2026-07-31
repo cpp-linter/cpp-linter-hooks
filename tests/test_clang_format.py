@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from cpp_linter_hooks.clang_format import run_clang_format
+from cpp_linter_hooks.clang_format import main, run_clang_format
 
 
 @pytest.mark.benchmark
@@ -138,3 +138,26 @@ def test_run_clang_format_verbose_passes_version_diagnostics():
 
     assert (ret, output) == (0, "")
     mock_resolve.assert_called_once_with("clang-format", "21", True)
+
+
+def test_main_returns_run_result_and_prints_output(monkeypatch, capsys):
+    with patch(
+        "cpp_linter_hooks.clang_format.run_clang_format",
+        return_value=(1, "bad input\n"),
+    ):
+        ret = main()
+
+    captured = capsys.readouterr()
+    assert ret == 1
+    assert "bad input" in captured.out
+
+
+def test_main_returns_zero_without_output(monkeypatch, capsys):
+    with patch(
+        "cpp_linter_hooks.clang_format.run_clang_format", return_value=(0, "")
+    ):
+        ret = main()
+
+    captured = capsys.readouterr()
+    assert ret == 0
+    assert captured.out == ""
