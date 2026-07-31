@@ -34,4 +34,3 @@ with `--compile-commands=builddir`.
 pre-commit install
 pre-commit run --all-files
 ```
-
