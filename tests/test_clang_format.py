@@ -153,9 +153,7 @@ def test_main_returns_run_result_and_prints_output(monkeypatch, capsys):
 
 
 def test_main_returns_zero_without_output(monkeypatch, capsys):
-    with patch(
-        "cpp_linter_hooks.clang_format.run_clang_format", return_value=(0, "")
-    ):
+    with patch("cpp_linter_hooks.clang_format.run_clang_format", return_value=(0, "")):
         ret = main()
 
     captured = capsys.readouterr()
