@@ -68,12 +68,12 @@ def _print_verbose_info(command: list, retval: int, output: str) -> None:
 
 def main() -> int:
     """Run clang-format as a command-line entry point."""
-    retval, output = run_clang_format()  # pragma: no cover
+    retval, output = run_clang_format()
 
-    if retval != 0 and output.strip():  # pragma: no cover
+    if retval != 0 and output.strip():
         print(output)
 
-    return retval  # pragma: no cover
+    return retval
 
 
 if __name__ == "__main__":

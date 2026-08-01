@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from cpp_linter_hooks.clang_format import run_clang_format
+from cpp_linter_hooks.clang_format import main, run_clang_format
 
 
 @pytest.mark.benchmark
@@ -138,3 +138,22 @@ def test_run_clang_format_verbose_passes_version_diagnostics():
 
     assert (ret, output) == (0, "")
     mock_resolve.assert_called_once_with("clang-format", "21", True)
+
+
+def test_main_returns_success_without_output(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "cpp_linter_hooks.clang_format.run_clang_format", lambda: (0, "")
+    )
+
+    assert main() == 0
+    assert capsys.readouterr().out == ""
+
+
+def test_main_prints_failure_output(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "cpp_linter_hooks.clang_format.run_clang_format",
+        lambda: (1, "formatting failed"),
+    )
+
+    assert main() == 1
+    assert capsys.readouterr().out == "formatting failed\n"
