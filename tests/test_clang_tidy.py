@@ -5,7 +5,17 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from cpp_linter_hooks.clang_tidy import _exec_clang_tidy, run_clang_tidy
+from cpp_linter_hooks.clang_tidy import _exec_clang_tidy, parser, run_clang_tidy
+
+
+def test_all_arguments_have_help():
+    missing_help = [
+        action.option_strings for action in parser._actions if not action.help
+    ]
+    assert missing_help == []
+
+    help_text = " ".join(parser.format_help().split())
+    assert all(" ".join(action.help.split()) in help_text for action in parser._actions)
 
 
 @pytest.fixture(scope="function")
