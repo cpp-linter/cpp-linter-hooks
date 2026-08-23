@@ -7,7 +7,14 @@ from argparse import ArgumentParser
 from cpp_linter_hooks.util import resolve_install_with_diagnostics
 
 parser = ArgumentParser()
-parser.add_argument("--version", default=None)
+parser.add_argument(
+    "--version",
+    default=None,
+    help=(
+        "Version of clang-format to install and run; defaults to the latest "
+        "stable wheel on PyPI"
+    ),
+)
 parser.add_argument(
     "-v", "--verbose", action="store_true", help="Enable verbose output"
 )

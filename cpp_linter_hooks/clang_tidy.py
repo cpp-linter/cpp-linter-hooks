@@ -52,13 +52,36 @@ def _positive_int(value: str) -> int:
 
 
 parser = ArgumentParser()
-parser.add_argument("--version", default=None)
-parser.add_argument("--compile-commands", default=None, dest="compile_commands")
 parser.add_argument(
-    "--no-compile-commands", action="store_true", dest="no_compile_commands"
+    "--version",
+    default=None,
+    help=(
+        "Version of clang-tidy to install and run; defaults to the latest stable "
+        "wheel on PyPI"
+    ),
 )
-parser.add_argument("-j", "--jobs", type=_positive_int, default=1)
-parser.add_argument("-v", "--verbose", action="store_true")
+parser.add_argument(
+    "--compile-commands",
+    default=None,
+    dest="compile_commands",
+    help="Directory containing compile_commands.json to pass to clang-tidy via -p",
+)
+parser.add_argument(
+    "--no-compile-commands",
+    action="store_true",
+    dest="no_compile_commands",
+    help="Disable automatic compile_commands.json detection",
+)
+parser.add_argument(
+    "-j",
+    "--jobs",
+    type=_positive_int,
+    default=1,
+    help="Number of clang-tidy processes to run in parallel (default: 1)",
+)
+parser.add_argument(
+    "-v", "--verbose", action="store_true", help="Enable verbose output"
+)
 parser.add_argument("--fix", action="store_true", help="Apply fixes in place (-fix)")
 
 

@@ -3,7 +3,17 @@ from unittest.mock import patch
 
 import pytest
 
-from cpp_linter_hooks.clang_format import main, run_clang_format
+from cpp_linter_hooks.clang_format import main, parser, run_clang_format
+
+
+def test_all_arguments_have_help():
+    missing_help = [
+        action.option_strings for action in parser._actions if not action.help
+    ]
+    assert missing_help == []
+
+    help_text = " ".join(parser.format_help().split())
+    assert all(" ".join(action.help.split()) in help_text for action in parser._actions)
 
 
 @pytest.mark.benchmark
