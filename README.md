@@ -69,7 +69,7 @@ repos:
       - id: clang-format
         args: [--style=Google] # Other coding style: LLVM, GNU, Chromium, Microsoft, Mozilla, WebKit.
       - id: clang-tidy
-        args: [--checks='boost-*,bugprone-*,performance-*,readability-*,portability-*,modernize-*,clang-analyzer-*,cppcoreguidelines-*']
+        args: ["--checks=boost-*,bugprone-*,performance-*,readability-*,portability-*,modernize-*,clang-analyzer-*,cppcoreguidelines-*"]
 ```
 
 ### Custom Configuration Files
@@ -83,8 +83,7 @@ repos:
     hooks:
       - id: clang-format
         args: [--style=file]  # Loads style from .clang-format file
-      - id: clang-tidy
-        args: [--checks=.clang-tidy] # Loads checks from .clang-tidy file
+      - id: clang-tidy  # clang-tidy reads your .clang-tidy file by itself
 ```
 
 > [!TIP]
@@ -102,7 +101,7 @@ repos:
       - id: clang-format
         args: [--style=file, --version=21] # Specifies version
       - id: clang-tidy
-        args: [--checks=.clang-tidy, --version=21] # Specifies version
+        args: [--version=21] # Specifies version
 ```
 
 > [!TIP]
@@ -124,7 +123,6 @@ repos:
     rev: v1.6.0
     hooks:
       - id: clang-tidy
-        args: [--checks=.clang-tidy]
         # Auto-detects ./build/compile_commands.json if present
 ```
 
@@ -132,21 +130,21 @@ To specify the build directory explicitly:
 
 ```yaml
       - id: clang-tidy
-        args: [--compile-commands=build, --checks=.clang-tidy]
+        args: [--compile-commands=build]
 ```
 
 To disable auto-detection (e.g. in a monorepo where auto-detect might pick the wrong database):
 
 ```yaml
       - id: clang-tidy
-        args: [--no-compile-commands, --checks=.clang-tidy]
+        args: [--no-compile-commands]
 ```
 
 To see which `compile_commands.json` the hook is using, add `-v`:
 
 ```yaml
       - id: clang-tidy
-        args: [--compile-commands=build, -v, --checks=.clang-tidy]
+        args: [--compile-commands=build, -v]
 ```
 
 > [!NOTE]
@@ -239,7 +237,7 @@ repos:
     rev: v1.6.0  # includes --fix support
     hooks:
       - id: clang-tidy
-        args: [--checks=.clang-tidy, --fix]
+        args: [--fix]
 ```
 
 > [!WARNING]
@@ -261,7 +259,7 @@ repos:
       args: [--style=file, --version=21]
       files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$ # Limits to specific dirs and file types
     - id: clang-tidy
-      args: [--checks=.clang-tidy, --version=21]
+      args: [--version=21]
       files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
 ```
 
@@ -273,7 +271,7 @@ or `-j`:
   rev: v1.6.0
   hooks:
     - id: clang-tidy
-      args: [--checks=.clang-tidy, --version=21, --jobs=4]
+      args: [--version=21, --jobs=4]
 ```
 
 > [!WARNING]
@@ -304,7 +302,7 @@ repos:
       - id: clang-format
         args: [--style=file, --version=21, --verbose]   # Shows processed files
       - id: clang-tidy
-        args: [--checks=.clang-tidy, --verbose]   # Shows which compile_commands.json is used
+        args: [--verbose]   # Shows which compile_commands.json is used
 ```
 
 ## Examples
@@ -318,19 +316,19 @@ Two self-contained templates plus quick snippets for other common setups.
 ## Used By
 
 <p align="center">
-  <a href="https://github.com/boschresearch"><img src="https://avatars.githubusercontent.com/u/35259117?s=200&v=4" alt="Bosch Research" width="28"/></a>
-  <strong>Bosch Research</strong>&nbsp;&nbsp;
   <a href="https://github.com/mit-acl"><img src="https://avatars.githubusercontent.com/u/48329234?s=200&v=4" alt="MIT ACL" width="28"/></a>
   <strong>MIT ACL</strong>&nbsp;&nbsp;
   <a href="https://github.com/bazel-contrib"><img src="https://avatars.githubusercontent.com/u/91752542?s=200&v=4" alt="bazel-contrib" width="28"/></a>
   <strong>Bazel Contrib</strong>&nbsp;&nbsp;
   <a href="https://github.com/CodSpeedHQ"><img src="https://avatars.githubusercontent.com/u/116658140?s=200&v=4" alt="CodSpeedHQ" width="28"/></a>
   <strong>CodSpeed</strong>&nbsp;&nbsp;
-  <a href="https://github.com/jupyter-xeus"><img src="https://avatars.githubusercontent.com/u/58793052?s=200&v=4" alt="jupyter-xeus" width="28"/></a>
-  <strong>Jupyter Xeus</strong>&nbsp;&nbsp;
+  <a href="https://github.com/doldecomp"><img src="https://avatars.githubusercontent.com/u/67697691?s=200&v=4" alt="doldecomp" width="28"/></a>
+  <strong>doldecomp</strong>&nbsp;&nbsp;
+  <a href="https://github.com/HKUST-Aerial-Robotics"><img src="https://avatars.githubusercontent.com/u/28489597?s=200&v=4" alt="HKUST-Aerial-Robotics" width="28"/></a>
+  <strong>HKUST Aerial Robotics</strong>&nbsp;&nbsp;
   </br>
-  <a href="https://github.com/rancher-sandbox"><img src="https://avatars.githubusercontent.com/u/78982867?s=200&v=4" alt="rancher-sandbox" width="28"/></a>
-  <strong>Rancher Sandbox</strong>&nbsp;&nbsp;
+  <a href="https://github.com/kubewarden"><img src="https://avatars.githubusercontent.com/u/80915497?s=200&v=4" alt="kubewarden" width="28"/></a>
+  <strong>Kubewarden</strong>&nbsp;&nbsp;
   <a href="https://github.com/computationalgeography"><img src="https://avatars.githubusercontent.com/u/68274590?s=200&v=4" alt="computationalgeography" width="28"/></a>
   <strong>Computational Geography</strong>&nbsp;&nbsp;
   <a href="https://github.com/IMSY-DKFZ"><img src="https://avatars.githubusercontent.com/u/64467378?s=200&v=4" alt="IMSY-DKFZ" width="28"/></a>
@@ -339,7 +337,7 @@ Two self-contained templates plus quick snippets for other common setups.
   <strong>CONVINCE-Project</strong>&nbsp;&nbsp;
   <strong> and <a href="https://github.com/search?q=repo%3A%20https%3A%2F%2Fgithub.com%2Fcpp-linter%2Fcpp-linter-hooks&type=code">many more</a>.</strong>
   </br></br>
-  See the <a href="https://cpp-linter.github.io/">cpp-linter hub</a> for the full list of organizations using cpp-linter tools.
+  See the <a href="https://cpp-linter.github.io/showcase/">cpp-linter showcase</a> for projects using cpp-linter tools.
 </p>
 
 ## FAQ
