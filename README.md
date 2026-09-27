@@ -36,27 +36,6 @@ comparison.
 > our companion GitHub Action that runs the same tools in CI with rich PR reviews,
 > thread comments, step summaries, and file annotations.
 
-## Table of Contents
-
-- [Why cpp-linter-hooks?](#why-cpp-linter-hooks)
-- [GitHub Actions? Try cpp-linter-action](#github-actions-try-cpp-linter-action)
-- [Quick Start](#quick-start)
-  - [Custom Configuration Files](#custom-configuration-files)
-  - [Custom Clang Tool Version](#custom-clang-tool-version)
-  - [Compilation Database (CMake/Meson Projects)](#compilation-database-cmakemeson-projects)
-- [Output](#output)
-  - [clang-format Output](#clang-format-output)
-  - [clang-tidy Output](#clang-tidy-output)
-- [Troubleshooting](#troubleshooting)
-  - [Performance Optimization](#performance-optimization)
-  - [Verbose Output](#verbose-output)
-- [Examples](#examples)
-- [Used By](#used-by)
-- [FAQ](#faq)
-  - [What's the difference between `cpp-linter-hooks` and `mirrors-clang-format`?](#whats-the-difference-between-cpp-linter-hooks-and-mirrors-clang-format)
-- [Contributing](#contributing)
-- [License](#license)
-
 ## Quick Start
 
 Add this configuration to your `.pre-commit-config.yaml` file:
@@ -279,6 +258,7 @@ or `-j`:
 > (for example `--export-fixes=fixes.yaml`) across parallel `clang-tidy` invocations.
 > If you need `--export-fixes`, ensure each job writes to a unique file path to avoid
 > corrupted or overwritten outputs.
+
 Alternatively, if you want to run the hooks manually on only the changed files, you can use the following command:
 
 ```bash
