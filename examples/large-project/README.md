@@ -35,4 +35,4 @@ files: \.(c|h|s|S)$
 
 - **Don't lint headers directly with `clang-tidy`** — they're processed when a `.cpp` includes them.  Restrict to `files: ^src/.*\.cpp$`.
 - **Use `--jobs=N` for `clang-tidy`** — start with `N=2`, go up to CPU core count.
-- **`--dry-run` for `clang-format` in CI** — fail with a readable diff instead of auto-committing formatting.
+- **`--dry-run` for `clang-format` in CI** — report the lines that need formatting instead of changing the files.
