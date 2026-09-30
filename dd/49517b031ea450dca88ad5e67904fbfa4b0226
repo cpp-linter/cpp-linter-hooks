@@ -1,0 +1,25 @@
+examples/README.md
+  s_0da9b18608c2a0::t_8b6ef5c56ca089 3,22,28,58-59
+README.md
+  s_0da9b18608c2a0::t_8b6ef5c56ca089 3-6,8-9,11-13,15,17,25,27,30-35,37,39,41-46,48-54,56,58,61-62,65,73,88,90-92,97,99,102,105,108,111,116-126,161-205,209,238-241,251,257,270,272-273,277-302,306,310
+examples/cmake/README.md
+  s_0da9b18608c2a0::t_8b6ef5c56ca089 10,17
+examples/large-project/README.md
+  s_0da9b18608c2a0::t_15c7c803a2ff75 38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "dd49517b031ea450dca88ad5e67904fbfa4b0226",
+  "prompts": {},
+  "sessions": {
+    "s_0da9b18608c2a0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "c1ae0c79-9ddb-4e6b-a8e1-2213cfd3c2b6",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Xianpeng Shen <xianpeng.shen@gmail.com>"
+    }
+  }
+}
