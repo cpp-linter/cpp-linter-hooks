@@ -1,6 +1,6 @@
 # Examples
 
-- [CMake project](cmake/) — the default for ~80% of C++ projects
+- [CMake project](cmake/)
 - [Large project `files:` regex](large-project/) — scoping hooks for speed
 
 ## Quick snippets
@@ -19,13 +19,13 @@
 meson setup build    # auto-detect works with build/
 ```
 
-Or point explicitly: `args: [--compile-commands=builddir, --checks=.clang-tidy]`.
+Or point explicitly: `args: [--compile-commands=builddir]`.
 
 ### clang-tidy + compile_commands.json
 
 ```yaml
       - id: clang-tidy
-        args: [--compile-commands=build, --checks=.clang-tidy, --version=21, --jobs=4]
+        args: [--compile-commands=build, --version=21, --jobs=4]
         files: ^src/.*\.cpp$
 ```
 
@@ -55,8 +55,8 @@ jobs:
   pre-commit:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with: { python-version: '3.11' }
       - uses: pre-commit/action@v3.0.1
 ```
