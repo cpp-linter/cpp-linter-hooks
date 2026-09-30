@@ -19,7 +19,7 @@ Add this configuration to your `.pre-commit-config.yaml` file:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.6.0
+    rev: v1.6.1
     hooks:
       - id: clang-format
         args: [--style=file, --version=21]
@@ -39,7 +39,7 @@ leave it out if you only run clang-tidy in CI, for example with
 ### Custom clang tool version
 
 > [!TIP]
-> The `rev` tag (e.g. `v1.6.0`) is the **project** version, not the clang tool version. Without
+> The `rev` tag (e.g. `v1.6.1`) is the **project** version, not the clang tool version. Without
 > `--version`, each hook installs the newest clang-format or clang-tidy wheel on PyPI at the time it
 > runs, so the tool version can change without any change to your configuration, and the two hooks
 > can run different LLVM versions. For production use, always pin the tool version explicitly
@@ -88,8 +88,7 @@ Here’s a sample diff showing the formatting applied with `--style=Google`:
 
 > [!NOTE]
 > Use `--dry-run` in `args` of `clang-format` to print instead of changing the format.
-> In v1.6.0 the hook passes and prints nothing even when files need formatting; the fix is on
-> `main` and not released yet. With the fix, the output looks like this:
+> The hook fails if a file needs formatting and prints the lines to fix:
 
 ```bash
 clang-format.............................................................Failed
@@ -152,7 +151,7 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.6.0  # includes --fix support
+    rev: v1.6.1  # includes --fix support
     hooks:
       - id: clang-tidy
         args: [--fix]
@@ -171,7 +170,7 @@ automatically — no configuration needed for most projects:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.6.0
+    rev: v1.6.1
     hooks:
       - id: clang-tidy
         # Auto-detects ./build/compile_commands.json if present
@@ -213,7 +212,7 @@ Two self-contained templates plus quick snippets for other common setups.
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.6.0
+  rev: v1.6.1
   hooks:
     - id: clang-format
       args: [--style=file, --version=21]
@@ -228,7 +227,7 @@ or `-j`:
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.6.0
+  rev: v1.6.1
   hooks:
     - id: clang-tidy
       args: [--version=21, --jobs=4]
@@ -259,7 +258,7 @@ This approach ensures that only modified files are checked, further speeding up 
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.6.0
+    rev: v1.6.1
     hooks:
       - id: clang-format
         args: [--style=file, --version=21, --verbose]   # Shows processed files
@@ -281,7 +280,7 @@ mirror of the clang-format wheel.
 | Default file types               | C, C++                                    | C, C++, C#, CUDA, Java, JavaScript, JSON, Objective-C, proto, textproto, Metal |
 | Supports passing format style string | via `--style`                         | via `--style`                          |
 | Verbose output                   | via `--verbose`                           | via `--verbose`                        |
-| Dry-run mode                     | via `--dry-run` (v1.6.0 always passes)    | via `--dry-run --Werror`               |
+| Dry-run mode                     | via `--dry-run`                           | via `--dry-run --Werror`               |
 | Auto-fix mode                    | via `--fix` (clang-tidy only)             | No                                     |
 | Compilation database support     | auto-detect or `--compile-commands`       | No                                     |
 
