@@ -46,6 +46,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
+          plugins: noop # coverage.xml is generated above
           fail_ci_if_error: true # optional (default = false)
           verbose: true # optional (default = false)
       - name: Test cpp-linter-hooks
