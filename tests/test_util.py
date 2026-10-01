@@ -1,5 +1,7 @@
 """Tests for cpp_linter_hooks.util -- dynamic PyPI version resolution."""
 
+import json
+import logging
 import subprocess
 import sys
 from pathlib import Path
@@ -479,3 +481,181 @@ def test_resolve_install_with_diagnostics_verbose_latest(capsys):
         "Using latest clang-format Python wheel version 22.1.5"
         in capsys.readouterr().err
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Additional edge cases (offline: PyPI, pip and tool binaries are mocked)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+@pytest.fixture
+def clear_pypi_cache():
+    """Isolate tests from the per-process PyPI response cache."""
+    _get_pypi_versions.cache_clear()
+    yield
+    _get_pypi_versions.cache_clear()
+
+
+def _mock_pypi_payload(mock_urlopen, payload: bytes) -> None:
+    mock_urlopen.return_value.__enter__.return_value.read.return_value = payload
+
+
+def test_get_pypi_versions_sorts_numerically(clear_pypi_cache):
+    releases = ["9.0.0", "10.0.1", "6.0.1", "19.1.0", "19.1.0.1", "18.1.8"]
+    with patch("urllib.request.urlopen") as mock_urlopen:
+        _mock_pypi_payload(
+            mock_urlopen,
+            json.dumps({"releases": {version: [] for version in releases}}).encode(),
+        )
+        latest, versions = _get_pypi_versions("clang-tidy")
+
+    mock_urlopen.assert_called_once_with(
+        "https://pypi.org/pypi/clang-tidy/json", timeout=10
+    )
+    assert latest == "19.1.0.1"
+    assert versions == ["19.1.0.1", "19.1.0", "18.1.8", "10.0.1", "9.0.0", "6.0.1"]
+
+
+@pytest.mark.parametrize(
+    "pre_release",
+    ["23.1.0rc1", "23.1.0a2", "23.1.0b3", "23.1.0.dev1", "23.1.0-beta", "23.1.0alpha"],
+)
+def test_get_pypi_versions_skips_pre_releases(clear_pypi_cache, pre_release):
+    with patch("urllib.request.urlopen") as mock_urlopen:
+        _mock_pypi_payload(
+            mock_urlopen,
+            json.dumps({"releases": {"22.1.8": [], pre_release: []}}).encode(),
+        )
+        assert _get_pypi_versions("clang-format") == ("22.1.8", ["22.1.8"])
+
+
+def test_get_pypi_versions_invalid_json(clear_pypi_cache, caplog):
+    with (
+        patch("urllib.request.urlopen") as mock_urlopen,
+        caplog.at_level(logging.WARNING, logger="cpp_linter_hooks.util"),
+    ):
+        _mock_pypi_payload(mock_urlopen, b"<html>Service Unavailable</html>")
+        assert _get_pypi_versions("clang-format") == (None, [])
+
+    assert "Failed to fetch versions for clang-format from PyPI" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("stdout", "expected"),
+    [
+        ("Ubuntu clang-format version 18.1.3 (1ubuntu1)\n", "18.1.3"),
+        ("LLVM (http://llvm.org/):\n  LLVM version 19.1.0\n", "19.1.0"),
+        ("clang-tidy version 22.1.0.1\n", "22.1.0.1"),
+        ("clang-format version unknown\n", None),
+    ],
+)
+def test_detect_installed_version_parses_version_banner(stdout, expected):
+    completed = subprocess.CompletedProcess(args=[], returncode=0, stdout=stdout)
+    with (
+        patch("shutil.which", return_value="/usr/bin/clang-format"),
+        patch("subprocess.run", return_value=completed) as mock_run,
+    ):
+        assert _detect_installed_version("clang-format") == expected
+
+    mock_run.assert_called_once_with(
+        ["/usr/bin/clang-format", "--version"],
+        capture_output=True,
+        text=True,
+        timeout=10,
+        check=False,
+    )
+
+
+def test_detect_installed_version_timeout():
+    with (
+        patch("shutil.which", return_value="/usr/bin/clang-format"),
+        patch(
+            "subprocess.run",
+            side_effect=subprocess.TimeoutExpired(cmd="clang-format", timeout=10),
+        ),
+    ):
+        assert _detect_installed_version("clang-format") is None
+
+
+def test_install_tool_failure_logs_pip_output(caplog):
+    completed = subprocess.CompletedProcess(
+        args=[],
+        returncode=1,
+        stdout="Collecting clang-format==20.1.7",
+        stderr="ERROR: No matching distribution found for clang-format==20.1.7",
+    )
+    with (
+        patch("subprocess.run", return_value=completed),
+        caplog.at_level(logging.ERROR, logger="cpp_linter_hooks.util"),
+    ):
+        assert _install_tool("clang-format", "20.1.7") is None
+
+    assert "pip failed to install clang-format 20.1.7" in caplog.text
+    assert "Collecting clang-format==20.1.7" in caplog.text
+    assert "No matching distribution found" in caplog.text
+
+
+def test_resolve_install_with_diagnostics_verbose_exact_version(capsys):
+    with (
+        patch(
+            "cpp_linter_hooks.util._get_pypi_versions", side_effect=_pypi_side_effect
+        ),
+        patch(
+            "cpp_linter_hooks.util._is_version_installed",
+            return_value=Path("/usr/bin/clang-format"),
+        ) as mock_installed,
+        patch("cpp_linter_hooks.util._install_tool") as mock_install,
+    ):
+        result = resolve_install_with_diagnostics("clang-format", "20.1.8", True)
+
+    assert result == (Path("/usr/bin/clang-format"), None)
+    assert "Using clang-format Python wheel version 20.1.8" in capsys.readouterr().err
+    mock_installed.assert_called_once_with("clang-format", "20.1.8")
+    mock_install.assert_not_called()
+
+
+def test_resolve_install_with_diagnostics_is_quiet_by_default(capsys):
+    with (
+        patch(
+            "cpp_linter_hooks.util._get_pypi_versions", side_effect=_pypi_side_effect
+        ),
+        patch("cpp_linter_hooks.util._is_version_installed", return_value=None),
+        patch(
+            "cpp_linter_hooks.util._install_tool",
+            return_value=Path("/usr/bin/clang-tidy"),
+        ) as mock_install,
+    ):
+        result = resolve_install_with_diagnostics("clang-tidy", "21")
+
+    assert result == (Path("/usr/bin/clang-tidy"), None)
+    assert capsys.readouterr().err == ""
+    mock_install.assert_called_once_with("clang-tidy", "21.1.6")
+
+
+def test_resolve_install_with_diagnostics_offline_uses_installed_tool():
+    with (
+        patch("cpp_linter_hooks.util._get_pypi_versions", return_value=(None, [])),
+        patch("cpp_linter_hooks.util._detect_installed_version", return_value="18.1.8"),
+        patch(
+            "cpp_linter_hooks.util._is_version_installed",
+            return_value=Path("/usr/bin/clang-format"),
+        ) as mock_installed,
+        patch("cpp_linter_hooks.util._install_tool") as mock_install,
+    ):
+        result = resolve_install_with_diagnostics("clang-format", None)
+
+    assert result == (Path("/usr/bin/clang-format"), None)
+    mock_installed.assert_called_once_with("clang-format", "18.1.8")
+    mock_install.assert_not_called()
+
+
+def test_resolve_install_logs_unsupported_version(caplog):
+    with (
+        patch(
+            "cpp_linter_hooks.util._get_pypi_versions", side_effect=_pypi_side_effect
+        ),
+        caplog.at_level(logging.ERROR, logger="cpp_linter_hooks.util"),
+    ):
+        assert resolve_install("clang-format", "99") is None
+
+    assert "Unsupported clang-format version '99'" in caplog.text

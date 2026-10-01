@@ -76,6 +76,5 @@ omit = ["tests/*"]
 
 [tool.coverage.report]
 exclude_also = [
-    "__name__",
-    "FileNotFoundError"
+    'if __name__ == .__main__.:',
 ]
