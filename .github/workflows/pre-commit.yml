@@ -8,6 +8,10 @@ on:
     branches: main
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   pre-commit:
+    permissions:
+      contents: read
     uses: cpp-linter/.github/.github/workflows/pre-commit.yml@main
