@@ -206,7 +206,6 @@ name = "cpp-linter-hooks"
 source = { editable = "." }
 dependencies = [
     { name = "pip" },
-    { name = "tomli", marker = "python_full_version < '3.11'" },
 ]
 
 [package.dev-dependencies]
@@ -218,10 +217,7 @@ dev = [
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "pip", specifier = ">=26.1" },
-    { name = "tomli", marker = "python_full_version < '3.11'", specifier = ">=1.1.0" },
-]
+requires-dist = [{ name = "pip", specifier = ">=26.1" }]
 
 [package.metadata.requires-dev]
 dev = [
