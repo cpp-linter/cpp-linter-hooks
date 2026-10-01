@@ -659,3 +659,33 @@ def test_resolve_install_logs_unsupported_version(caplog):
         assert resolve_install("clang-format", "99") is None
 
     assert "Unsupported clang-format version '99'" in caplog.text
+
+
+@pytest.mark.parametrize(
+    ("tool", "user_input"),
+    [("clang-format", "1"), ("clang-format", "2"), ("clang-tidy", "2")],
+)
+def test_resolve_version_from_pypi_prefix_requires_whole_components(tool, user_input):
+    """A major-version prefix must not match a longer major ("2" is not "22")."""
+    with patch(
+        "cpp_linter_hooks.util._get_pypi_versions", side_effect=_pypi_side_effect
+    ):
+        version, error = _resolve_version_from_pypi(tool, user_input)
+
+    assert version is None
+    assert f"Unsupported {tool} version '{user_input}'" in error
+
+
+@pytest.mark.parametrize(
+    ("user_input", "expected"),
+    [("21.1", "21.1.6"), ("21", "21.10.0"), ("19.1.0", "19.1.0.1")],
+)
+def test_resolve_version_from_pypi_prefix_stops_at_component_boundary(
+    user_input, expected
+):
+    versions = ["21.10.0", "21.1.6", "19.1.0.1"]
+    with patch(
+        "cpp_linter_hooks.util._get_pypi_versions",
+        return_value=(versions[0], versions),
+    ):
+        assert _resolve_version_from_pypi("clang-tidy", user_input) == (expected, None)
