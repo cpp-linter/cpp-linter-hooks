@@ -1,0 +1,30 @@
+tests/test_clang_tidy.py
+  s_66212c309e21f0::t_80e00128f262c6 2,9-23,579,633,652,695
+  s_66212c309e21f0::t_09fe4fd7f67b5d 614-626
+  s_66212c309e21f0::t_e249977cc427df 521-578,580-613,627-632,634-651,653-694,696-859
+tests/test_util.py
+  s_66212c309e21f0::t_a3634a989e233f 3-4
+  s_66212c309e21f0::t_bb06cad08f50cb 507-508,526
+  s_66212c309e21f0::t_e6cb4efe2c42c6 484-506,509-525,527-661
+tests/test_clang_format.py
+  s_66212c309e21f0::t_d7300f37fc6368 1-2
+  s_66212c309e21f0::t_37ea7bdebf3d37 172-319
+pyproject.toml
+  s_66212c309e21f0::t_aceff69cb41aba 79
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "ba92e71975c5310895a8e50590a5f4884db2b152",
+  "prompts": {},
+  "sessions": {
+    "s_66212c309e21f0": {
+      "agent_id": {
+        "tool": "claude",
+        "id": "8763d161-5362-48a1-ae9b-11f7bcd83469",
+        "model": "claude-opus-5-5"
+      },
+      "human_author": "Xianpeng Shen <xianpeng.shen@gmail.com>"
+    }
+  }
+}
