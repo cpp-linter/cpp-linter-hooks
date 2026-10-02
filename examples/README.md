@@ -1,6 +1,7 @@
 # Examples
 
 - [CMake project](cmake/)
+- [Meson project](meson/)
 - [Large project `files:` regex](large-project/) — scoping hooks for speed
 
 ## Quick snippets

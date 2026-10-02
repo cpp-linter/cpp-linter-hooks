@@ -29,7 +29,7 @@ A pre-commit hook repo that auto-installs and runs `clang-format` and `clang-tid
 | `cpp_linter_hooks/clang_tidy.py` | clang-tidy wrapper (`--compile-commands`, `--jobs`, `--fix`, error hints) |
 | `.pre-commit-hooks.yaml` | Hook metadata for pre-commit framework |
 | `testing/` | Test fixtures (`main.c`, `good.c`, `.clang-format`, `.clang-tidy`, CMakeLists) |
-| `examples/` | Example configs (CMake, large-project scoping) |
+| `examples/` | Example configs (CMake, Meson, large-project scoping) |
 
 ## Development
 
