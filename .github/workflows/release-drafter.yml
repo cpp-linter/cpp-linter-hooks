@@ -18,21 +18,27 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Generate release notes header
         run: |
-          echo "## 💡 Default Clang Tool Versions" > release_notes.md
-          echo "" >> release_notes.md
-          echo "Versions are resolved dynamically from PyPI at hook runtime, always using the latest stable release by default. " >> release_notes.md
-          echo "You can pin a specific version by adding the \`--version\` argument under \`args\` in your pre-commit config." >> release_notes.md
-          echo "See [Custom Clang Tool Version](https://github.com/cpp-linter/cpp-linter-hooks?tab=readme-ov-file#custom-clang-tool-version) for details." >> release_notes.md
-          echo "" >> release_notes.md
+          {
+            echo "## 💡 Default Clang Tool Versions"
+            echo ""
+            echo "Versions are resolved dynamically from PyPI at hook runtime, always using the latest stable release by default. "
+            echo "You can pin a specific version by adding the \`--version\` argument under \`args\` in your pre-commit config."
+            echo "See [Custom Clang Tool Version](https://github.com/cpp-linter/cpp-linter-hooks?tab=readme-ov-file#custom-clang-tool-version) for details."
+            echo ""
+          } > release_notes.md
           cat release_notes.md
 
           # Export release notes content to env variable for Release Drafter
-          echo "RELEASE_BODY<<EOF" >> $GITHUB_ENV
-          cat release_notes.md >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          {
+            echo "RELEASE_BODY<<EOF"
+            cat release_notes.md
+            echo "EOF"
+          } >> "$GITHUB_ENV"
 
       # Draft your next Release notes as Pull Requests are merged into the default branch
       - uses: release-drafter/release-drafter@34d80673e067bdc0c24568d3af899c216adcfaa9 # v7.7.0

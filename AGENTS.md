@@ -23,7 +23,7 @@ A pre-commit hook repo that auto-installs and runs `clang-format` and `clang-tid
 
 | File | Purpose |
 |------|---------|
-| `pyproject.toml` | Build config, deps (`pip>=26.1`, `tomli`), dev deps, entry points |
+| `pyproject.toml` | Build config, deps (`pip>=26.1`), dev deps, entry points |
 | `cpp_linter_hooks/util.py` | PyPI version resolution + pip install (prefix matching, offline fallback) |
 | `cpp_linter_hooks/clang_format.py` | clang-format wrapper (`--verbose`, `--dry-run`) |
 | `cpp_linter_hooks/clang_tidy.py` | clang-tidy wrapper (`--compile-commands`, `--jobs`, `--fix`, error hints) |

@@ -1,3 +1,5 @@
+import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import patch
 
@@ -167,3 +169,151 @@ def test_main_prints_failure_output(monkeypatch, capsys):
 
     assert main() == 1
     assert capsys.readouterr().out == "formatting failed\n"
+
+
+# --- offline tests: tool resolution and the clang-format process are mocked ---
+
+
+@pytest.fixture
+def mock_clang_format():
+    """Mock tool resolution and the clang-format process."""
+    with (
+        patch(
+            "cpp_linter_hooks.clang_format.resolve_install_with_diagnostics",
+            return_value=(None, None),
+        ) as mock_resolve,
+        patch("cpp_linter_hooks.clang_format.subprocess.run") as mock_run,
+    ):
+        mock_run.return_value = subprocess.CompletedProcess(
+            args=[], returncode=0, stdout="", stderr=""
+        )
+        yield mock_resolve, mock_run
+
+
+def test_run_clang_format_formats_files_in_place(mock_clang_format):
+    mock_resolve, mock_run = mock_clang_format
+
+    assert run_clang_format(["--style=Google", "a.cpp", "b.cpp"]) == (0, "")
+
+    mock_resolve.assert_called_once_with("clang-format", None, False)
+    mock_run.assert_called_once_with(
+        ["clang-format", "-i", "--style=Google", "a.cpp", "b.cpp"],
+        capture_output=True,
+        encoding="utf-8",
+        check=False,
+    )
+
+
+@pytest.mark.parametrize(
+    ("args", "expected_command"),
+    (
+        (
+            ["--dry-run", "a.cpp"],
+            ["clang-format", "-i", "--dry-run", "a.cpp", "--Werror"],
+        ),
+        (
+            ["--dry-run", "--Werror", "a.cpp"],
+            ["clang-format", "-i", "--dry-run", "--Werror", "a.cpp"],
+        ),
+        (["--Werror", "a.cpp"], ["clang-format", "-i", "--Werror", "a.cpp"]),
+        (["a.cpp"], ["clang-format", "-i", "a.cpp"]),
+    ),
+)
+def test_run_clang_format_adds_werror_only_for_dry_run(
+    mock_clang_format, args, expected_command
+):
+    _, mock_run = mock_clang_format
+
+    run_clang_format(args)
+
+    assert mock_run.call_args.args[0] == expected_command
+
+
+def test_run_clang_format_combines_stdout_and_stderr(mock_clang_format):
+    _, mock_run = mock_clang_format
+    mock_run.return_value = subprocess.CompletedProcess(
+        args=[], returncode=1, stdout="a.cpp needs formatting\n", stderr="error: x\n"
+    )
+
+    assert run_clang_format(["--dry-run", "a.cpp"]) == (
+        1,
+        "a.cpp needs formatting\nerror: x\n",
+    )
+
+
+def test_run_clang_format_handles_missing_streams(mock_clang_format):
+    _, mock_run = mock_clang_format
+    mock_run.return_value = subprocess.CompletedProcess(
+        args=[], returncode=0, stdout=None, stderr=None
+    )
+
+    assert run_clang_format(["a.cpp"]) == (0, "")
+
+
+def test_run_clang_format_reports_missing_executable(mock_clang_format):
+    _, mock_run = mock_clang_format
+    mock_run.side_effect = FileNotFoundError(
+        2, "No such file or directory", "clang-format"
+    )
+
+    assert run_clang_format(["a.cpp"]) == (
+        1,
+        "[Errno 2] No such file or directory: 'clang-format'",
+    )
+
+
+def test_run_clang_format_verbose_prints_command_details(mock_clang_format, capsys):
+    _, mock_run = mock_clang_format
+    mock_run.return_value = subprocess.CompletedProcess(
+        args=[], returncode=1, stdout="", stderr="Invalid value for -style\n"
+    )
+
+    ret, output = run_clang_format(["-v", "--style=Bogus", "a.cpp"])
+
+    assert (ret, output) == (1, "Invalid value for -style\n")
+    assert mock_run.call_args.args[0] == [
+        "clang-format",
+        "-i",
+        "--verbose",
+        "--style=Bogus",
+        "a.cpp",
+    ]
+    stderr = capsys.readouterr().err
+    assert "Command executed: clang-format -i --verbose --style=Bogus a.cpp" in stderr
+    assert "Exit code: 1" in stderr
+    assert "Output: Invalid value for -style" in stderr
+
+
+def test_run_clang_format_verbose_omits_empty_output(mock_clang_format, capsys):
+    run_clang_format(["--verbose", "a.cpp"])
+
+    stderr = capsys.readouterr().err
+    assert "Exit code: 0" in stderr
+    assert "Output:" not in stderr
+
+
+def test_main_reads_arguments_from_command_line(mock_clang_format, monkeypatch, capsys):
+    mock_resolve, mock_run = mock_clang_format
+    monkeypatch.setattr(
+        sys, "argv", ["clang-format-hook", "--version=21", "--style=file", "a.cpp"]
+    )
+
+    assert main() == 0
+
+    mock_resolve.assert_called_once_with("clang-format", "21", False)
+    assert mock_run.call_args.args[0] == [
+        "clang-format",
+        "-i",
+        "--style=file",
+        "a.cpp",
+    ]
+    assert capsys.readouterr().out == ""
+
+
+def test_main_does_not_print_blank_failure_output(monkeypatch, capsys):
+    monkeypatch.setattr(
+        "cpp_linter_hooks.clang_format.run_clang_format", lambda: (1, " \n")
+    )
+
+    assert main() == 1
+    assert capsys.readouterr().out == ""

@@ -2,11 +2,16 @@ name: Upload Python Package
 
 on:
   release:
-    branches: [main]
     types: [published]
   workflow_dispatch:
 
+permissions: {}
+
 jobs:
   deploy:
+    permissions:
+      contents: read
+      id-token: write # trusted signing of build provenance attestations
+      attestations: write
     uses: cpp-linter/.github/.github/workflows/py-publish.yml@main
     secrets: inherit
