@@ -197,9 +197,10 @@ To disable auto-detection (e.g. in a monorepo where auto-detect might pick the w
 
 ### Examples
 
-Two self-contained templates plus quick snippets for other common setups.
+Three self-contained templates plus quick snippets for other common setups.
 
 - [CMake minimal config](https://github.com/cpp-linter/cpp-linter-hooks/tree/main/examples/cmake)
+- [Meson minimal config](https://github.com/cpp-linter/cpp-linter-hooks/tree/main/examples/meson)
 - [Large project `files:` regex](https://github.com/cpp-linter/cpp-linter-hooks/tree/main/examples/large-project) — scoping hooks for speed
 - [Quick snippets](https://github.com/cpp-linter/cpp-linter-hooks/blob/main/examples/README.md) — Meson, clang-format-only, monorepo, CI, `compile_commands.json`
 
