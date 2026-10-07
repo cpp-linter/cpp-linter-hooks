@@ -301,6 +301,13 @@ These organizations run cpp-linter-hooks on their default branch:
 
 The [showcase](https://cpp-linter.github.io/showcase/) lists more projects that use cpp-linter tools.
 
+## Sponsors
+
+cpp-linter is maintained by two volunteers. [Sponsor the project](https://cpp-linter.github.io/sponsor/)
+through [GitHub Sponsors](https://github.com/sponsors/cpp-linter) or
+[Open Collective](https://opencollective.com/cpp-linter). Silver and Gold sponsors get their logo
+here.
+
 ## Contributing
 
 See the [contributing guide](https://github.com/cpp-linter/cpp-linter-hooks/blob/main/CONTRIBUTING.md) and [open an issue](https://github.com/cpp-linter/cpp-linter-hooks/issues) for bugs and feature requests.
