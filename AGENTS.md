@@ -43,7 +43,7 @@ bash testing/run.sh    # Integration tests (full pre-commit pipeline)
 ## Core Patterns
 
 - **Version resolution**: Dynamic from PyPI at runtime. No hardcoded version lists. Prefix match supported (`--version=20` → `20.1.8`).
-- **Return values**: All hooks return `Tuple[int, str]` — `(0, "")` success, `(1, output)` failure, `(-1, output)` dry-run.
+- **Return values**: All hooks return `tuple[int, str]` — `(retval, output)`, where `retval` is the tool's exit code (`0` on success, non-zero on failure; `--dry-run` auto-adds `--Werror` so formatting issues fail).
 - **clang-tidy compile DB**: Auto-detected from `build/`, `out/`, `cmake-build-debug/`, `_build/`. Override with `--compile-commands=<dir>`, disable with `--no-compile-commands`.
 - **clang-tidy parallel**: `--jobs=N` runs per-file in parallel. Forced serial when `--export-fixes`, `-fix`, or `-fix-errors` is used.
 
