@@ -48,7 +48,7 @@ leave it out if you only run clang-tidy in CI, for example with
 - `--version=21` installs the newest 21.x wheel, and `--version=21.1.8` pins an exact release.
   clang-tidy wheels are released separately from clang-format wheels and skip some releases, so
   give clang-tidy the major version.
-- clang-format wheels cover LLVM 6 to 23 and clang-tidy wheels LLVM 13 to 22. For a version without
+- clang-format wheels cover LLVM 6 to 23 and clang-tidy wheels LLVM 13 to 23. For a version without
   a wheel, the hook fails and lists some of the versions that exist.
 - The hook looks the version up on pypi.org every time it runs. Without network access it fails
   when `--version` is set, and otherwise uses the clang-format or clang-tidy already installed.
