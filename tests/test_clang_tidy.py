@@ -1048,10 +1048,14 @@ def test_run_joins_split_checks_and_explains_why(mock_resolve):
     assert output.startswith("a.cpp:1:1: warning: x [bugprone-y]\n\nNote: YAML split")
 
 
-def test_run_clang_tidy_with_split_checks_runs_the_real_tool():
+def test_run_clang_tidy_with_split_checks_runs_the_real_tool(tmp_path):
     """End to end: the pieces YAML split off are not treated as files."""
+    # No #include, so the result does not depend on system headers being found.
+    source = tmp_path / "braces.cpp"
+    source.write_text("int f(int x) {\n  if (x)\n    return 1;\n  return 0;\n}\n")
+
     ret, output = run_clang_tidy(
-        ["--checks=-*", "readability-braces-*", "testing/main.c"]
+        ["--no-compile-commands", "--checks=-*", "readability-braces-*", str(source)]
     )
 
     assert ret == 1
