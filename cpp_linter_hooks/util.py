@@ -6,9 +6,11 @@ import re
 import shutil
 import subprocess
 import sys
+import sysconfig
 import urllib.error
 import urllib.request
 from functools import lru_cache
+from importlib import metadata
 from pathlib import Path
 
 LOG = logging.getLogger(__name__)
@@ -147,6 +149,37 @@ def _is_version_installed(tool: str, version: str) -> Path | None:
     return None
 
 
+def _installed_wheel_version(tool: str) -> str | None:
+    """Return the version of the *tool* wheel installed in this Python environment.
+
+    pre-commit installs ``additional_dependencies`` (and every wheel this hook
+    installed on an earlier run) into the hook's own environment, so this
+    lookup needs neither the network nor a subprocess.
+    """
+    try:
+        return metadata.version(tool)
+    except metadata.PackageNotFoundError:
+        return None
+
+
+def _version_satisfies(installed: str, requested: str | None) -> bool:
+    """Return whether *installed* matches ``--version`` (exact or prefix)."""
+    if requested is None:
+        return True
+    return installed == requested or installed.startswith(f"{requested}.")
+
+
+def _find_installed_wheel(tool: str, version: str | None) -> tuple[Path, str] | None:
+    """Return (path, version) of an installed wheel that satisfies *version*."""
+    installed = _installed_wheel_version(tool)
+    if installed is None or not _version_satisfies(installed, version):
+        return None
+    path = shutil.which(tool, path=sysconfig.get_path("scripts")) or shutil.which(tool)
+    if path is None:
+        return None
+    return Path(path), installed
+
+
 def _install_tool(tool: str, version: str) -> Path | None:
     """Install a tool using pip, logging output on failure."""
     result = subprocess.run(
@@ -168,9 +201,22 @@ def resolve_install_with_diagnostics(
 ) -> tuple[Path | None, str | None]:
     """Resolve/install a tool, returning a user-facing error for bad versions.
 
-    Tool versions are resolved dynamically from PyPI — no hardcoded
+    A wheel already installed in the hook's environment is used as is when it
+    matches ``--version`` (or when no version was given), so pinned
+    ``additional_dependencies`` are kept and the hook works offline.
+    Otherwise the version is resolved dynamically from PyPI — no hardcoded
     list is maintained in-tree.
     """
+    installed_wheel = _find_installed_wheel(tool, version)
+    if installed_wheel is not None:
+        path, installed = installed_wheel
+        if verbose:
+            print(
+                f"Using installed {tool} Python wheel version {installed}",
+                file=sys.stderr,
+            )
+        return path, None
+
     user_version, error = _resolve_version_from_pypi(tool, version)
     if error is not None:
         return None, error

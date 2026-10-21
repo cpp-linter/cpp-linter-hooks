@@ -40,18 +40,39 @@ leave it out if you only run clang-tidy in CI, for example with
 
 > [!TIP]
 > The `rev` tag (e.g. `v1.6.1`) is the **project** version, not the clang tool version. Without
-> `--version`, each hook installs the newest clang-format or clang-tidy wheel on PyPI at the time it
-> runs, so the tool version can change without any change to your configuration, and the two hooks
-> can run different LLVM versions. For production use, always pin the tool version explicitly
-> with `--version`.
+> `--version`, each hook installs the newest clang-format or clang-tidy wheel on PyPI the first time
+> it runs and keeps it until pre-commit rebuilds the hook environment, so two machines can run
+> different LLVM versions with the same configuration. For production use, always pin the tool
+> version explicitly with `--version`.
 
 - `--version=21` installs the newest 21.x wheel, and `--version=21.1.8` pins an exact release.
   clang-tidy wheels are released separately from clang-format wheels and skip some releases, so
   give clang-tidy the major version.
 - clang-format wheels cover LLVM 6 to 23 and clang-tidy wheels LLVM 13 to 23. For a version without
   a wheel, the hook fails and lists some of the versions that exist.
-- The hook looks the version up on pypi.org every time it runs. Without network access it fails
-  when `--version` is set, and otherwise uses the clang-format or clang-tidy already installed.
+- When the hook environment already has a wheel that matches `--version` (or any wheel, without
+  `--version`), the hook uses it and does not contact pypi.org. Otherwise it looks the version up
+  on pypi.org and installs it, so that run needs network access.
+
+### Offline and pre-commit.ci
+
+To install the clang tool together with the hook, list the exact wheel in
+`additional_dependencies`:
+
+```yaml
+      - id: clang-format
+        args: [--style=file, --version=21]
+        additional_dependencies: [clang-format==21.1.8]
+      - id: clang-tidy
+        args: [--version=21]
+        additional_dependencies: [clang-tidy==21.1.6]
+```
+
+pre-commit installs `additional_dependencies` when it creates the hook environment (for example
+with `pre-commit install-hooks`), so the hooks need no network access when they run. Use this on
+[pre-commit.ci](https://pre-commit.ci/), which runs hooks without network access, and behind a
+firewall. The pinned wheel must match `--version`; otherwise the hook installs the `--version` one
+at run time.
 
 ### clang-format
 
@@ -115,7 +136,9 @@ int main() {for (;;) break; printf("Hello world!\n");return 0;}
 ### clang-tidy
 
 To set the checks in `args` instead of your `.clang-tidy` file, quote the whole option: inside
-`[...]`, YAML splits an unquoted value at each comma.
+`[...]`, YAML splits an unquoted value at each comma. When that happens, the hook joins the pieces
+again and adds a note on how to fix the configuration. `--checks` takes check names, not a file:
+clang-tidy reads the nearest `.clang-tidy` file by itself, so `--checks=.clang-tidy` does nothing.
 
 ```yaml
       - id: clang-tidy
@@ -129,15 +152,16 @@ clang-tidy...............................................................Failed
 - hook id: clang-tidy
 - exit code: 1
 
-522 warnings generated.
-Suppressed 521 warnings (521 in non-user code).
-Use -header-filter=.* to display errors from all non-system headers. Use -system-headers to display errors from system headers as well.
 /home/runner/work/cpp-linter-hooks/cpp-linter-hooks/testing/main.c:4:13: warning: statement should be inside braces [readability-braces-around-statements]
     for (;;)
             ^
              {
 
 ```
+
+The hook passes `-quiet` to clang-tidy and drops status lines such as `522 warnings generated.`,
+which count warnings in system headers that clang-tidy does not show. Add `--verbose` to `args` to
+keep clang-tidy's full output.
 
 > [!NOTE]
 > Add `--fix` to `args` to automatically apply clang-tidy fixes in place (equivalent to
@@ -253,7 +277,8 @@ This approach ensures that only modified files are checked, further speeding up 
 > [!NOTE]
 > Use `-v` or `--verbose` in `args` to enable verbose output.
 > For `clang-format`, it shows the list of processed files.
-> For `clang-tidy`, it prints which `compile_commands.json` is being used (when auto-detected or explicitly set).
+> For `clang-tidy`, it prints which `compile_commands.json` is being used (when auto-detected or explicitly set)
+> and keeps clang-tidy's full output, without `-quiet`.
 > pre-commit shows this output only when the hook fails; add `verbose: true` to the hook to see it on every run.
 
 ```yaml
