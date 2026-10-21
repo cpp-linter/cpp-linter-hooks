@@ -42,7 +42,7 @@ bash testing/run.sh    # Integration tests (full pre-commit pipeline)
 
 ## Core Patterns
 
-- **Version resolution**: A wheel already installed in the hook environment (`importlib.metadata`, e.g. from `additional_dependencies`) is used without network access when it matches `--version` (exact or prefix) or when no `--version` is given. Otherwise the version is resolved dynamically from PyPI at runtime. No hardcoded version lists. Prefix match supported (`--version=20` → `20.1.8`).
+- **Version resolution**: A wheel already installed in the hook environment (found by its `<name>-<version>.dist-info` directory in site-packages, e.g. from `additional_dependencies`, with its executable in the environment's scripts directory) is used without network access when it matches `--version` (exact or prefix) or when no `--version` is given. Otherwise the version is resolved dynamically from PyPI at runtime. No hardcoded version lists. Prefix match supported (`--version=20` → `20.1.8`).
 - **Return values**: All hooks return `tuple[int, str]` — `(retval, output)`, where `retval` is the tool's exit code (`0` on success, non-zero on failure; `--dry-run` auto-adds `--Werror` so formatting issues fail).
 - **clang-tidy compile DB**: Auto-detected from `build/`, `out/`, `cmake-build-debug/`, `_build/`. Override with `--compile-commands=<dir>`, disable with `--no-compile-commands`.
 - **clang-tidy parallel**: `--jobs=N` runs per-file in parallel. Forced serial when `--export-fixes`, `-fix`, or `-fix-errors` is used.

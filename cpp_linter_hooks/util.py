@@ -2,6 +2,7 @@
 
 import json
 import logging
+import os
 import re
 import shutil
 import subprocess
@@ -10,7 +11,6 @@ import sysconfig
 import urllib.error
 import urllib.request
 from functools import lru_cache
-from importlib import metadata
 from pathlib import Path
 
 LOG = logging.getLogger(__name__)
@@ -149,17 +149,35 @@ def _is_version_installed(tool: str, version: str) -> Path | None:
     return None
 
 
+@lru_cache(maxsize=1)
+def _env_paths() -> dict[str, str]:
+    """Return this Python environment's install paths, which never change at runtime."""
+    return sysconfig.get_paths()
+
+
 def _installed_wheel_version(tool: str) -> str | None:
     """Return the version of the *tool* wheel installed in this Python environment.
 
     pre-commit installs ``additional_dependencies`` (and every wheel this hook
-    installed on an earlier run) into the hook's own environment, so this
-    lookup needs neither the network nor a subprocess.
+    installed on an earlier run) into the hook's own environment. The version
+    comes from the wheel's ``<name>-<version>.dist-info`` directory name, which
+    needs neither the network nor a subprocess, and avoids parsing the large
+    METADATA file the way ``importlib.metadata.version`` does.
     """
-    try:
-        return metadata.version(tool)
-    except metadata.PackageNotFoundError:
-        return None
+    prefix = f"{re.sub(r'[-_.]+', '_', tool).lower()}-"
+    suffix = ".dist-info"
+    paths = _env_paths()
+    site_dirs = dict.fromkeys((paths["purelib"], paths["platlib"]))
+    for site_dir in site_dirs:
+        try:
+            names = os.listdir(site_dir)
+        except OSError:
+            continue
+        for name in names:
+            lower = name.lower()
+            if lower.startswith(prefix) and lower.endswith(suffix):
+                return name[len(prefix) : -len(suffix)]
+    return None
 
 
 def _version_satisfies(installed: str, requested: str | None) -> bool:
@@ -171,7 +189,7 @@ def _version_satisfies(installed: str, requested: str | None) -> bool:
 
 def _env_executable(tool: str) -> str | None:
     """Return *tool* from this Python environment's scripts directory, if any."""
-    return shutil.which(tool, path=sysconfig.get_path("scripts"))
+    return shutil.which(tool, path=_env_paths()["scripts"])
 
 
 def _find_installed_wheel(tool: str, version: str | None) -> tuple[Path, str] | None:

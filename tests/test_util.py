@@ -4,14 +4,15 @@ import json
 import logging
 import subprocess
 import sys
+import sysconfig
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-from cpp_linter_hooks import util
 from cpp_linter_hooks.util import (
     _detect_installed_version,
+    _env_paths,
     _find_installed_wheel,
     _get_pypi_versions,
     _install_tool,
@@ -729,16 +730,44 @@ def test_version_satisfies(installed, requested, expected):
     assert _version_satisfies(installed, requested) is expected
 
 
-def test_installed_wheel_version_reads_distribution_metadata():
-    with patch("cpp_linter_hooks.util.metadata.version", return_value="21.1.6") as m:
+def _paths(directory) -> dict[str, str]:
+    """Environment paths that all point at one directory."""
+    return dict.fromkeys(("purelib", "platlib", "scripts"), str(directory))
+
+
+def test_env_paths_match_sysconfig():
+    _env_paths.cache_clear()
+    assert _env_paths() == sysconfig.get_paths()
+
+
+def test_installed_wheel_version_reads_dist_info_name(tmp_path):
+    for name in (
+        "clang_tidy_extra-1.0.dist-info",
+        "clang_format-22.1.8.dist-info",
+        "clang_tidy",
+        "Clang_Tidy-21.1.6.dist-info",
+    ):
+        (tmp_path / name).mkdir()
+    with patch("cpp_linter_hooks.util._env_paths", return_value=_paths(tmp_path)):
         assert _installed_wheel_version("clang-tidy") == "21.1.6"
-    m.assert_called_once_with("clang-tidy")
+        assert _installed_wheel_version("clang-format") == "22.1.8"
 
 
-def test_installed_wheel_version_missing_distribution():
+def test_installed_wheel_version_checks_platlib(tmp_path):
+    purelib, platlib = tmp_path / "purelib", tmp_path / "platlib"
+    purelib.mkdir()
+    (platlib / "clang_tidy-21.1.6.dist-info").mkdir(parents=True)
+    paths = {"purelib": str(purelib), "platlib": str(platlib), "scripts": ""}
+    with patch("cpp_linter_hooks.util._env_paths", return_value=paths):
+        assert _installed_wheel_version("clang-tidy") == "21.1.6"
+
+
+def test_installed_wheel_version_missing_distribution(tmp_path):
+    (tmp_path / "clang_format-22.1.8.dist-info").mkdir()
+    with patch("cpp_linter_hooks.util._env_paths", return_value=_paths(tmp_path)):
+        assert _installed_wheel_version("clang-tidy") is None
     with patch(
-        "cpp_linter_hooks.util.metadata.version",
-        side_effect=util.metadata.PackageNotFoundError("clang-tidy"),
+        "cpp_linter_hooks.util._env_paths", return_value=_paths(tmp_path / "missing")
     ):
         assert _installed_wheel_version("clang-tidy") is None
 
@@ -746,7 +775,7 @@ def test_installed_wheel_version_missing_distribution():
 def test_find_installed_wheel_prefers_environment_scripts_dir():
     with (
         patch("cpp_linter_hooks.util._installed_wheel_version", return_value="21.1.6"),
-        patch("cpp_linter_hooks.util.sysconfig.get_path", return_value="/venv/bin"),
+        patch("cpp_linter_hooks.util._env_paths", return_value=_paths("/venv/bin")),
         patch("shutil.which", return_value="/venv/bin/clang-tidy") as mock_which,
     ):
         assert _find_installed_wheel("clang-tidy", "21") == (
@@ -760,7 +789,7 @@ def test_find_installed_wheel_ignores_other_tools_on_path():
     """A clang-tidy elsewhere on PATH may be another version than the wheel."""
     with (
         patch("cpp_linter_hooks.util._installed_wheel_version", return_value="21.1.6"),
-        patch("cpp_linter_hooks.util.sysconfig.get_path", return_value="/venv/bin"),
+        patch("cpp_linter_hooks.util._env_paths", return_value=_paths("/venv/bin")),
         patch(
             "shutil.which",
             side_effect=lambda tool, path=None: (
@@ -775,7 +804,7 @@ def test_install_tool_prefers_environment_scripts_dir():
     completed = subprocess.CompletedProcess(args=[], returncode=0)
     with (
         patch("subprocess.run", return_value=completed),
-        patch("cpp_linter_hooks.util.sysconfig.get_path", return_value="/venv/bin"),
+        patch("cpp_linter_hooks.util._env_paths", return_value=_paths("/venv/bin")),
         patch(
             "shutil.which",
             side_effect=lambda tool, path=None: (
