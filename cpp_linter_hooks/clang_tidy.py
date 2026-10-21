@@ -1,5 +1,6 @@
 """Pre-commit hook wrapper for clang-tidy."""
 
+import re
 import subprocess
 import sys
 from argparse import ArgumentParser, ArgumentTypeError
@@ -41,6 +42,64 @@ Windows/MSVC clang-tidy hints:
   - Make sure the Windows SDK and MSVC include paths are visible in that shell.
   - For MSVC-style compile databases, try --extra-arg-before=--driver-mode=cl.
   - If using CMake, generate compile_commands.json from the same toolchain."""
+
+
+# Status lines clang-tidy prints around the diagnostics. They say nothing about
+# the files being checked (e.g. "537 warnings generated." comes from system
+# headers), so the hook drops them unless --verbose is given. clang-tidy 18 and
+# older print the "generated" lines even with -quiet.
+NOISE_LINE_PATTERNS = (
+    re.compile(r"^\d+ (?:warning|error)s?(?: and \d+ errors?)? generated\.$"),
+    re.compile(r"^Suppressed \d+ warnings? \(.*\)\.$"),
+    re.compile(
+        r"^Use -header-filter=.* to display errors from all non-system headers\."
+    ),
+    re.compile(r"^\[\d+/\d+\] Processing file .*\.$"),
+)
+
+# Options whose value is a comma-separated list of check globs.
+CHECK_GLOB_OPTIONS = (
+    "--checks=",
+    "-checks=",
+    "--warnings-as-errors=",
+    "-warnings-as-errors=",
+)
+CHECK_MODULES = (
+    "abseil",
+    "altera",
+    "android",
+    "boost",
+    "bugprone",
+    "cert",
+    "clang-analyzer",
+    "clang-diagnostic",
+    "concurrency",
+    "cppcoreguidelines",
+    "darwin",
+    "fuchsia",
+    "google",
+    "hicpp",
+    "linuxkernel",
+    "llvm",
+    "llvmlibc",
+    "misc",
+    "modernize",
+    "mpi",
+    "objc",
+    "openmp",
+    "performance",
+    "portability",
+    "readability",
+    "zircon",
+)
+# A single check glob such as "bugprone-*", "-modernize-use-trailing-return-type"
+# or "*", optionally carrying a stray YAML quote.
+CHECK_GLOB_FRAGMENT = re.compile(
+    r"""^['"]?-?(?:\*[\w.*-]*|(?:"""
+    + "|".join(re.escape(module) for module in CHECK_MODULES)
+    + r""")-[\w.*-]*)['"]?$"""
+)
+QUOTES = ("'", '"')
 
 
 def _positive_int(value: str) -> int:
@@ -210,6 +269,100 @@ def _exec_clang_tidy(command) -> tuple[int, str]:
         return 1, str(e)
 
 
+def _strip_noise(output: str) -> str:
+    """Drop clang-tidy status lines that do not point at a problem."""
+    lines = output.splitlines()
+    kept = [
+        line
+        for line in lines
+        if not any(pattern.match(line) for pattern in NOISE_LINE_PATTERNS)
+    ]
+    if len(kept) == len(lines):
+        return output
+    return "\n".join(kept)
+
+
+def _has_quiet_option(args: list[str]) -> bool:
+    """Return whether the user already set clang-tidy's -quiet option."""
+    return any(
+        arg in ("-quiet", "--quiet") or arg.startswith(("-quiet=", "--quiet="))
+        for arg in args
+    )
+
+
+def _unquote(value: str) -> str:
+    """Remove one pair of matching quotes around a value."""
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in QUOTES:
+        return value[1:-1]
+    return value
+
+
+def _looks_like_config_file(value: str) -> bool:
+    """Return whether a --checks value names a file instead of check globs."""
+    name = Path(value).name
+    return name.startswith(".") or name.endswith((".yaml", ".yml")) or "/" in value
+
+
+def _repair_check_args(args: list[str]) -> tuple[list[str], list[str]]:
+    """Fix check lists that YAML mangled in .pre-commit-config.yaml.
+
+    Returns (args, notes). Inside ``args: [...]`` YAML splits an unquoted
+    ``--checks=-*,bugprone-*`` at each comma, and clang-tidy would then treat
+    ``bugprone-*`` as a source file. Quotes written inside the value reach
+    clang-tidy as part of the glob. Both are repaired here; the notes tell the
+    user how to fix the configuration.
+    """
+    repaired: list[str] = []
+    notes: list[str] = []
+    idx = 0
+    while idx < len(args):
+        arg = args[idx]
+        idx += 1
+        option = next((o for o in CHECK_GLOB_OPTIONS if arg.startswith(o)), None)
+        if option is None:
+            repaired.append(arg)
+            continue
+
+        fragments = [arg[len(option) :]]
+        while idx < len(args) and CHECK_GLOB_FRAGMENT.match(args[idx]):
+            fragments.append(args[idx])
+            idx += 1
+        value = ",".join(fragments)
+        unquoted = _unquote(value)
+        fixed = f"{option}{unquoted}"
+        repaired.append(fixed)
+
+        if len(fragments) > 1:
+            notes.append(
+                f"Note: YAML split {option}{value} at the commas; the hook joined "
+                "the pieces again. Quote the whole option in "
+                f'.pre-commit-config.yaml: args: ["{fixed}"]'
+            )
+        elif unquoted != value:
+            notes.append(
+                f"Note: removed the quotes inside {arg}; clang-tidy would read them "
+                "as part of the check names. Quote the whole option instead: "
+                f'args: ["{fixed}"]'
+            )
+
+        if option.endswith("checks=") and _looks_like_config_file(unquoted):
+            notes.append(
+                f"Note: {fixed} has no effect: --checks takes check names, not a "
+                "file. clang-tidy already reads the nearest .clang-tidy file for "
+                "each source file, so remove this option, or use "
+                "--config-file=<path> to pick a specific file."
+            )
+    return repaired, notes
+
+
+def _append_notes(output: str, notes: list[str]) -> str:
+    """Append configuration notes after clang-tidy's output."""
+    if not notes:
+        return output
+    separator = "\n\n" if output.rstrip("\n") else ""
+    return output.rstrip("\n") + separator + "\n".join(notes)
+
+
 def _looks_like_source_file(path: str) -> bool:
     """Return whether a path has a recognized C or C++ source suffix."""
     return Path(path).suffix.lower() in SOURCE_FILE_SUFFIXES
@@ -251,11 +404,13 @@ def _exec_parallel_clang_tidy(
 def run_clang_tidy(args=None) -> tuple[int, str]:
     """Run clang-tidy with hook-specific argument handling."""
     hook_args, other_args = parser.parse_known_args(args)
-    _, version_error = resolve_install_with_diagnostics(
+    tool_path, version_error = resolve_install_with_diagnostics(
         "clang-tidy", hook_args.version, hook_args.verbose
     )
     if version_error is not None:
         return 1, version_error
+    # Run the executable that was resolved, not whatever comes first on PATH.
+    executable = str(tool_path) if tool_path else "clang-tidy"
 
     compile_db_path, error = _resolve_compile_db(hook_args, other_args)
     if error is not None:
@@ -273,6 +428,12 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
             print(_compile_commands_not_found_message(), file=sys.stderr)
 
     clang_tidy_args, source_files = _split_source_files(other_args)
+    clang_tidy_args, notes = _repair_check_args(clang_tidy_args)
+
+    # -quiet hides clang-tidy's statistics about suppressed warnings; --verbose
+    # keeps clang-tidy's full output.
+    if not hook_args.verbose and not _has_quiet_option(clang_tidy_args):
+        clang_tidy_args.insert(0, "-quiet")
 
     if (
         hook_args.fix
@@ -293,11 +454,15 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
     )
 
     if hook_args.jobs > 1 and len(source_files) > 1 and not unsafe_parallel:
-        return _exec_parallel_clang_tidy(
-            ["clang-tidy"] + clang_tidy_args, source_files, hook_args.jobs
+        retval, output = _exec_parallel_clang_tidy(
+            [executable] + clang_tidy_args, source_files, hook_args.jobs
         )
+    else:
+        retval, output = _exec_clang_tidy([executable] + clang_tidy_args + source_files)
 
-    return _exec_clang_tidy(["clang-tidy"] + clang_tidy_args + source_files)
+    if not hook_args.verbose:
+        output = _strip_noise(output)
+    return retval, _append_notes(output, notes)
 
 
 def main() -> int:

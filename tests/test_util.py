@@ -4,6 +4,7 @@ import json
 import logging
 import subprocess
 import sys
+import sysconfig
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,10 +12,14 @@ import pytest
 
 from cpp_linter_hooks.util import (
     _detect_installed_version,
+    _env_paths,
+    _find_installed_wheel,
     _get_pypi_versions,
     _install_tool,
+    _installed_wheel_version,
     _is_version_installed,
     _resolve_version_from_pypi,
+    _version_satisfies,
     resolve_install,
     resolve_install_with_diagnostics,
 )
@@ -23,6 +28,17 @@ from cpp_linter_hooks.util import (
 
 MOCK_PYPI_FORMAT = ("22.1.5", ["22.1.5", "22.1.4", "20.1.8", "20.1.7", "18.1.8"])
 MOCK_PYPI_TIDY = ("21.1.6", ["21.1.6", "21.1.1", "20.1.0", "19.1.0.1", "18.1.8"])
+
+
+@pytest.fixture(autouse=True)
+def no_installed_wheel():
+    """Hide wheels installed in the test environment from the resolver.
+
+    Tests that need an installed wheel patch ``_installed_wheel_version`` or
+    ``_find_installed_wheel`` themselves.
+    """
+    with patch("cpp_linter_hooks.util._installed_wheel_version", return_value=None):
+        yield
 
 
 def _pypi_side_effect(tool: str):
@@ -689,3 +705,210 @@ def test_resolve_version_from_pypi_prefix_stops_at_component_boundary(
         return_value=(versions[0], versions),
     ):
         assert _resolve_version_from_pypi("clang-tidy", user_input) == (expected, None)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Installed wheel in the hook environment (additional_dependencies, offline)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+@pytest.mark.parametrize(
+    ("installed", "requested", "expected"),
+    [
+        ("21.1.6", None, True),
+        ("21.1.6", "21", True),
+        ("21.1.6", "21.1", True),
+        ("21.1.6", "21.1.6", True),
+        ("19.1.0.1", "19.1.0", True),
+        ("21.1.6", "2", False),
+        ("21.1.6", "21.1.1", False),
+        ("21.10.0", "21.1", False),
+        ("23.1.3", "21", False),
+    ],
+)
+def test_version_satisfies(installed, requested, expected):
+    assert _version_satisfies(installed, requested) is expected
+
+
+def _paths(directory) -> dict[str, str]:
+    """Environment paths that all point at one directory."""
+    return dict.fromkeys(("purelib", "platlib", "scripts"), str(directory))
+
+
+def test_env_paths_match_sysconfig():
+    _env_paths.cache_clear()
+    assert _env_paths() == sysconfig.get_paths()
+
+
+def test_installed_wheel_version_reads_dist_info_name(tmp_path):
+    for name in (
+        "clang_tidy_extra-1.0.dist-info",
+        "clang_format-22.1.8.dist-info",
+        "clang_tidy",
+        "Clang_Tidy-21.1.6.dist-info",
+    ):
+        (tmp_path / name).mkdir()
+    with patch("cpp_linter_hooks.util._env_paths", return_value=_paths(tmp_path)):
+        assert _installed_wheel_version("clang-tidy") == "21.1.6"
+        assert _installed_wheel_version("clang-format") == "22.1.8"
+
+
+def test_installed_wheel_version_checks_platlib(tmp_path):
+    purelib, platlib = tmp_path / "purelib", tmp_path / "platlib"
+    purelib.mkdir()
+    (platlib / "clang_tidy-21.1.6.dist-info").mkdir(parents=True)
+    paths = {"purelib": str(purelib), "platlib": str(platlib), "scripts": ""}
+    with patch("cpp_linter_hooks.util._env_paths", return_value=paths):
+        assert _installed_wheel_version("clang-tidy") == "21.1.6"
+
+
+def test_installed_wheel_version_missing_distribution(tmp_path):
+    (tmp_path / "clang_format-22.1.8.dist-info").mkdir()
+    with patch("cpp_linter_hooks.util._env_paths", return_value=_paths(tmp_path)):
+        assert _installed_wheel_version("clang-tidy") is None
+    with patch(
+        "cpp_linter_hooks.util._env_paths", return_value=_paths(tmp_path / "missing")
+    ):
+        assert _installed_wheel_version("clang-tidy") is None
+
+
+def test_find_installed_wheel_prefers_environment_scripts_dir():
+    with (
+        patch("cpp_linter_hooks.util._installed_wheel_version", return_value="21.1.6"),
+        patch("cpp_linter_hooks.util._env_paths", return_value=_paths("/venv/bin")),
+        patch("shutil.which", return_value="/venv/bin/clang-tidy") as mock_which,
+    ):
+        assert _find_installed_wheel("clang-tidy", "21") == (
+            Path("/venv/bin/clang-tidy"),
+            "21.1.6",
+        )
+    mock_which.assert_called_once_with("clang-tidy", path="/venv/bin")
+
+
+def test_find_installed_wheel_ignores_other_tools_on_path():
+    """A clang-tidy elsewhere on PATH may be another version than the wheel."""
+    with (
+        patch("cpp_linter_hooks.util._installed_wheel_version", return_value="21.1.6"),
+        patch("cpp_linter_hooks.util._env_paths", return_value=_paths("/venv/bin")),
+        patch(
+            "shutil.which",
+            side_effect=lambda tool, path=None: (
+                None if path == "/venv/bin" else "/usr/bin/clang-tidy"
+            ),
+        ),
+    ):
+        assert _find_installed_wheel("clang-tidy", None) is None
+
+
+def test_install_tool_prefers_environment_scripts_dir():
+    completed = subprocess.CompletedProcess(args=[], returncode=0)
+    with (
+        patch("subprocess.run", return_value=completed),
+        patch("cpp_linter_hooks.util._env_paths", return_value=_paths("/venv/bin")),
+        patch(
+            "shutil.which",
+            side_effect=lambda tool, path=None: (
+                "/venv/bin/clang-tidy" if path == "/venv/bin" else "/usr/bin/clang-tidy"
+            ),
+        ),
+    ):
+        assert _install_tool("clang-tidy", "21.1.6") == "/venv/bin/clang-tidy"
+
+
+@pytest.mark.parametrize(
+    ("installed", "requested"), [(None, "21"), ("23.1.3", "21"), ("21.1.6", "21.1.1")]
+)
+def test_find_installed_wheel_rejects_missing_or_other_version(installed, requested):
+    with (
+        patch("cpp_linter_hooks.util._installed_wheel_version", return_value=installed),
+        patch("shutil.which", return_value="/venv/bin/clang-tidy"),
+    ):
+        assert _find_installed_wheel("clang-tidy", requested) is None
+
+
+def test_find_installed_wheel_without_executable():
+    with (
+        patch("cpp_linter_hooks.util._installed_wheel_version", return_value="21.1.6"),
+        patch("shutil.which", return_value=None),
+    ):
+        assert _find_installed_wheel("clang-tidy", "21") is None
+
+
+@pytest.mark.parametrize("requested", [None, "21", "21.1.6"])
+def test_resolve_install_uses_matching_wheel_without_pypi(requested):
+    """A matching wheel (e.g. from additional_dependencies) needs no network."""
+    with (
+        patch(
+            "cpp_linter_hooks.util._find_installed_wheel",
+            return_value=(Path("/venv/bin/clang-tidy"), "21.1.6"),
+        ),
+        patch("cpp_linter_hooks.util._get_pypi_versions") as mock_pypi,
+        patch("cpp_linter_hooks.util._install_tool") as mock_install,
+    ):
+        result = resolve_install_with_diagnostics("clang-tidy", requested)
+
+    assert result == (Path("/venv/bin/clang-tidy"), None)
+    mock_pypi.assert_not_called()
+    mock_install.assert_not_called()
+
+
+def test_resolve_install_unpinned_keeps_installed_wheel_when_pypi_is_newer():
+    """Without --version an installed wheel is not upgraded behind the user's back."""
+    with (
+        patch("cpp_linter_hooks.util._installed_wheel_version", return_value="21.1.6"),
+        patch("shutil.which", return_value="/venv/bin/clang-tidy"),
+        patch(
+            "cpp_linter_hooks.util._get_pypi_versions",
+            return_value=("23.1.3", ["23.1.3", "21.1.6"]),
+        ) as mock_pypi,
+        patch("cpp_linter_hooks.util._install_tool") as mock_install,
+    ):
+        path, error = resolve_install_with_diagnostics("clang-tidy", None)
+
+    assert (path, error) == (Path("/venv/bin/clang-tidy"), None)
+    mock_pypi.assert_not_called()
+    mock_install.assert_not_called()
+
+
+def test_resolve_install_offline_with_pinned_installed_wheel():
+    """--version works offline when the hook environment already has the wheel."""
+    with (
+        patch("cpp_linter_hooks.util._installed_wheel_version", return_value="21.1.6"),
+        patch("shutil.which", return_value="/venv/bin/clang-tidy"),
+        patch("urllib.request.urlopen", side_effect=OSError("network down")),
+    ):
+        assert resolve_install_with_diagnostics("clang-tidy", "21") == (
+            Path("/venv/bin/clang-tidy"),
+            None,
+        )
+
+
+def test_resolve_install_other_installed_wheel_resolves_from_pypi():
+    with (
+        patch("cpp_linter_hooks.util._installed_wheel_version", return_value="23.1.3"),
+        patch("shutil.which", return_value=None),
+        patch(
+            "cpp_linter_hooks.util._get_pypi_versions", side_effect=_pypi_side_effect
+        ),
+        patch(
+            "cpp_linter_hooks.util._install_tool",
+            return_value=Path("/venv/bin/clang-tidy"),
+        ) as mock_install,
+    ):
+        result = resolve_install_with_diagnostics("clang-tidy", "21")
+
+    assert result == (Path("/venv/bin/clang-tidy"), None)
+    mock_install.assert_called_once_with("clang-tidy", "21.1.6")
+
+
+def test_resolve_install_verbose_reports_installed_wheel(capsys):
+    with patch(
+        "cpp_linter_hooks.util._find_installed_wheel",
+        return_value=(Path("/venv/bin/clang-format"), "21.1.8"),
+    ):
+        resolve_install_with_diagnostics("clang-format", "21", True)
+
+    assert (
+        "Using installed clang-format Python wheel version 21.1.8"
+        in capsys.readouterr().err
+    )

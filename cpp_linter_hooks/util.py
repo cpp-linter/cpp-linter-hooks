@@ -2,10 +2,12 @@
 
 import json
 import logging
+import os
 import re
 import shutil
 import subprocess
 import sys
+import sysconfig
 import urllib.error
 import urllib.request
 from functools import lru_cache
@@ -147,6 +149,64 @@ def _is_version_installed(tool: str, version: str) -> Path | None:
     return None
 
 
+@lru_cache(maxsize=1)
+def _env_paths() -> dict[str, str]:
+    """Return this Python environment's install paths, which never change at runtime."""
+    return sysconfig.get_paths()
+
+
+def _installed_wheel_version(tool: str) -> str | None:
+    """Return the version of the *tool* wheel installed in this Python environment.
+
+    pre-commit installs ``additional_dependencies`` (and every wheel this hook
+    installed on an earlier run) into the hook's own environment. The version
+    comes from the wheel's ``<name>-<version>.dist-info`` directory name, which
+    needs neither the network nor a subprocess, and avoids parsing the large
+    METADATA file the way ``importlib.metadata.version`` does.
+    """
+    prefix = f"{re.sub(r'[-_.]+', '_', tool).lower()}-"
+    suffix = ".dist-info"
+    paths = _env_paths()
+    site_dirs = dict.fromkeys((paths["purelib"], paths["platlib"]))
+    for site_dir in site_dirs:
+        try:
+            names = os.listdir(site_dir)
+        except OSError:
+            continue
+        for name in names:
+            lower = name.lower()
+            if lower.startswith(prefix) and lower.endswith(suffix):
+                return name[len(prefix) : -len(suffix)]
+    return None
+
+
+def _version_satisfies(installed: str, requested: str | None) -> bool:
+    """Return whether *installed* matches ``--version`` (exact or prefix)."""
+    if requested is None:
+        return True
+    return installed == requested or installed.startswith(f"{requested}.")
+
+
+def _env_executable(tool: str) -> str | None:
+    """Return *tool* from this Python environment's scripts directory, if any."""
+    return shutil.which(tool, path=_env_paths()["scripts"])
+
+
+def _find_installed_wheel(tool: str, version: str | None) -> tuple[Path, str] | None:
+    """Return (path, version) of an installed wheel that satisfies *version*.
+
+    Only the executable the wheel installed into this environment counts: a
+    tool found elsewhere on PATH may be a different version.
+    """
+    installed = _installed_wheel_version(tool)
+    if installed is None or not _version_satisfies(installed, version):
+        return None
+    path = _env_executable(tool)
+    if path is None:
+        return None
+    return Path(path), installed
+
+
 def _install_tool(tool: str, version: str) -> Path | None:
     """Install a tool using pip, logging output on failure."""
     result = subprocess.run(
@@ -156,7 +216,7 @@ def _install_tool(tool: str, version: str) -> Path | None:
         check=False,
     )
     if result.returncode == 0:
-        return shutil.which(tool)
+        return _env_executable(tool) or shutil.which(tool)
     LOG.error("pip failed to install %s %s", tool, version)
     LOG.error(result.stdout)
     LOG.error(result.stderr)
@@ -168,9 +228,22 @@ def resolve_install_with_diagnostics(
 ) -> tuple[Path | None, str | None]:
     """Resolve/install a tool, returning a user-facing error for bad versions.
 
-    Tool versions are resolved dynamically from PyPI — no hardcoded
+    A wheel already installed in the hook's environment is used as is when it
+    matches ``--version`` (or when no version was given), so pinned
+    ``additional_dependencies`` are kept and the hook works offline.
+    Otherwise the version is resolved dynamically from PyPI — no hardcoded
     list is maintained in-tree.
     """
+    installed_wheel = _find_installed_wheel(tool, version)
+    if installed_wheel is not None:
+        path, installed = installed_wheel
+        if verbose:
+            print(
+                f"Using installed {tool} Python wheel version {installed}",
+                file=sys.stderr,
+            )
+        return path, None
+
     user_version, error = _resolve_version_from_pypi(tool, version)
     if error is not None:
         return None, error

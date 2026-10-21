@@ -16,7 +16,9 @@ from cpp_linter_hooks.clang_tidy import (
     _looks_like_compile_db_error,
     _looks_like_msvc_error,
     _positive_int,
+    _repair_check_args,
     _split_source_files,
+    _strip_noise,
     main,
     parser,
     run_clang_tidy,
@@ -369,7 +371,9 @@ def test_jobs_one_keeps_single_invocation():
     ):
         run_clang_tidy(["--jobs=1", "-p", "./build", "a.cpp", "b.cpp"])
 
-    mock_exec.assert_called_once_with(["clang-tidy", "-p", "./build", "a.cpp", "b.cpp"])
+    mock_exec.assert_called_once_with(
+        ["clang-tidy", "-quiet", "-p", "./build", "a.cpp", "b.cpp"]
+    )
 
 
 def test_jobs_parallelizes_source_files_and_preserves_output_order():
@@ -425,8 +429,8 @@ def test_jobs_parallelizes_only_trailing_source_files():
 
     commands = {tuple(call.args[0]) for call in mock_exec.call_args_list}
     assert commands == {
-        ("clang-tidy", "-p", "./build", "--header-filter=.*", "a.cpp"),
-        ("clang-tidy", "-p", "./build", "--header-filter=.*", "b.hpp"),
+        ("clang-tidy", "-quiet", "-p", "./build", "--header-filter=.*", "a.cpp"),
+        ("clang-tidy", "-quiet", "-p", "./build", "--header-filter=.*", "b.hpp"),
     }
 
 
@@ -455,6 +459,7 @@ def test_jobs_with_export_fixes_forces_serial_execution():
     mock_exec.assert_called_once_with(
         [
             "clang-tidy",
+            "-quiet",
             "-p",
             "./build",
             "--export-fixes",
@@ -723,7 +728,9 @@ def test_hook_options_are_not_passed_to_clang_tidy(mock_resolve, mock_exec, caps
 def test_jobs_with_single_source_file_runs_once(mock_exec):
     run_clang_tidy(["--jobs=4", "-p", "./build", "a.cpp"])
 
-    mock_exec.assert_called_once_with(["clang-tidy", "-p", "./build", "a.cpp"])
+    mock_exec.assert_called_once_with(
+        ["clang-tidy", "-quiet", "-p", "./build", "a.cpp"]
+    )
 
 
 def test_jobs_parallel_run_succeeds_when_every_file_passes(mock_exec):
@@ -743,7 +750,15 @@ def test_jobs_with_export_fixes_equals_form_forces_serial_execution(mock_exec):
     )
 
     mock_exec.assert_called_once_with(
-        ["clang-tidy", "-p", "./build", "--export-fixes=fixes.yaml", "a.cpp", "b.cpp"]
+        [
+            "clang-tidy",
+            "-quiet",
+            "-p",
+            "./build",
+            "--export-fixes=fixes.yaml",
+            "a.cpp",
+            "b.cpp",
+        ]
     )
 
 
@@ -751,7 +766,7 @@ def test_fix_flag_is_inserted_before_source_files(mock_exec):
     run_clang_tidy(["--fix", "-p", "./build", "a.cpp", "b.cpp"])
 
     mock_exec.assert_called_once_with(
-        ["clang-tidy", "-p", "./build", "-fix", "a.cpp", "b.cpp"]
+        ["clang-tidy", "-quiet", "-p", "./build", "-fix", "a.cpp", "b.cpp"]
     )
 
 
@@ -760,7 +775,7 @@ def test_fix_flag_does_not_add_a_second_fix_option(mock_exec, existing):
     run_clang_tidy(["--fix", "-p", "./build", existing, "a.cpp"])
 
     mock_exec.assert_called_once_with(
-        ["clang-tidy", "-p", "./build", existing, "a.cpp"]
+        ["clang-tidy", "-quiet", "-p", "./build", existing, "a.cpp"]
     )
 
 
@@ -774,7 +789,7 @@ def test_compile_commands_auto_detect_each_search_dir(
 
     run_clang_tidy(["a.cpp"])
 
-    mock_exec.assert_called_once_with(["clang-tidy", "-p", db_dir, "a.cpp"])
+    mock_exec.assert_called_once_with(["clang-tidy", "-quiet", "-p", db_dir, "a.cpp"])
 
 
 def test_compile_commands_auto_detect_prefers_first_search_dir(
@@ -788,7 +803,7 @@ def test_compile_commands_auto_detect_prefers_first_search_dir(
     run_clang_tidy(["a.cpp"])
 
     mock_exec.assert_called_once_with(
-        ["clang-tidy", "-p", COMPILE_DB_SEARCH_DIRS[0], "a.cpp"]
+        ["clang-tidy", "-quiet", "-p", COMPILE_DB_SEARCH_DIRS[0], "a.cpp"]
     )
 
 
@@ -801,7 +816,7 @@ def test_compile_commands_p_equals_form_disables_auto_detect(
 
     run_clang_tidy(["-p=./custom", "a.cpp"])
 
-    mock_exec.assert_called_once_with(["clang-tidy", "-p=./custom", "a.cpp"])
+    mock_exec.assert_called_once_with(["clang-tidy", "-quiet", "-p=./custom", "a.cpp"])
 
 
 def test_compile_commands_explicit_path_must_be_a_directory(tmp_path, mock_exec):
@@ -856,4 +871,211 @@ def test_main_reads_arguments_from_command_line(monkeypatch, mock_resolve, mock_
     assert main() == 0
 
     mock_resolve.assert_called_once_with("clang-tidy", "21", False)
+    mock_exec.assert_called_once_with(["clang-tidy", "-quiet", "a.cpp"])
+
+
+# --- quiet output ---
+
+
+@pytest.mark.parametrize("existing", ["-quiet", "--quiet", "--quiet=false"])
+def test_quiet_is_not_added_twice(mock_exec, existing):
+    run_clang_tidy([existing, "a.cpp"])
+
+    mock_exec.assert_called_once_with(["clang-tidy", existing, "a.cpp"])
+
+
+def test_verbose_does_not_add_quiet(mock_exec):
+    run_clang_tidy(["--verbose", "--no-compile-commands", "a.cpp"])
+
     mock_exec.assert_called_once_with(["clang-tidy", "a.cpp"])
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "1 warning generated.",
+        "537 warnings generated.",
+        "1 error generated.",
+        "14 warnings and 6 errors generated.",
+        "1 warning and 1 error generated.",
+        "Suppressed 521 warnings (521 in non-user code).",
+        "Suppressed 3 warnings (2 in non-user code, 1 NOLINT).",
+        (
+            "Use -header-filter=.* to display errors from all non-system headers. "
+            "Use -system-headers to display errors from system headers as well."
+        ),
+        (
+            "Use -header-filter=.* or leave it as default to display errors from all "
+            "non-system headers. Use -system-headers to display errors from system "
+            "headers as well."
+        ),
+        "[1/2] Processing file /src/a.cpp.",
+    ],
+)
+def test_strip_noise_removes_status_lines(line):
+    diagnostic = "a.cpp:4:13: warning: statement should be inside braces [x]"
+
+    assert _strip_noise(f"{line}\n{diagnostic}\n") == diagnostic
+
+
+@pytest.mark.parametrize(
+    "output",
+    [
+        "",
+        "a.cpp:1:1: warning: 2 warnings generated. [x]\n",
+        "Error while processing /src/a.cpp.\n",
+        "Error while trying to load a compilation database:\nRunning without flags.\n",
+    ],
+)
+def test_strip_noise_keeps_everything_else(output):
+    assert _strip_noise(output) == output
+
+
+def test_run_strips_noise_unless_verbose(mock_resolve):
+    raw = (
+        "537 warnings generated.\n"
+        "Suppressed 536 warnings (536 in non-user code).\n"
+        "a.cpp:4:13: warning: statement should be inside braces [x]\n"
+    )
+    with patch("cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(1, raw)):
+        assert run_clang_tidy(["a.cpp"]) == (
+            1,
+            "a.cpp:4:13: warning: statement should be inside braces [x]",
+        )
+        assert run_clang_tidy(["--verbose", "--no-compile-commands", "a.cpp"]) == (
+            1,
+            raw,
+        )
+
+
+# --- check lists mangled by YAML in .pre-commit-config.yaml ---
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    [
+        (
+            ["--checks=-*", "bugprone-*", "performance-*"],
+            ["--checks=-*,bugprone-*,performance-*"],
+        ),
+        (
+            ["--checks=boost-*", "clang-analyzer-*", "cppcoreguidelines-*", "-p", "b"],
+            ["--checks=boost-*,clang-analyzer-*,cppcoreguidelines-*", "-p", "b"],
+        ),
+        (
+            ["--checks=*", "-modernize-use-trailing-return-type", "-llvmlibc-*"],
+            ["--checks=*,-modernize-use-trailing-return-type,-llvmlibc-*"],
+        ),
+        (
+            ["--checks='-*", "cppcoreguidelines-*'"],
+            ["--checks=-*,cppcoreguidelines-*"],
+        ),
+        (
+            ["-checks=-*", "readability-*", "--header-filter=.*"],
+            ["-checks=-*,readability-*", "--header-filter=.*"],
+        ),
+        (
+            ["--warnings-as-errors=*", "-misc-*"],
+            ["--warnings-as-errors=*,-misc-*"],
+        ),
+    ],
+)
+def test_repair_check_args_joins_split_check_lists(args, expected):
+    repaired, notes = _repair_check_args(args)
+
+    assert repaired == expected
+    assert len(notes) == 1
+    assert "YAML split" in notes[0]
+    assert f'args: ["{expected[0]}"]' in notes[0]
+
+
+@pytest.mark.parametrize(
+    ("arg", "expected"),
+    [('--checks="boost-*"', "--checks=boost-*"), ("--checks='-*'", "--checks=-*")],
+)
+def test_repair_check_args_removes_quotes_inside_the_value(arg, expected):
+    repaired, notes = _repair_check_args([arg])
+
+    assert repaired == [expected]
+    assert len(notes) == 1
+    assert "removed the quotes" in notes[0]
+    assert f'args: ["{expected}"]' in notes[0]
+
+
+@pytest.mark.parametrize(
+    "arg",
+    [
+        "--checks=.clang-tidy",
+        "--checks=.clang-dity",
+        "--checks=./.clang-tidy",
+        "-checks=config/clang-tidy.yaml",
+    ],
+)
+def test_repair_check_args_flags_a_config_file_given_as_checks(arg):
+    repaired, notes = _repair_check_args([arg])
+
+    assert repaired == [arg]
+    assert len(notes) == 1
+    assert "has no effect" in notes[0]
+    assert "--config-file" in notes[0]
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        [],
+        ["--checks=-*,bugprone-*", "-p", "build"],
+        ["-p", "build", "--header-filter=.*", "--extra-arg=-std=c++17"],
+        ["bugprone-*"],
+        ["--config-file=.clang-tidy", "--line-filter=[]"],
+    ],
+)
+def test_repair_check_args_leaves_valid_arguments_alone(args):
+    assert _repair_check_args(args) == (args, [])
+
+
+def test_run_joins_split_checks_and_explains_why(mock_resolve):
+    with patch(
+        "cpp_linter_hooks.clang_tidy._exec_clang_tidy",
+        return_value=(1, "a.cpp:1:1: warning: x [bugprone-y]\n"),
+    ) as mock_exec:
+        ret, output = run_clang_tidy(["--checks=-*", "bugprone-*", "a.cpp"])
+
+    mock_exec.assert_called_once_with(
+        ["clang-tidy", "-quiet", "--checks=-*,bugprone-*", "a.cpp"]
+    )
+    assert ret == 1
+    assert output.startswith("a.cpp:1:1: warning: x [bugprone-y]\n\nNote: YAML split")
+
+
+def test_run_clang_tidy_with_split_checks_runs_the_real_tool(tmp_path):
+    """End to end: the pieces YAML split off are not treated as files."""
+    # No #include, so the result does not depend on system headers being found.
+    source = tmp_path / "braces.cpp"
+    source.write_text("int f(int x) {\n  if (x)\n    return 1;\n  return 0;\n}\n")
+
+    ret, output = run_clang_tidy(
+        ["--no-compile-commands", "--checks=-*", "readability-braces-*", str(source)]
+    )
+
+    assert ret == 1
+    assert "readability-braces-around-statements" in output
+    assert "Error while processing" not in output
+    assert "warnings generated" not in output
+    assert "YAML split" in output
+
+
+def test_run_uses_the_resolved_executable(mock_resolve):
+    """The version check and the run must use the same clang-tidy."""
+    tool = Path("/venv/bin/clang-tidy")
+    mock_resolve.return_value = (tool, None)
+    with patch(
+        "cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(0, "")
+    ) as mock_exec:
+        run_clang_tidy(["--no-compile-commands", "a.cpp"])
+        run_clang_tidy(["--no-compile-commands", "--jobs=2", "a.cpp", "b.cpp"])
+
+    commands = [call.args[0] for call in mock_exec.call_args_list]
+    assert commands[0] == [str(tool), "-quiet", "a.cpp"]
+    assert sorted(command[-1] for command in commands[1:]) == ["a.cpp", "b.cpp"]
+    assert all(command[0] == str(tool) for command in commands)
