@@ -1063,3 +1063,19 @@ def test_run_clang_tidy_with_split_checks_runs_the_real_tool(tmp_path):
     assert "Error while processing" not in output
     assert "warnings generated" not in output
     assert "YAML split" in output
+
+
+def test_run_uses_the_resolved_executable(mock_resolve):
+    """The version check and the run must use the same clang-tidy."""
+    tool = Path("/venv/bin/clang-tidy")
+    mock_resolve.return_value = (tool, None)
+    with patch(
+        "cpp_linter_hooks.clang_tidy._exec_clang_tidy", return_value=(0, "")
+    ) as mock_exec:
+        run_clang_tidy(["--no-compile-commands", "a.cpp"])
+        run_clang_tidy(["--no-compile-commands", "--jobs=2", "a.cpp", "b.cpp"])
+
+    commands = [call.args[0] for call in mock_exec.call_args_list]
+    assert commands[0] == [str(tool), "-quiet", "a.cpp"]
+    assert sorted(command[-1] for command in commands[1:]) == ["a.cpp", "b.cpp"]
+    assert all(command[0] == str(tool) for command in commands)

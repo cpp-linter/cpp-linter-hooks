@@ -404,11 +404,13 @@ def _exec_parallel_clang_tidy(
 def run_clang_tidy(args=None) -> tuple[int, str]:
     """Run clang-tidy with hook-specific argument handling."""
     hook_args, other_args = parser.parse_known_args(args)
-    _, version_error = resolve_install_with_diagnostics(
+    tool_path, version_error = resolve_install_with_diagnostics(
         "clang-tidy", hook_args.version, hook_args.verbose
     )
     if version_error is not None:
         return 1, version_error
+    # Run the executable that was resolved, not whatever comes first on PATH.
+    executable = str(tool_path) if tool_path else "clang-tidy"
 
     compile_db_path, error = _resolve_compile_db(hook_args, other_args)
     if error is not None:
@@ -453,12 +455,10 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
 
     if hook_args.jobs > 1 and len(source_files) > 1 and not unsafe_parallel:
         retval, output = _exec_parallel_clang_tidy(
-            ["clang-tidy"] + clang_tidy_args, source_files, hook_args.jobs
+            [executable] + clang_tidy_args, source_files, hook_args.jobs
         )
     else:
-        retval, output = _exec_clang_tidy(
-            ["clang-tidy"] + clang_tidy_args + source_files
-        )
+        retval, output = _exec_clang_tidy([executable] + clang_tidy_args + source_files)
 
     if not hook_args.verbose:
         output = _strip_noise(output)

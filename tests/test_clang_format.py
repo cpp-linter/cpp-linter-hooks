@@ -317,3 +317,14 @@ def test_main_does_not_print_blank_failure_output(monkeypatch, capsys):
 
     assert main() == 1
     assert capsys.readouterr().out == ""
+
+
+def test_run_clang_format_uses_the_resolved_executable(mock_clang_format):
+    """The version check and the run must use the same clang-format."""
+    mock_resolve, mock_run = mock_clang_format
+    tool = Path("/venv/bin/clang-format")
+    mock_resolve.return_value = (tool, None)
+
+    run_clang_format(["a.cpp"])
+
+    assert mock_run.call_args.args[0] == [str(tool), "-i", "a.cpp"]

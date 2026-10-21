@@ -169,12 +169,21 @@ def _version_satisfies(installed: str, requested: str | None) -> bool:
     return installed == requested or installed.startswith(f"{requested}.")
 
 
+def _env_executable(tool: str) -> str | None:
+    """Return *tool* from this Python environment's scripts directory, if any."""
+    return shutil.which(tool, path=sysconfig.get_path("scripts"))
+
+
 def _find_installed_wheel(tool: str, version: str | None) -> tuple[Path, str] | None:
-    """Return (path, version) of an installed wheel that satisfies *version*."""
+    """Return (path, version) of an installed wheel that satisfies *version*.
+
+    Only the executable the wheel installed into this environment counts: a
+    tool found elsewhere on PATH may be a different version.
+    """
     installed = _installed_wheel_version(tool)
     if installed is None or not _version_satisfies(installed, version):
         return None
-    path = shutil.which(tool, path=sysconfig.get_path("scripts")) or shutil.which(tool)
+    path = _env_executable(tool)
     if path is None:
         return None
     return Path(path), installed
@@ -189,7 +198,7 @@ def _install_tool(tool: str, version: str) -> Path | None:
         check=False,
     )
     if result.returncode == 0:
-        return shutil.which(tool)
+        return _env_executable(tool) or shutil.which(tool)
     LOG.error("pip failed to install %s %s", tool, version)
     LOG.error(result.stdout)
     LOG.error(result.stderr)

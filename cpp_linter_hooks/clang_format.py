@@ -23,12 +23,13 @@ parser.add_argument(
 def run_clang_format(args=None) -> tuple[int, str]:
     """Run clang-format with hook-specific arguments removed."""
     hook_args, other_args = parser.parse_known_args(args)
-    _, version_error = resolve_install_with_diagnostics(
+    tool_path, version_error = resolve_install_with_diagnostics(
         "clang-format", hook_args.version, hook_args.verbose
     )
     if version_error is not None:
         return 1, version_error
-    command = ["clang-format", "-i"]
+    # Run the executable that was resolved, not whatever comes first on PATH.
+    command = [str(tool_path) if tool_path else "clang-format", "-i"]
 
     # Add verbose flag if requested
     if hook_args.verbose:

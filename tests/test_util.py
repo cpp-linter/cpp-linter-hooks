@@ -756,18 +756,34 @@ def test_find_installed_wheel_prefers_environment_scripts_dir():
     mock_which.assert_called_once_with("clang-tidy", path="/venv/bin")
 
 
-def test_find_installed_wheel_falls_back_to_path_lookup():
+def test_find_installed_wheel_ignores_other_tools_on_path():
+    """A clang-tidy elsewhere on PATH may be another version than the wheel."""
     with (
         patch("cpp_linter_hooks.util._installed_wheel_version", return_value="21.1.6"),
+        patch("cpp_linter_hooks.util.sysconfig.get_path", return_value="/venv/bin"),
         patch(
-            "shutil.which", side_effect=[None, "/usr/local/bin/clang-tidy"]
-        ) as mock_which,
+            "shutil.which",
+            side_effect=lambda tool, path=None: (
+                None if path == "/venv/bin" else "/usr/bin/clang-tidy"
+            ),
+        ),
     ):
-        assert _find_installed_wheel("clang-tidy", None) == (
-            Path("/usr/local/bin/clang-tidy"),
-            "21.1.6",
-        )
-    assert mock_which.call_count == 2
+        assert _find_installed_wheel("clang-tidy", None) is None
+
+
+def test_install_tool_prefers_environment_scripts_dir():
+    completed = subprocess.CompletedProcess(args=[], returncode=0)
+    with (
+        patch("subprocess.run", return_value=completed),
+        patch("cpp_linter_hooks.util.sysconfig.get_path", return_value="/venv/bin"),
+        patch(
+            "shutil.which",
+            side_effect=lambda tool, path=None: (
+                "/venv/bin/clang-tidy" if path == "/venv/bin" else "/usr/bin/clang-tidy"
+            ),
+        ),
+    ):
+        assert _install_tool("clang-tidy", "21.1.6") == "/venv/bin/clang-tidy"
 
 
 @pytest.mark.parametrize(
