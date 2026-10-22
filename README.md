@@ -29,10 +29,11 @@ repos:
 
 Run `pre-commit install` once in each clone. `--style=file` loads the style from your
 `.clang-format` file, and clang-tidy reads your `.clang-tidy` file by itself. The clang-tidy hook
-needs a `compile_commands.json`, which it looks for in `build/` and a few other directories (see
-[Compilation database](https://github.com/cpp-linter/cpp-linter-hooks#compilation-database));
-leave it out if you only run clang-tidy in CI, for example with
-[cpp-linter-action](https://cpp-linter.github.io/cpp-linter-action/).
+reports only problems on the lines that your commit adds or changes (see
+[Only changed lines](https://github.com/cpp-linter/cpp-linter-hooks#only-changed-lines)). It needs
+a `compile_commands.json`, which it looks for in `build/` and a few other directories; without one
+it skips clang-tidy on your machine and fails in CI (see
+[Compilation database](https://github.com/cpp-linter/cpp-linter-hooks#compilation-database)).
 
 ## Usage
 
@@ -163,6 +164,34 @@ The hook passes `-quiet` to clang-tidy and drops status lines such as `522 warni
 which count warnings in system headers that clang-tidy does not show. Add `--verbose` to `args` to
 keep clang-tidy's full output.
 
+#### Only changed lines
+
+By default the hook reports only the problems on lines that the commit adds or changes, so old
+warnings elsewhere in a file do not block your commit. It reads the changes with `git diff`:
+
+- On `git commit` and `pre-commit run`: the staged changes.
+- With `pre-commit run --from-ref A --to-ref B` and in the `pre-push` stage: the changes between
+  the two commits.
+
+The hook passes these lines to clang-tidy's `--line-filter`, so `--fix` applies only the fixes
+for problems reported on those lines (a fix can still touch a nearby line, for example to add a
+closing brace). Compiler errors are always reported. Files with no added lines, such as a pure rename, are
+not checked.
+
+The hook checks every line when the files it gets have no changes, for example with
+`pre-commit run --all-files` on a clean working tree, when a file on disk differs from the
+version the lines come from (unstaged changes in a direct run, or uncommitted changes on
+`pre-push`), or outside a git repository. To always check
+every line, for example in a manual stage, add `--all-lines`:
+
+```yaml
+      - id: clang-tidy
+        args: [--all-lines]
+```
+
+Checking only changed lines does not make clang-tidy faster: it still analyzes the whole file.
+See [Performance optimization](https://github.com/cpp-linter/cpp-linter-hooks#performance-optimization).
+
 > [!NOTE]
 > Add `--fix` to `args` to automatically apply clang-tidy fixes in place (equivalent to
 > passing `-fix` to clang-tidy directly). This is **opt-in** and **not the default** because
@@ -187,9 +216,13 @@ For CMake or Meson projects, clang-tidy works best with a `compile_commands.json
 file that records the exact compiler flags used for each file. Without it, clang-tidy
 may report false positives from missing include paths or wrong compiler flags.
 
-The hook auto-detects `compile_commands.json` in common build directories (`build/`,
-`out/`, `cmake-build-debug/`, `_build/`) and passes `-p <dir>` to clang-tidy
-automatically — no configuration needed for most projects:
+The hook auto-detects `compile_commands.json` in common build directories and passes `-p <dir>`
+to clang-tidy automatically — no configuration needed for most projects. It looks in `build/`,
+`out/`, `cmake-build-debug/`, `_build/` and `builddir/` first, then in `cmake-build-*/`,
+`build-*/`, `build/*/` and `out/build/*/` (CMake presets, Visual Studio), where the most recently
+written one wins. Without `-p`, clang-tidy also finds a `compile_commands.json` or
+`compile_flags.txt` next to each file or in its parent directories, so a database in the
+repository root works too.
 
 ```yaml
 repos:
@@ -207,7 +240,19 @@ To specify the build directory explicitly:
         args: [--compile-commands=build]
 ```
 
-To disable auto-detection (e.g. in a monorepo where auto-detect might pick the wrong database):
+When no compilation database is found, clang-tidy would report missing headers instead of
+problems in your code, so the hook:
+
+- **skips clang-tidy on your machine** and passes. The message says how to generate the database;
+  pre-commit shows it with `pre-commit run -v` or `verbose: true` on the hook.
+- **fails in CI**, when the `CI` environment variable is set (GitHub Actions, GitLab CI and most CI
+  services set it), so a broken setup does not pass unnoticed.
+
+The hook runs clang-tidy anyway when `args` tell it how to compile: `-p`, `--extra-arg` or
+`--extra-arg-before`.
+
+To disable auto-detection and always run clang-tidy without a database (e.g. in a monorepo where
+auto-detect might pick the wrong database, or for code that needs no compiler flags):
 
 ```yaml
       - id: clang-tidy
@@ -264,6 +309,11 @@ or `-j`:
 > overwrites a shared `--export-fixes` file and fixes to the same header can collide. Add
 > `require_serial: true` to the hook to run it once for all files.
 
+With LLVM 21 and older, clang-tidy enables the `clang-analyzer-*` checks by default unless your
+`Checks` start with `-*`, and they take most of its time: in our measurements on
+[fmt](https://github.com/fmtlib/fmt), more than 90%. LLVM 22 removed them from the defaults. If
+clang-tidy is slow and you do not need them, add `-clang-analyzer-*` to `Checks` in `.clang-tidy`.
+
 Alternatively, if you want to run the hooks manually on only the changed files, you can use the following command:
 
 ```bash
@@ -278,7 +328,7 @@ This approach ensures that only modified files are checked, further speeding up 
 > Use `-v` or `--verbose` in `args` to enable verbose output.
 > For `clang-format`, it shows the list of processed files.
 > For `clang-tidy`, it prints which `compile_commands.json` is being used (when auto-detected or explicitly set)
-> and keeps clang-tidy's full output, without `-quiet`.
+> and which lines are reported, and keeps clang-tidy's full output, without `-quiet`.
 > pre-commit shows this output only when the hook fails; add `verbose: true` to the hook to see it on every run.
 
 ```yaml

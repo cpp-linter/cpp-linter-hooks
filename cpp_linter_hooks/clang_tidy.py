@@ -1,5 +1,7 @@
 """Pre-commit hook wrapper for clang-tidy."""
 
+import json
+import os
 import re
 import subprocess
 import sys
@@ -7,16 +9,35 @@ from argparse import ArgumentParser, ArgumentTypeError
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
+from cpp_linter_hooks.changed_lines import (
+    LineRanges,
+    changed_lines,
+    diff_range,
+    normalize,
+)
 from cpp_linter_hooks.util import resolve_install_with_diagnostics
 
-COMPILE_DB_SEARCH_DIRS = ["build", "out", "cmake-build-debug", "_build"]
+COMPILE_DB_SEARCH_DIRS = ["build", "out", "cmake-build-debug", "_build", "builddir"]
+# Searched after COMPILE_DB_SEARCH_DIRS. When a pattern matches several
+# directories, the most recently written compile_commands.json wins.
+COMPILE_DB_SEARCH_GLOBS = ["cmake-build-*", "build-*", "build/*", "out/build/*"]
+# Files clang-tidy finds by itself in a source file's directory or its parents.
+COMPILE_COMMANDS_JSON = "compile_commands.json"
+COMPILATION_DATABASE_FILES = (COMPILE_COMMANDS_JSON, "compile_flags.txt")
+# Windows limits a whole command line to 32,767 characters and Linux limits one
+# argument to 128 KiB. Commands that carry a --line-filter stay below this.
+COMMAND_LINE_BUDGET = 30_000 if os.name == "nt" else 100_000
 SOURCE_FILE_SUFFIXES = {
     ".c",
     ".cc",
+    ".ccm",
     ".cp",
     ".cpp",
+    ".cppm",
     ".cxx",
+    ".cxxm",
     ".c++",
+    ".c++m",
     ".cu",
     ".cuh",
     ".h",
@@ -24,9 +45,11 @@ SOURCE_FILE_SUFFIXES = {
     ".hpp",
     ".hxx",
     ".h++",
+    ".ino",
     ".ipp",
     ".inl",
     ".ixx",
+    ".mm",
     ".tpp",
     ".txx",
 }
@@ -34,7 +57,8 @@ COMPILE_COMMANDS_HINT = """\
 Generate compile_commands.json with one of:
   CMake: cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
   Meson: meson setup builddir
-Then run clang-tidy with --compile-commands=build or --compile-commands=builddir."""
+The hook finds it in build/ and builddir/. For another directory, pass
+--compile-commands=<dir>."""
 
 MSVC_HINT = """\
 Windows/MSVC clang-tidy hints:
@@ -142,22 +166,131 @@ parser.add_argument(
     "-v", "--verbose", action="store_true", help="Enable verbose output"
 )
 parser.add_argument("--fix", action="store_true", help="Apply fixes in place (-fix)")
+parser.add_argument(
+    "--all-lines",
+    action="store_true",
+    dest="all_lines",
+    help=(
+        "Report problems on every line of the checked files. By default only "
+        "lines added or changed by the commit (or by the pushed commits) are "
+        "reported"
+    ),
+)
+
+
+def _subdirectories(parent: str) -> list[str]:
+    """Return the names of the directories in parent, or [] if it is missing."""
+    try:
+        with os.scandir(parent) as entries:
+            return [entry.name for entry in entries if entry.is_dir()]
+    except OSError:
+        return []
+
+
+def _newest_database(parent: str, prefix: str, names: list[str]) -> str | None:
+    """Return the prefix-matching directory with the newest compile_commands.json."""
+    newest, newest_mtime = None, 0.0
+    for name in names:
+        if not name.startswith(prefix):
+            continue
+        directory = f"{parent}/{name}" if parent else name
+        try:
+            mtime = os.stat(os.path.join(directory, COMPILE_COMMANDS_JSON)).st_mtime
+        except OSError:
+            continue
+        if newest is None or mtime > newest_mtime:
+            newest, newest_mtime = directory, mtime
+    return newest
 
 
 def _find_compile_commands() -> str | None:
     """Return the first common directory containing compile_commands.json."""
+    # os.path and os.scandir instead of pathlib: this runs on every commit.
     for d in COMPILE_DB_SEARCH_DIRS:
-        if (Path(d) / "compile_commands.json").exists():
+        if os.path.isfile(os.path.join(d, COMPILE_COMMANDS_JSON)):
             return d
+    listings: dict[str, list[str]] = {}
+    for pattern in COMPILE_DB_SEARCH_GLOBS:
+        parent, _, name = pattern.rpartition("/")
+        if parent not in listings:
+            listings[parent] = _subdirectories(parent or ".")
+        found = _newest_database(parent, name.removesuffix("*"), listings[parent])
+        if found:
+            return found
     return None
 
 
-def _compile_commands_not_found_message(path: str | None = None) -> str:
-    """Build a user-facing message for missing compile_commands.json files."""
-    if path is None:
-        return "No compile_commands.json was found in common build directories.\n\n" + (
-            COMPILE_COMMANDS_HINT
-        )
+def _has_compilation_database(source_files: list[str]) -> bool:
+    """Return whether clang-tidy finds a compilation database by itself.
+
+    Without -p, clang-tidy looks for compile_commands.json or compile_flags.txt
+    in each source file's directory and then in its parents.
+    """
+    seen: set[Path] = set()
+    for source_file in source_files:
+        directory = Path(source_file).absolute().parent
+        for candidate in (directory, *directory.parents):
+            if candidate in seen:
+                break
+            seen.add(candidate)
+            if any((candidate / name).is_file() for name in COMPILATION_DATABASE_FILES):
+                return True
+    return False
+
+
+def _has_option(args: list[str], *names: str) -> bool:
+    """Return whether args set one of the given options, in any spelling."""
+    return any(
+        arg == name or arg.startswith(f"{name}=") for arg in args for name in names
+    )
+
+
+def _gives_compile_flags(args: list[str]) -> bool:
+    """Return whether args tell clang-tidy how to compile without a database."""
+    return "--" in args or _has_option(
+        args,
+        "-p",
+        "--extra-arg",
+        "-extra-arg",
+        "--extra-arg-before",
+        "-extra-arg-before",
+    )
+
+
+def _is_ci() -> bool:
+    """Return whether the hook runs in CI, as the CI environment variable says."""
+    return os.environ.get("CI", "").strip().lower() not in ("", "0", "false", "no")
+
+
+def _missing_compile_db_result() -> tuple[int, str]:
+    """Build the result for a run that has no compilation database.
+
+    Locally the hook skips clang-tidy, because without the compiler flags it
+    reports missing headers instead of problems in the code. In CI the hook
+    fails, so a broken setup does not pass unnoticed.
+    """
+    searched = ", ".join(
+        f"{d}/" for d in COMPILE_DB_SEARCH_DIRS + COMPILE_DB_SEARCH_GLOBS
+    )
+    details = (
+        "No compile_commands.json was found. The hook looked in "
+        f"{searched} and clang-tidy looks next to each file and in its parent "
+        "directories (compile_commands.json or compile_flags.txt).\n\n"
+        f"{COMPILE_COMMANDS_HINT}\n\n"
+        "To run clang-tidy without a compilation database, add "
+        "--no-compile-commands."
+    )
+    if _is_ci():
+        return 1, f"clang-tidy needs a compilation database.\n{details}"
+    return 0, (
+        "Skipped clang-tidy: it needs a compilation database to know how each "
+        "file is compiled. In CI (CI=true) this fails the hook instead.\n"
+        f"{details}"
+    )
+
+
+def _compile_commands_not_found_message(path: str) -> str:
+    """Build the message for a --compile-commands directory without a database."""
     return (
         f"--compile-commands: no compile_commands.json in '{path}'.\n\n"
         f"{COMPILE_COMMANDS_HINT}"
@@ -175,7 +308,7 @@ def _resolve_compile_db(
         return None, None
 
     # Covers both "-p ./build" (two tokens) and "-p=./build" (one token)
-    has_p = any(a == "-p" or a.startswith("-p=") for a in other_args)
+    has_p = _has_option(other_args, "-p")
 
     if hook_args.compile_commands:
         if has_p:
@@ -185,7 +318,7 @@ def _resolve_compile_db(
             )
             return None, None
         p = Path(hook_args.compile_commands)
-        if not p.is_dir() or not (p / "compile_commands.json").exists():
+        if not p.is_dir() or not (p / COMPILE_COMMANDS_JSON).exists():
             return None, (
                 1,
                 _compile_commands_not_found_message(hook_args.compile_commands),
@@ -201,7 +334,7 @@ def _resolve_compile_db(
 def _looks_like_compile_db_error(output: str) -> bool:
     """Return whether clang-tidy output indicates a compile database problem."""
     lower_output = output.lower()
-    compile_db_error = "compile_commands.json" in lower_output and any(
+    compile_db_error = COMPILE_COMMANDS_JSON in lower_output and any(
         pattern in lower_output
         for pattern in (
             "not found",
@@ -265,7 +398,8 @@ def _exec_clang_tidy(command) -> tuple[int, str]:
             1 if sp.returncode != 0 or "warning:" in output or "error:" in output else 0
         )
         return retval, output
-    except FileNotFoundError as e:
+    except OSError as e:
+        # For example a missing executable, or a command line that is too long.
         return 1, str(e)
 
 
@@ -355,6 +489,58 @@ def _repair_check_args(args: list[str]) -> tuple[list[str], list[str]]:
     return repaired, notes
 
 
+def _line_filter_option(lines: dict[str, LineRanges]) -> str:
+    """Build clang-tidy's --line-filter option for the given line ranges.
+
+    clang-tidy matches each name against the end of the path it reports, uses
+    the first entry that matches, and drops diagnostics in files that are not
+    listed. Longer names come first, so "a.cpp" cannot take the lines of
+    "data.cpp".
+    """
+    entries = []
+    for path, ranges in lines.items():
+        name = normalize(path)
+        names = dict.fromkeys((name, name.replace("/", os.sep)))
+        entries.extend({"name": n, "lines": ranges} for n in names)
+    entries.sort(key=lambda entry: len(entry["name"]), reverse=True)
+    return "--line-filter=" + json.dumps(entries, separators=(",", ":"))
+
+
+def _command_line_length(arg: str) -> int:
+    """Return about how much of the command line an argument takes.
+
+    Windows quotes an argument with spaces and escapes each double quote.
+    """
+    return len(arg) + arg.count('"') + 3
+
+
+def _line_filter_batches(
+    command_prefix: list[str], source_files: list[str], lines: dict[str, LineRanges]
+) -> list[list[str]]:
+    """Split the files into commands that each carry a --line-filter for them.
+
+    The filter of a large commit can be longer than the operating system
+    allows for one command, so the files are split into several commands.
+    """
+    budget = COMMAND_LINE_BUDGET - sum(map(_command_line_length, command_prefix))
+    batches: list[list[str]] = []
+    batch: list[str] = []
+    used = 0
+    for source_file in source_files:
+        cost = _command_line_length(
+            _line_filter_option({source_file: lines[source_file]})
+        ) + _command_line_length(source_file)
+        if batch and used + cost > budget:
+            batches.append(batch)
+            batch, used = [], 0
+        batch.append(source_file)
+        used += cost
+    batches.append(batch)
+    return [
+        [_line_filter_option({f: lines[f] for f in batch}), *batch] for batch in batches
+    ]
+
+
 def _append_notes(output: str, notes: list[str]) -> str:
     """Append configuration notes after clang-tidy's output."""
     if not notes:
@@ -385,25 +571,100 @@ def _combine_outputs(results: list[tuple[int, str]]) -> str:
     return "\n".join(output.rstrip("\n") for _, output in results if output)
 
 
+def _combine_results(results: list[tuple[int, str]]) -> tuple[int, str]:
+    """Combine the results of several clang-tidy runs into one."""
+    retval = 1 if any(retval != 0 for retval, _ in results) else 0
+    return retval, _combine_outputs(results)
+
+
+def _exec_serial_clang_tidy(
+    command_prefix: list[str],
+    source_files: list[str],
+    lines: dict[str, LineRanges] | None,
+) -> tuple[int, str]:
+    """Run clang-tidy over all source files, in one command when possible."""
+    if lines is None:
+        return _exec_clang_tidy(command_prefix + source_files)
+    # Several commands only for very large commits; they run one after another,
+    # so -fix stays safe.
+    return _combine_results(
+        [
+            _exec_clang_tidy(command_prefix + batch)
+            for batch in _line_filter_batches(command_prefix, source_files, lines)
+        ]
+    )
+
+
 def _exec_parallel_clang_tidy(
-    command_prefix: list[str], source_files: list[str], jobs: int
+    command_prefix: list[str],
+    source_files: list[str],
+    jobs: int,
+    lines: dict[str, LineRanges] | None = None,
 ) -> tuple[int, str]:
     """Run clang-tidy over source files in parallel and combine the results."""
 
     def run_file(source_file: str) -> tuple[int, str]:
-        """Run clang-tidy for a single source file."""
-        return _exec_clang_tidy(command_prefix + [source_file])
+        """Run clang-tidy for a single source file, with its own line filter."""
+        line_filter = (
+            []
+            if lines is None
+            else [_line_filter_option({source_file: lines[source_file]})]
+        )
+        return _exec_clang_tidy(command_prefix + line_filter + [source_file])
 
     with ThreadPoolExecutor(max_workers=min(jobs, len(source_files))) as executor:
         results = list(executor.map(run_file, source_files))
 
-    retval = 1 if any(retval != 0 for retval, _ in results) else 0
-    return retval, _combine_outputs(results)
+    return _combine_results(results)
 
 
 def run_clang_tidy(args=None) -> tuple[int, str]:
     """Run clang-tidy with hook-specific argument handling."""
     hook_args, other_args = parser.parse_known_args(args)
+
+    compile_db_path, error = _resolve_compile_db(hook_args, other_args)
+    if error is not None:
+        return error
+
+    clang_tidy_args, source_files = _split_source_files(other_args)
+    clang_tidy_args, notes = _repair_check_args(clang_tidy_args)
+
+    lines = None
+    if not hook_args.all_lines and not _has_option(
+        clang_tidy_args, "--line-filter", "-line-filter"
+    ):
+        lines = changed_lines(source_files)
+        if lines is not None:
+            source_files = [f for f in source_files if lines[f]]
+            lines = {f: lines[f] for f in source_files}
+            if hook_args.verbose:
+                print(
+                    "Reporting only lines changed in git diff "
+                    f"{' '.join(diff_range())}; use --all-lines for every line",
+                    file=sys.stderr,
+                )
+            if not source_files:
+                return 0, _append_notes("", notes)
+
+    if compile_db_path:
+        if hook_args.verbose:
+            print(
+                f"Using compile_commands.json from: {compile_db_path}", file=sys.stderr
+            )
+        clang_tidy_args = ["-p", compile_db_path] + clang_tidy_args
+    elif (
+        not hook_args.no_compile_commands
+        and not _gives_compile_flags(clang_tidy_args)
+        and not _has_compilation_database(source_files)
+    ):
+        retval, message = _missing_compile_db_result()
+        if retval == 0:
+            # A passing hook's output is hidden; pre-commit shows stderr with
+            # `verbose: true` or `pre-commit run -v`.
+            print(message, file=sys.stderr)
+            return 0, _append_notes("", notes)
+        return retval, _append_notes(message, notes)
+
     tool_path, version_error = resolve_install_with_diagnostics(
         "clang-tidy", hook_args.version, hook_args.verbose
     )
@@ -411,24 +672,6 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
         return 1, version_error
     # Run the executable that was resolved, not whatever comes first on PATH.
     executable = str(tool_path) if tool_path else "clang-tidy"
-
-    compile_db_path, error = _resolve_compile_db(hook_args, other_args)
-    if error is not None:
-        return error
-
-    if compile_db_path:
-        if hook_args.verbose:
-            print(
-                f"Using compile_commands.json from: {compile_db_path}", file=sys.stderr
-            )
-        other_args = ["-p", compile_db_path] + other_args
-    elif hook_args.verbose and not hook_args.no_compile_commands:
-        has_p = any(a == "-p" or a.startswith("-p=") for a in other_args)
-        if not has_p:
-            print(_compile_commands_not_found_message(), file=sys.stderr)
-
-    clang_tidy_args, source_files = _split_source_files(other_args)
-    clang_tidy_args, notes = _repair_check_args(clang_tidy_args)
 
     # -quiet hides clang-tidy's statistics about suppressed warnings; --verbose
     # keeps clang-tidy's full output.
@@ -455,10 +698,12 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
 
     if hook_args.jobs > 1 and len(source_files) > 1 and not unsafe_parallel:
         retval, output = _exec_parallel_clang_tidy(
-            [executable] + clang_tidy_args, source_files, hook_args.jobs
+            [executable] + clang_tidy_args, source_files, hook_args.jobs, lines
         )
     else:
-        retval, output = _exec_clang_tidy([executable] + clang_tidy_args + source_files)
+        retval, output = _exec_serial_clang_tidy(
+            [executable] + clang_tidy_args, source_files, lines
+        )
 
     if not hook_args.verbose:
         output = _strip_noise(output)

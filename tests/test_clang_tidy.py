@@ -1,3 +1,5 @@
+import json
+import os
 import subprocess
 import sys
 import time
@@ -6,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from cpp_linter_hooks import clang_tidy
 from cpp_linter_hooks.clang_tidy import (
     COMPILE_COMMANDS_HINT,
     COMPILE_DB_SEARCH_DIRS,
@@ -13,6 +16,9 @@ from cpp_linter_hooks.clang_tidy import (
     _append_guidance,
     _combine_outputs,
     _exec_clang_tidy,
+    _find_compile_commands,
+    _has_compilation_database,
+    _line_filter_option,
     _looks_like_compile_db_error,
     _looks_like_msvc_error,
     _positive_int,
@@ -283,7 +289,7 @@ def test_verbose_prints_compile_db_path(tmp_path, monkeypatch, capsys):
 
 
 def test_verbose_prints_compile_db_generation_hint_when_not_found(
-    tmp_path, monkeypatch, capsys
+    tmp_path, monkeypatch, capsys, real_compile_db_check
 ):
     monkeypatch.chdir(tmp_path)
     with (
@@ -1079,3 +1085,417 @@ def test_run_uses_the_resolved_executable(mock_resolve):
     assert commands[0] == [str(tool), "-quiet", "a.cpp"]
     assert sorted(command[-1] for command in commands[1:]) == ["a.cpp", "b.cpp"]
     assert all(command[0] == str(tool) for command in commands)
+
+
+# --- only changed lines are reported ---
+
+
+def test_line_filter_option(monkeypatch):
+    monkeypatch.setattr(clang_tidy.os, "sep", "/")
+    option = _line_filter_option({"./src/a.cpp": [[3, 3], [7, 8]], "b.h": [[1, 1]]})
+
+    assert option == (
+        '--line-filter=[{"name":"src/a.cpp","lines":[[3,3],[7,8]]},'
+        '{"name":"b.h","lines":[[1,1]]}]'
+    )
+
+
+def test_line_filter_option_lists_windows_separators(monkeypatch):
+    monkeypatch.setattr(clang_tidy.os, "sep", "\\")
+
+    option = _line_filter_option({"src/a.cpp": [[1, 2]]})
+
+    assert option == (
+        '--line-filter=[{"name":"src/a.cpp","lines":[[1,2]]},'
+        '{"name":"src\\\\a.cpp","lines":[[1,2]]}]'
+    )
+
+
+def test_run_filters_to_changed_lines(monkeypatch, mock_exec):
+    monkeypatch.setattr(
+        clang_tidy, "changed_lines", lambda files: {"a.cpp": [[2, 4]], "b.cpp": []}
+    )
+
+    run_clang_tidy(["a.cpp", "b.cpp"])
+
+    mock_exec.assert_called_once_with(
+        [
+            "clang-tidy",
+            "-quiet",
+            '--line-filter=[{"name":"a.cpp","lines":[[2,4]]}]',
+            "a.cpp",
+        ]
+    )
+
+
+def test_run_skips_clang_tidy_without_added_lines(monkeypatch, mock_exec):
+    monkeypatch.setattr(clang_tidy, "changed_lines", lambda files: {"a.cpp": []})
+
+    assert run_clang_tidy(["a.cpp"]) == (0, "")
+    mock_exec.assert_not_called()
+
+
+def test_run_without_added_lines_keeps_notes(monkeypatch, mock_exec):
+    monkeypatch.setattr(clang_tidy, "changed_lines", lambda files: {"a.cpp": []})
+
+    ret, output = run_clang_tidy(["--checks=.clang-tidy", "a.cpp"])
+
+    assert ret == 0
+    assert "--checks=.clang-tidy has no effect" in output
+
+
+@pytest.mark.parametrize("args", (["--all-lines"], ["--line-filter=[]"]))
+def test_run_checks_all_lines_when_asked(monkeypatch, mock_exec, args):
+    monkeypatch.setattr(
+        clang_tidy, "changed_lines", lambda files: pytest.fail("not wanted")
+    )
+
+    run_clang_tidy(args + ["a.cpp"])
+
+    mock_exec.assert_called_once()
+    assert not any(
+        arg.startswith("--line-filter=[{") for arg in mock_exec.call_args.args[0]
+    )
+
+
+def test_verbose_says_which_lines_are_checked(monkeypatch, mock_exec, capsys):
+    monkeypatch.setattr(clang_tidy, "changed_lines", lambda files: {"a.cpp": [[1, 1]]})
+
+    run_clang_tidy(["--verbose", "a.cpp"])
+
+    assert (
+        "Reporting only lines changed in git diff --cached; use --all-lines"
+        in capsys.readouterr().err
+    )
+
+
+def test_line_filter_reaches_each_parallel_run(monkeypatch, mock_exec):
+    monkeypatch.setattr(
+        clang_tidy,
+        "changed_lines",
+        lambda files: {"a.cpp": [[1, 1]], "b.cpp": [[2, 2]]},
+    )
+
+    run_clang_tidy(["--jobs=2", "a.cpp", "b.cpp"])
+
+    commands = sorted(call.args[0] for call in mock_exec.call_args_list)
+    assert commands == [
+        [
+            "clang-tidy",
+            "-quiet",
+            '--line-filter=[{"name":"a.cpp","lines":[[1,1]]}]',
+            "a.cpp",
+        ],
+        [
+            "clang-tidy",
+            "-quiet",
+            '--line-filter=[{"name":"b.cpp","lines":[[2,2]]}]',
+            "b.cpp",
+        ],
+    ]
+
+
+def test_line_filter_lists_longer_names_first(monkeypatch):
+    # clang-tidy uses the first name that ends the reported path, and
+    # "data.cpp" ends with "a.cpp".
+    monkeypatch.setattr(clang_tidy.os, "sep", "/")
+
+    option = _line_filter_option({"a.cpp": [[5, 5]], "data.cpp": [[1, 1]]})
+
+    assert option == (
+        '--line-filter=[{"name":"data.cpp","lines":[[1,1]]},'
+        '{"name":"a.cpp","lines":[[5,5]]}]'
+    )
+
+
+def test_large_commit_is_split_into_short_commands(monkeypatch, mock_exec):
+    files = [f"src/module/file_{i}.cpp" for i in range(40)]
+    monkeypatch.setattr(clang_tidy, "COMMAND_LINE_BUDGET", 1000)
+    monkeypatch.setattr(
+        clang_tidy, "changed_lines", lambda paths: {f: [[1, 2]] for f in paths}
+    )
+
+    run_clang_tidy(files)
+
+    commands = [call.args[0] for call in mock_exec.call_args_list]
+    assert len(commands) > 1
+    assert [f for command in commands for f in command[3:]] == files
+    for command in commands:
+        assert sum(len(arg) + arg.count('"') + 3 for arg in command) <= 1000
+        assert command[:2] == ["clang-tidy", "-quiet"]
+        names = {entry["name"] for entry in json.loads(command[2].split("=", 1)[1])}
+        assert {f.replace("/", os.sep) for f in command[3:]} <= names
+
+
+def test_split_commands_combine_their_results(monkeypatch, mock_exec):
+    monkeypatch.setattr(clang_tidy, "COMMAND_LINE_BUDGET", 0)
+    monkeypatch.setattr(
+        clang_tidy, "changed_lines", lambda paths: {f: [[1, 1]] for f in paths}
+    )
+    mock_exec.side_effect = [(0, ""), (1, "b.cpp:1:1: warning: x")]
+
+    ret, output = run_clang_tidy(["a.cpp", "b.cpp"])
+
+    assert mock_exec.call_count == 2
+    assert ret == 1
+    assert output == "b.cpp:1:1: warning: x"
+
+
+def test_command_that_cannot_start_fails_the_hook():
+    with patch(
+        "cpp_linter_hooks.clang_tidy.subprocess.run",
+        side_effect=OSError(7, "Argument list too long"),
+    ):
+        ret, output = clang_tidy._exec_clang_tidy(["clang-tidy", "a.cpp"])
+
+    assert ret == 1
+    assert "Argument list too long" in output
+
+
+def _git(repo, *args):
+    subprocess.run(
+        [
+            "git",
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.com",
+            "-c",
+            "commit.gpgsign=false",
+            *args,
+        ],
+        cwd=repo,
+        check=True,
+        capture_output=True,
+    )
+
+
+@pytest.fixture
+def braces_repo(tmp_path, monkeypatch, real_changed_lines, real_compile_db_check):
+    """A git repo whose committed braces.cpp has two old brace warnings.
+
+    The staged change adds a third one on line 6. compile_flags.txt is the
+    compilation database; the file has no #include, so the result does not
+    depend on system headers being found.
+    """
+    source = tmp_path / "braces.cpp"
+    source.write_text(
+        "int f(int x) {\n"
+        "  if (x)\n"
+        "    return 1;\n"
+        "  if (x > 1)\n"
+        "    return 2;\n"
+        "  return 0;\n"
+        "}\n"
+    )
+    (tmp_path / "compile_flags.txt").write_text("-std=c++17\n")
+    _git(tmp_path, "init", "-q")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-q", "-m", "init")
+    lines = source.read_text().splitlines(keepends=True)
+    lines[5] = "  if (x > 2)\n    return 3;\n  return 0;\n"
+    source.write_text("".join(lines))
+    _git(tmp_path, "add", "braces.cpp")
+    monkeypatch.chdir(tmp_path)
+    return source
+
+
+CHECK_BRACES = ["--checks=-*,readability-braces-around-statements"]
+
+
+def test_real_tool_reports_only_the_changed_lines(braces_repo):
+    ret, output = run_clang_tidy(CHECK_BRACES + ["braces.cpp"])
+
+    assert ret == 1
+    assert "braces.cpp:6:" in output
+    assert "braces.cpp:2:" not in output
+    assert "braces.cpp:4:" not in output
+
+
+def test_real_tool_reports_every_line_with_all_lines(braces_repo):
+    ret, output = run_clang_tidy(CHECK_BRACES + ["--all-lines", "braces.cpp"])
+
+    assert ret == 1
+    assert "braces.cpp:2:" in output
+    assert "braces.cpp:4:" in output
+    assert "braces.cpp:6:" in output
+
+
+def test_real_tool_fixes_only_the_changed_lines(braces_repo):
+    run_clang_tidy(CHECK_BRACES + ["--fix", "braces.cpp"])
+
+    fixed = braces_repo.read_text()
+    assert "if (x > 2) {" in fixed
+    assert "if (x) {" not in fixed
+    assert "if (x > 1) {" not in fixed
+
+
+def test_real_tool_keeps_the_lines_of_files_with_similar_names(braces_repo, tmp_path):
+    # "data.cpp" ends with "a.cpp": its new warning on line 2 must not be
+    # filtered with the lines of a.cpp.
+    (tmp_path / "a.cpp").write_text("int a() {\n  return 0;\n}\n")
+    (tmp_path / "data.cpp").write_text("int d(int x) {\n  return 0;\n}\n")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-q", "-m", "more")
+    (tmp_path / "a.cpp").write_text(
+        "int a() {\n  return 0;\n}\nint b() { return 1; }\n"
+    )
+    (tmp_path / "data.cpp").write_text(
+        "int d(int x) {\n  if (x)\n    return 1;\n  return 0;\n}\n"
+    )
+    _git(tmp_path, "add", ".")
+
+    ret, output = run_clang_tidy(CHECK_BRACES + ["a.cpp", "data.cpp"])
+
+    assert ret == 1
+    assert "data.cpp:2:" in output
+
+
+# --- what happens without a compilation database ---
+
+
+@pytest.fixture
+def no_compile_db(tmp_path, monkeypatch, real_compile_db_check):
+    """A directory without any compilation database, used as the cwd."""
+    monkeypatch.chdir(tmp_path)
+    return tmp_path
+
+
+def test_missing_compile_db_skips_locally(no_compile_db, mock_exec, capsys):
+    assert run_clang_tidy(["a.cpp"]) == (0, "")
+
+    mock_exec.assert_not_called()
+    stderr = capsys.readouterr().err
+    assert "Skipped clang-tidy" in stderr
+    assert "cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON" in stderr
+    assert "--no-compile-commands" in stderr
+
+
+def test_missing_compile_db_skips_before_installing(no_compile_db, mock_resolve):
+    run_clang_tidy(["a.cpp"])
+
+    mock_resolve.assert_not_called()
+
+
+@pytest.mark.parametrize("value", ("true", "1", "True", "yes"))
+def test_missing_compile_db_fails_in_ci(no_compile_db, mock_exec, monkeypatch, value):
+    monkeypatch.setenv("CI", value)
+
+    ret, output = run_clang_tidy(["--checks=.clang-tidy", "a.cpp"])
+
+    assert ret == 1
+    assert output.startswith("clang-tidy needs a compilation database.")
+    assert "--no-compile-commands" in output
+    assert "--checks=.clang-tidy has no effect" in output
+    mock_exec.assert_not_called()
+
+
+@pytest.mark.parametrize("value", ("", "false", "0", "no"))
+def test_ci_variable_set_to_false(no_compile_db, mock_exec, monkeypatch, value):
+    monkeypatch.setenv("CI", value)
+
+    assert run_clang_tidy(["a.cpp"]) == (0, "")
+
+
+@pytest.mark.parametrize(
+    "args",
+    (
+        ["--no-compile-commands"],
+        ["-p", "elsewhere"],
+        ["-p=elsewhere"],
+        ["--extra-arg=-std=c++20"],
+        ["-extra-arg=-std=c++20"],
+        ["--extra-arg-before=--driver-mode=cl"],
+        ["--extra-arg", "-std=c++20"],
+    ),
+)
+def test_missing_compile_db_runs_when_flags_are_given(no_compile_db, mock_exec, args):
+    run_clang_tidy(args + ["a.cpp"])
+
+    mock_exec.assert_called_once()
+
+
+@pytest.mark.parametrize("name", ("compile_commands.json", "compile_flags.txt"))
+def test_database_found_in_a_parent_directory(tmp_path, name):
+    (tmp_path / name).write_text("")
+    (tmp_path / "src" / "deep").mkdir(parents=True)
+
+    assert _has_compilation_database([str(tmp_path / "src" / "deep" / "a.cpp")])
+
+
+def test_database_next_to_one_of_the_files(tmp_path):
+    (tmp_path / "with").mkdir()
+    (tmp_path / "with" / "compile_flags.txt").write_text("")
+
+    assert _has_compilation_database(
+        [str(tmp_path / "a.cpp"), str(tmp_path / "with" / "b.cpp")]
+    )
+
+
+def test_no_database_in_any_parent(no_compile_db):
+    (no_compile_db / "src").mkdir()
+
+    assert not _has_compilation_database(["a.cpp", "b.cpp", "src/c.cpp"])
+
+
+def test_testing_dir_uses_its_compile_flags():
+    assert _has_compilation_database(["testing/main.c"])
+
+
+@pytest.mark.parametrize(
+    "db_dir", ("cmake-build-release", "build-gcc", "build/debug", "out/build/x64-Debug")
+)
+def test_compile_commands_found_by_pattern(tmp_path, monkeypatch, db_dir):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / db_dir).mkdir(parents=True)
+    (tmp_path / db_dir / "compile_commands.json").write_text("[]")
+
+    assert _find_compile_commands() == db_dir
+
+
+def test_newest_compile_commands_wins_within_a_pattern(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    for index, preset in enumerate(("release", "debug", "asan")):
+        db = tmp_path / "build" / preset / "compile_commands.json"
+        db.parent.mkdir(parents=True)
+        db.write_text("[]")
+        os.utime(db, (1_000_000 + index, 1_000_000 + index))
+
+    assert _find_compile_commands() == "build/asan"
+
+
+def test_pattern_skips_directories_without_a_database(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "build-empty").mkdir()
+    (tmp_path / "build-gcc").mkdir()
+    (tmp_path / "build-gcc" / "compile_commands.json").write_text("[]")
+    (tmp_path / "build-file").write_text("")
+
+    assert _find_compile_commands() == "build-gcc"
+
+
+def test_no_compile_commands_anywhere(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "build").mkdir()
+    (tmp_path / "build" / "CMakeFiles").mkdir()
+
+    assert _find_compile_commands() is None
+
+
+def test_fixed_directories_win_over_patterns(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    for db_dir in ("cmake-build-release", "builddir"):
+        (tmp_path / db_dir).mkdir()
+        (tmp_path / db_dir / "compile_commands.json").write_text("[]")
+
+    assert _find_compile_commands() == "builddir"
+
+
+@pytest.mark.parametrize(
+    "name", ("a.mm", "a.cppm", "a.ccm", "a.cxxm", "a.c++m", "sketch.ino")
+)
+def test_split_source_files_knows_pre_commit_cpp_types(name):
+    assert _split_source_files(["-quiet", "a.cpp", name]) == (
+        ["-quiet"],
+        ["a.cpp", name],
+    )

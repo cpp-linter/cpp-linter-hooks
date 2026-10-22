@@ -17,10 +17,10 @@
 ### Meson
 
 ```bash
-meson setup build    # auto-detect works with build/
+meson setup builddir    # builddir/ and build/ are auto-detected
 ```
 
-Or point explicitly: `args: [--compile-commands=builddir]`.
+For another directory, point explicitly: `args: [--compile-commands=mydir]`.
 
 ### clang-tidy + compile_commands.json
 
@@ -59,5 +59,10 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with: { python-version: '3.11' }
+      # clang-tidy needs the compilation database in CI too: without it, the
+      # hook fails when CI is set.
+      - run: cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
       - uses: pre-commit/action@v3.0.1
 ```
+
+`pre-commit/action` runs `pre-commit run --all-files`, so clang-tidy checks every line there.
