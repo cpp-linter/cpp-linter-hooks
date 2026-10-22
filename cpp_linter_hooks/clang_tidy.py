@@ -175,16 +175,40 @@ parser.add_argument(
 )
 
 
+def _subdirectories(parent: str) -> list[str]:
+    """Return the names of the directories in parent, or [] if it is missing."""
+    try:
+        with os.scandir(parent) as entries:
+            return [entry.name for entry in entries if entry.is_dir()]
+    except OSError:
+        return []
+
+
 def _find_compile_commands() -> str | None:
     """Return the first common directory containing compile_commands.json."""
+    # os.path and os.scandir instead of pathlib: this runs on every commit.
     for d in COMPILE_DB_SEARCH_DIRS:
-        if (Path(d) / COMPILE_COMMANDS_JSON).exists():
+        if os.path.isfile(os.path.join(d, COMPILE_COMMANDS_JSON)):
             return d
+    listings: dict[str, list[str]] = {}
     for pattern in COMPILE_DB_SEARCH_GLOBS:
-        databases = list(Path().glob(f"{pattern}/{COMPILE_COMMANDS_JSON}"))
-        if databases:
-            newest = max(databases, key=lambda db: db.stat().st_mtime)
-            return newest.parent.as_posix()
+        parent, _, name = pattern.rpartition("/")
+        prefix = name.removesuffix("*")
+        if parent not in listings:
+            listings[parent] = _subdirectories(parent or ".")
+        mtimes = {}
+        for subdirectory in listings[parent]:
+            if not subdirectory.startswith(prefix):
+                continue
+            directory = f"{parent}/{subdirectory}" if parent else subdirectory
+            try:
+                mtimes[directory] = os.stat(
+                    os.path.join(directory, COMPILE_COMMANDS_JSON)
+                ).st_mtime
+            except OSError:
+                continue
+        if mtimes:
+            return max(mtimes, key=mtimes.__getitem__)
     return None
 
 

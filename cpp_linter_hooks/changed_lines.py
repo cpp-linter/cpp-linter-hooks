@@ -39,8 +39,8 @@ def _git_diff(args: list[str]) -> str | None:
         *args,
     ]
     try:
-        sp = subprocess.run(command, capture_output=True, check=False)
-    except OSError:
+        sp = subprocess.run(command, capture_output=True, check=False, timeout=60)
+    except (OSError, subprocess.TimeoutExpired):
         return None
     if sp.returncode != 0:
         return None

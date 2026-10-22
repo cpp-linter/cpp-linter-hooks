@@ -1379,6 +1379,24 @@ def test_newest_compile_commands_wins_within_a_pattern(tmp_path, monkeypatch):
     assert _find_compile_commands() == "build/asan"
 
 
+def test_pattern_skips_directories_without_a_database(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "build-empty").mkdir()
+    (tmp_path / "build-gcc").mkdir()
+    (tmp_path / "build-gcc" / "compile_commands.json").write_text("[]")
+    (tmp_path / "build-file").write_text("")
+
+    assert _find_compile_commands() == "build-gcc"
+
+
+def test_no_compile_commands_anywhere(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "build").mkdir()
+    (tmp_path / "build" / "CMakeFiles").mkdir()
+
+    assert _find_compile_commands() is None
+
+
 def test_fixed_directories_win_over_patterns(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     for db_dir in ("cmake-build-release", "builddir"):

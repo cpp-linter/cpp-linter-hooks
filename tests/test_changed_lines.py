@@ -151,11 +151,11 @@ def test_outside_a_git_repository(tmp_path, monkeypatch):
     assert changed_lines(["a.cpp"]) is None
 
 
-def test_without_git(repo):
-    with patch(
-        "cpp_linter_hooks.changed_lines.subprocess.run",
-        side_effect=FileNotFoundError("git"),
-    ):
+@pytest.mark.parametrize(
+    "error", (FileNotFoundError("git"), subprocess.TimeoutExpired("git", 60))
+)
+def test_without_git(repo, error):
+    with patch("cpp_linter_hooks.changed_lines.subprocess.run", side_effect=error):
         assert changed_lines(["a.cpp"]) is None
 
 
