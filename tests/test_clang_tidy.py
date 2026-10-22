@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import sys
@@ -1177,15 +1178,78 @@ def test_line_filter_reaches_each_parallel_run(monkeypatch, mock_exec):
 
     run_clang_tidy(["--jobs=2", "a.cpp", "b.cpp"])
 
-    line_filter = (
-        '--line-filter=[{"name":"a.cpp","lines":[[1,1]]},'
-        '{"name":"b.cpp","lines":[[2,2]]}]'
-    )
     commands = sorted(call.args[0] for call in mock_exec.call_args_list)
     assert commands == [
-        ["clang-tidy", "-quiet", line_filter, "a.cpp"],
-        ["clang-tidy", "-quiet", line_filter, "b.cpp"],
+        [
+            "clang-tidy",
+            "-quiet",
+            '--line-filter=[{"name":"a.cpp","lines":[[1,1]]}]',
+            "a.cpp",
+        ],
+        [
+            "clang-tidy",
+            "-quiet",
+            '--line-filter=[{"name":"b.cpp","lines":[[2,2]]}]',
+            "b.cpp",
+        ],
     ]
+
+
+def test_line_filter_lists_longer_names_first(monkeypatch):
+    # clang-tidy uses the first name that ends the reported path, and
+    # "data.cpp" ends with "a.cpp".
+    monkeypatch.setattr(clang_tidy.os, "sep", "/")
+
+    option = _line_filter_option({"a.cpp": [[5, 5]], "data.cpp": [[1, 1]]})
+
+    assert option == (
+        '--line-filter=[{"name":"data.cpp","lines":[[1,1]]},'
+        '{"name":"a.cpp","lines":[[5,5]]}]'
+    )
+
+
+def test_large_commit_is_split_into_short_commands(monkeypatch, mock_exec):
+    files = [f"src/module/file_{i}.cpp" for i in range(40)]
+    monkeypatch.setattr(clang_tidy, "COMMAND_LINE_BUDGET", 1000)
+    monkeypatch.setattr(
+        clang_tidy, "changed_lines", lambda paths: {f: [[1, 2]] for f in paths}
+    )
+
+    run_clang_tidy(files)
+
+    commands = [call.args[0] for call in mock_exec.call_args_list]
+    assert len(commands) > 1
+    assert [f for command in commands for f in command[3:]] == files
+    for command in commands:
+        assert sum(len(arg) + arg.count('"') + 3 for arg in command) <= 1000
+        assert command[:2] == ["clang-tidy", "-quiet"]
+        names = {entry["name"] for entry in json.loads(command[2].split("=", 1)[1])}
+        assert {f.replace("/", os.sep) for f in command[3:]} <= names
+
+
+def test_split_commands_combine_their_results(monkeypatch, mock_exec):
+    monkeypatch.setattr(clang_tidy, "COMMAND_LINE_BUDGET", 0)
+    monkeypatch.setattr(
+        clang_tidy, "changed_lines", lambda paths: {f: [[1, 1]] for f in paths}
+    )
+    mock_exec.side_effect = [(0, ""), (1, "b.cpp:1:1: warning: x")]
+
+    ret, output = run_clang_tidy(["a.cpp", "b.cpp"])
+
+    assert mock_exec.call_count == 2
+    assert ret == 1
+    assert output == "b.cpp:1:1: warning: x"
+
+
+def test_command_that_cannot_start_fails_the_hook():
+    with patch(
+        "cpp_linter_hooks.clang_tidy.subprocess.run",
+        side_effect=OSError(7, "Argument list too long"),
+    ):
+        ret, output = clang_tidy._exec_clang_tidy(["clang-tidy", "a.cpp"])
+
+    assert ret == 1
+    assert "Argument list too long" in output
 
 
 def _git(repo, *args):
@@ -1264,6 +1328,27 @@ def test_real_tool_fixes_only_the_changed_lines(braces_repo):
     assert "if (x > 2) {" in fixed
     assert "if (x) {" not in fixed
     assert "if (x > 1) {" not in fixed
+
+
+def test_real_tool_keeps_the_lines_of_files_with_similar_names(braces_repo, tmp_path):
+    # "data.cpp" ends with "a.cpp": its new warning on line 2 must not be
+    # filtered with the lines of a.cpp.
+    (tmp_path / "a.cpp").write_text("int a() {\n  return 0;\n}\n")
+    (tmp_path / "data.cpp").write_text("int d(int x) {\n  return 0;\n}\n")
+    _git(tmp_path, "add", ".")
+    _git(tmp_path, "commit", "-q", "-m", "more")
+    (tmp_path / "a.cpp").write_text(
+        "int a() {\n  return 0;\n}\nint b() { return 1; }\n"
+    )
+    (tmp_path / "data.cpp").write_text(
+        "int d(int x) {\n  if (x)\n    return 1;\n  return 0;\n}\n"
+    )
+    _git(tmp_path, "add", ".")
+
+    ret, output = run_clang_tidy(CHECK_BRACES + ["a.cpp", "data.cpp"])
+
+    assert ret == 1
+    assert "data.cpp:2:" in output
 
 
 # --- what happens without a compilation database ---

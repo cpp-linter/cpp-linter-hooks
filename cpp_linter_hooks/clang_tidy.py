@@ -24,6 +24,9 @@ COMPILE_DB_SEARCH_GLOBS = ["cmake-build-*", "build-*", "build/*", "out/build/*"]
 # Files clang-tidy finds by itself in a source file's directory or its parents.
 COMPILE_COMMANDS_JSON = "compile_commands.json"
 COMPILATION_DATABASE_FILES = (COMPILE_COMMANDS_JSON, "compile_flags.txt")
+# Windows limits a whole command line to 32,767 characters and Linux limits one
+# argument to 128 KiB. Commands that carry a --line-filter stay below this.
+COMMAND_LINE_BUDGET = 30_000 if os.name == "nt" else 100_000
 SOURCE_FILE_SUFFIXES = {
     ".c",
     ".cc",
@@ -395,7 +398,8 @@ def _exec_clang_tidy(command) -> tuple[int, str]:
             1 if sp.returncode != 0 or "warning:" in output or "error:" in output else 0
         )
         return retval, output
-    except FileNotFoundError as e:
+    except OSError as e:
+        # For example a missing executable, or a command line that is too long.
         return 1, str(e)
 
 
@@ -488,15 +492,53 @@ def _repair_check_args(args: list[str]) -> tuple[list[str], list[str]]:
 def _line_filter_option(lines: dict[str, LineRanges]) -> str:
     """Build clang-tidy's --line-filter option for the given line ranges.
 
-    clang-tidy matches each name against the end of the path it reports, and
-    drops diagnostics in files that are not listed.
+    clang-tidy matches each name against the end of the path it reports, uses
+    the first entry that matches, and drops diagnostics in files that are not
+    listed. Longer names come first, so "a.cpp" cannot take the lines of
+    "data.cpp".
     """
     entries = []
     for path, ranges in lines.items():
         name = normalize(path)
         names = dict.fromkeys((name, name.replace("/", os.sep)))
         entries.extend({"name": n, "lines": ranges} for n in names)
+    entries.sort(key=lambda entry: len(entry["name"]), reverse=True)
     return "--line-filter=" + json.dumps(entries, separators=(",", ":"))
+
+
+def _command_line_length(arg: str) -> int:
+    """Return about how much of the command line an argument takes.
+
+    Windows quotes an argument with spaces and escapes each double quote.
+    """
+    return len(arg) + arg.count('"') + 3
+
+
+def _line_filter_batches(
+    command_prefix: list[str], source_files: list[str], lines: dict[str, LineRanges]
+) -> list[list[str]]:
+    """Split the files into commands that each carry a --line-filter for them.
+
+    The filter of a large commit can be longer than the operating system
+    allows for one command, so the files are split into several commands.
+    """
+    budget = COMMAND_LINE_BUDGET - sum(map(_command_line_length, command_prefix))
+    batches: list[list[str]] = []
+    batch: list[str] = []
+    used = 0
+    for source_file in source_files:
+        cost = _command_line_length(
+            _line_filter_option({source_file: lines[source_file]})
+        ) + _command_line_length(source_file)
+        if batch and used + cost > budget:
+            batches.append(batch)
+            batch, used = [], 0
+        batch.append(source_file)
+        used += cost
+    batches.append(batch)
+    return [
+        [_line_filter_option({f: lines[f] for f in batch}), *batch] for batch in batches
+    ]
 
 
 def _append_notes(output: str, notes: list[str]) -> str:
@@ -529,20 +571,51 @@ def _combine_outputs(results: list[tuple[int, str]]) -> str:
     return "\n".join(output.rstrip("\n") for _, output in results if output)
 
 
+def _combine_results(results: list[tuple[int, str]]) -> tuple[int, str]:
+    """Combine the results of several clang-tidy runs into one."""
+    retval = 1 if any(retval != 0 for retval, _ in results) else 0
+    return retval, _combine_outputs(results)
+
+
+def _exec_serial_clang_tidy(
+    command_prefix: list[str],
+    source_files: list[str],
+    lines: dict[str, LineRanges] | None,
+) -> tuple[int, str]:
+    """Run clang-tidy over all source files, in one command when possible."""
+    if lines is None:
+        return _exec_clang_tidy(command_prefix + source_files)
+    # Several commands only for very large commits; they run one after another,
+    # so -fix stays safe.
+    return _combine_results(
+        [
+            _exec_clang_tidy(command_prefix + batch)
+            for batch in _line_filter_batches(command_prefix, source_files, lines)
+        ]
+    )
+
+
 def _exec_parallel_clang_tidy(
-    command_prefix: list[str], source_files: list[str], jobs: int
+    command_prefix: list[str],
+    source_files: list[str],
+    jobs: int,
+    lines: dict[str, LineRanges] | None = None,
 ) -> tuple[int, str]:
     """Run clang-tidy over source files in parallel and combine the results."""
 
     def run_file(source_file: str) -> tuple[int, str]:
-        """Run clang-tidy for a single source file."""
-        return _exec_clang_tidy(command_prefix + [source_file])
+        """Run clang-tidy for a single source file, with its own line filter."""
+        line_filter = (
+            []
+            if lines is None
+            else [_line_filter_option({source_file: lines[source_file]})]
+        )
+        return _exec_clang_tidy(command_prefix + line_filter + [source_file])
 
     with ThreadPoolExecutor(max_workers=min(jobs, len(source_files))) as executor:
         results = list(executor.map(run_file, source_files))
 
-    retval = 1 if any(retval != 0 for retval, _ in results) else 0
-    return retval, _combine_outputs(results)
+    return _combine_results(results)
 
 
 def run_clang_tidy(args=None) -> tuple[int, str]:
@@ -556,12 +629,14 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
     clang_tidy_args, source_files = _split_source_files(other_args)
     clang_tidy_args, notes = _repair_check_args(clang_tidy_args)
 
+    lines = None
     if not hook_args.all_lines and not _has_option(
         clang_tidy_args, "--line-filter", "-line-filter"
     ):
         lines = changed_lines(source_files)
         if lines is not None:
             source_files = [f for f in source_files if lines[f]]
+            lines = {f: lines[f] for f in source_files}
             if hook_args.verbose:
                 print(
                     "Reporting only lines changed in git diff "
@@ -570,9 +645,6 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
                 )
             if not source_files:
                 return 0, _append_notes("", notes)
-            clang_tidy_args.append(
-                _line_filter_option({f: lines[f] for f in source_files})
-            )
 
     if compile_db_path:
         if hook_args.verbose:
@@ -626,10 +698,12 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
 
     if hook_args.jobs > 1 and len(source_files) > 1 and not unsafe_parallel:
         retval, output = _exec_parallel_clang_tidy(
-            [executable] + clang_tidy_args, source_files, hook_args.jobs
+            [executable] + clang_tidy_args, source_files, hook_args.jobs, lines
         )
     else:
-        retval, output = _exec_clang_tidy([executable] + clang_tidy_args + source_files)
+        retval, output = _exec_serial_clang_tidy(
+            [executable] + clang_tidy_args, source_files, lines
+        )
 
     if not hook_args.verbose:
         output = _strip_noise(output)
