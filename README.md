@@ -19,7 +19,7 @@ Add this configuration to your `.pre-commit-config.yaml` file:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.6.1
+    rev: v1.7.0
     hooks:
       - id: clang-format
         args: [--style=file, --version=21]
@@ -39,7 +39,7 @@ leave it out if you only run clang-tidy in CI, for example with
 ### Custom clang tool version
 
 > [!TIP]
-> The `rev` tag (e.g. `v1.6.1`) is the **project** version, not the clang tool version. Without
+> The `rev` tag (e.g. `v1.7.0`) is the **project** version, not the clang tool version. Without
 > `--version`, each hook installs the newest clang-format or clang-tidy wheel on PyPI the first time
 > it runs and keeps it until pre-commit rebuilds the hook environment, so two machines can run
 > different LLVM versions with the same configuration. For production use, always pin the tool
@@ -175,7 +175,7 @@ keep clang-tidy's full output.
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.6.1  # includes --fix support
+    rev: v1.7.0  # includes --fix support
     hooks:
       - id: clang-tidy
         args: [--fix]
@@ -194,7 +194,7 @@ automatically — no configuration needed for most projects:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.6.1
+    rev: v1.7.0
     hooks:
       - id: clang-tidy
         # Auto-detects ./build/compile_commands.json if present
@@ -237,7 +237,7 @@ Three self-contained templates plus quick snippets for other common setups.
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.6.1
+  rev: v1.7.0
   hooks:
     - id: clang-format
       args: [--style=file, --version=21]
@@ -252,7 +252,7 @@ or `-j`:
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.6.1
+  rev: v1.7.0
   hooks:
     - id: clang-tidy
       args: [--version=21, --jobs=4]
@@ -284,7 +284,7 @@ This approach ensures that only modified files are checked, further speeding up 
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.6.1
+    rev: v1.7.0
     hooks:
       - id: clang-format
         args: [--style=file, --version=21, --verbose]   # Shows processed files
