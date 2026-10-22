@@ -225,6 +225,12 @@ def test_added_line_that_looks_like_a_file_header(repo):
     assert changed_lines(["a.cpp"]) == {"a.cpp": [[3, 3], [7, 7]]}
 
 
+def test_parse_added_lines_of_a_cut_off_diff():
+    diff = "+++ b/a.cpp\n@@ -0,0 +1,3 @@\n+a"
+
+    assert _parse_added_lines(diff) == {"a.cpp": [[1, 3]]}
+
+
 def test_parse_added_lines():
     lines = [
         "diff --git a/a.cpp b/a.cpp",

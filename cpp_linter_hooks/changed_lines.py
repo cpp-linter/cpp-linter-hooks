@@ -4,6 +4,7 @@ import codecs
 import os
 import re
 import subprocess
+from collections.abc import Iterator
 from pathlib import PurePath
 
 # "@@ -12,3 +14,2 @@": the old side spans 3 lines; the new side starts at line
@@ -62,35 +63,47 @@ def _unquote_path(path: str) -> str:
     return path
 
 
+def _count(group: str | None) -> int:
+    """Return a hunk header's line count, which is 1 when git leaves it out."""
+    return 1 if group is None else int(group)
+
+
+def _skip_hunk_body(lines: Iterator[str], count: int) -> None:
+    """Consume the next count lines of a hunk.
+
+    They are skipped, not parsed, because an added line such as "++ i;"
+    looks like a "+++ " file header. "\\ No newline at end of file" is not
+    one of the hunk's lines.
+    """
+    while count > 0:
+        line = next(lines, None)
+        if line is None:
+            return
+        if line[:1] in ("+", "-", " "):
+            count -= 1
+
+
 def _parse_added_lines(diff: str) -> dict[str, LineRanges]:
     """Return the added line ranges of each file in a ``git diff -U0`` output."""
     ranges: dict[str, LineRanges] = {}
     current: LineRanges | None = None
-    # Lines of the current hunk not read yet. They are skipped, because an
-    # added line such as "++ i;" looks like a "+++ " file header.
-    hunk_lines = 0
-    for line in diff.splitlines():
-        if hunk_lines:
-            # "\ No newline at end of file" is not one of the hunk's lines.
-            if line[:1] in ("+", "-", " "):
-                hunk_lines -= 1
-            continue
+    lines = iter(diff.splitlines())
+    for line in lines:
         if line.startswith("+++ "):
             name = _unquote_path(line[4:].rstrip("\t"))
-            if name == "/dev/null":
-                current = None
-            else:
-                current = ranges.setdefault(name.removeprefix("b/"), [])
+            current = (
+                None
+                if name == "/dev/null"
+                else ranges.setdefault(name.removeprefix("b/"), [])
+            )
             continue
         match = HUNK_HEADER.match(line)
         if match is None:
             continue
-        old_count = 1 if match.group(1) is None else int(match.group(1))
-        start = int(match.group(2))
-        count = 1 if match.group(3) is None else int(match.group(3))
-        hunk_lines = old_count + count
+        start, count = int(match.group(2)), _count(match.group(3))
         if count > 0 and current is not None:
             current.append([start, start + count - 1])
+        _skip_hunk_body(lines, _count(match.group(1)) + count)
     return ranges
 
 
