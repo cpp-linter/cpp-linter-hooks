@@ -217,22 +217,43 @@ def test_normalize(path, expected):
     assert normalize(path) == expected
 
 
+def test_added_line_that_looks_like_a_file_header(repo):
+    """An added "++ i;" shows as "+++ i;" in the diff."""
+    edit(repo / "a.cpp", {2: "line 2\n++ i;\n", 6: "changed 6\n"})
+    git(repo, "add", "a.cpp")
+
+    assert changed_lines(["a.cpp"]) == {"a.cpp": [[3, 3], [7, 7]]}
+
+
 def test_parse_added_lines():
     lines = [
         "diff --git a/a.cpp b/a.cpp",
         "--- a/a.cpp",
         "+++ b/a.cpp",
         "@@ -3 +3 @@",
+        "-old",
+        "+new",
         "@@ -10,0 +11,4 @@ int main() {",
+        "+++ i;",
+        "+--- j;",
+        "+",
+        "+x",
+        "\\ No newline at end of file",
         "@@ -20,2 +23,0 @@",
+        "-a",
+        "-b",
         "diff --git a/gone.cpp b/gone.cpp",
         "--- a/gone.cpp",
         "+++ /dev/null",
         "@@ -1,2 +0,0 @@",
+        "--- x;",
+        "-y",
         "diff --git a/b.cpp b/b.cpp",
         "--- a/b.cpp",
         '+++ "b/sp\\303\\251cial \\"q\\".cpp"',
         "@@ -0,0 +1,2 @@",
+        "+a",
+        "+b",
     ]
 
     assert _parse_added_lines("\n".join(lines)) == {

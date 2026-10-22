@@ -173,8 +173,9 @@ warnings elsewhere in a file do not block your commit. It reads the changes with
 - With `pre-commit run --from-ref A --to-ref B` and in the `pre-push` stage: the changes between
   the two commits.
 
-The hook passes these lines to clang-tidy's `--line-filter`, so `--fix` also changes only those
-lines. Compiler errors are always reported. Files with no added lines, such as a pure rename, are
+The hook passes these lines to clang-tidy's `--line-filter`, so `--fix` applies only the fixes
+for problems reported on those lines (a fix can still touch a nearby line, for example to add a
+closing brace). Compiler errors are always reported. Files with no added lines, such as a pure rename, are
 not checked.
 
 The hook checks every line when the files it gets have no changes, for example with

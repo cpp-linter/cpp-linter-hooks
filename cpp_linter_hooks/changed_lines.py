@@ -6,8 +6,9 @@ import re
 import subprocess
 from pathlib import PurePath
 
-# "@@ -12,3 +14,2 @@": the new side starts at line 14 and spans 2 lines.
-HUNK_HEADER = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,(\d+))? @@")
+# "@@ -12,3 +14,2 @@": the old side spans 3 lines; the new side starts at line
+# 14 and spans 2 lines. A missing count means 1.
+HUNK_HEADER = re.compile(r"^@@ -\d+(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
 
 LineRanges = list[list[int]]
 
@@ -65,7 +66,15 @@ def _parse_added_lines(diff: str) -> dict[str, LineRanges]:
     """Return the added line ranges of each file in a ``git diff -U0`` output."""
     ranges: dict[str, LineRanges] = {}
     current: LineRanges | None = None
+    # Lines of the current hunk not read yet. They are skipped, because an
+    # added line such as "++ i;" looks like a "+++ " file header.
+    hunk_lines = 0
     for line in diff.splitlines():
+        if hunk_lines:
+            # "\ No newline at end of file" is not one of the hunk's lines.
+            if line[:1] in ("+", "-", " "):
+                hunk_lines -= 1
+            continue
         if line.startswith("+++ "):
             name = _unquote_path(line[4:].rstrip("\t"))
             if name == "/dev/null":
@@ -74,11 +83,13 @@ def _parse_added_lines(diff: str) -> dict[str, LineRanges]:
                 current = ranges.setdefault(name.removeprefix("b/"), [])
             continue
         match = HUNK_HEADER.match(line)
-        if match is None or current is None:
+        if match is None:
             continue
-        start = int(match.group(1))
-        count = 1 if match.group(2) is None else int(match.group(2))
-        if count > 0:
+        old_count = 1 if match.group(1) is None else int(match.group(1))
+        start = int(match.group(2))
+        count = 1 if match.group(3) is None else int(match.group(3))
+        hunk_lines = old_count + count
+        if count > 0 and current is not None:
             current.append([start, start + count - 1])
     return ranges
 
