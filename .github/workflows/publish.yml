@@ -30,11 +30,9 @@ jobs:
         with:
           python-version: '3.x'
       - name: Build wheel
-        run: |
-          python -m pip install --upgrade pip twine
-          python -m pip wheel -w dist --no-deps .
+        run: pipx run build --wheel --outdir dist
       - name: Check distribution
-        run: twine check dist/*
+        run: pipx run twine check dist/*
       - name: Attest build provenance
         uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
         with:
