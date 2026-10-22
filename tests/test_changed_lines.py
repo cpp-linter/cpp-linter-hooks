@@ -59,12 +59,24 @@ def test_staged_changes_give_the_added_lines(repo):
     assert changed_lines(["a.cpp"]) == {"a.cpp": [[3, 3], [7, 8]]}
 
 
-def test_unstaged_changes_are_ignored(repo):
+def test_unstaged_changes_in_other_files_are_ignored(repo):
+    (repo / "b.cpp").write_text("int x;\n")
+    git(repo, "add", "b.cpp")
+    git(repo, "commit", "-q", "-m", "b")
     edit(repo / "a.cpp", {2: "staged\n"})
     git(repo, "add", "a.cpp")
-    edit(repo / "a.cpp", {9: "not staged\n"})
+    (repo / "b.cpp").write_text("int y;\n")
 
     assert changed_lines(["a.cpp"]) == {"a.cpp": [[2, 2]]}
+
+
+def test_unstaged_changes_mean_every_line_is_checked(repo):
+    """The staged line numbers do not match the file that clang-tidy reads."""
+    edit(repo / "a.cpp", {2: "staged\n"})
+    git(repo, "add", "a.cpp")
+    (repo / "a.cpp").write_text("not staged\n" + (repo / "a.cpp").read_text())
+
+    assert changed_lines(["a.cpp"]) is None
 
 
 def test_new_file_counts_every_line(repo):
@@ -135,12 +147,24 @@ def test_pushed_range_from_pre_commit_variables(repo, monkeypatch):
     edit(repo / "a.cpp", {5: "pushed 5\n"})
     git(repo, "commit", "-q", "-am", "second")
     head = git(repo, "rev-parse", "HEAD").strip()
+    monkeypatch.setenv("PRE_COMMIT_FROM_REF", base)
+    monkeypatch.setenv("PRE_COMMIT_TO_REF", head)
+
+    assert changed_lines(["a.cpp"]) == {"a.cpp": [[5, 5]]}
+
+
+def test_pushed_range_with_uncommitted_changes(repo, monkeypatch):
+    """The file on disk is not the pushed version, so its lines differ."""
+    base = git(repo, "rev-parse", "HEAD").strip()
+    edit(repo / "a.cpp", {5: "pushed 5\n"})
+    git(repo, "commit", "-q", "-am", "second")
+    head = git(repo, "rev-parse", "HEAD").strip()
     edit(repo / "a.cpp", {1: "staged, not pushed\n"})
     git(repo, "add", "a.cpp")
     monkeypatch.setenv("PRE_COMMIT_FROM_REF", base)
     monkeypatch.setenv("PRE_COMMIT_TO_REF", head)
 
-    assert changed_lines(["a.cpp"]) == {"a.cpp": [[5, 5]]}
+    assert changed_lines(["a.cpp"]) is None
 
 
 def test_outside_a_git_repository(tmp_path, monkeypatch):

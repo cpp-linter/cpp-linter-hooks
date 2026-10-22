@@ -178,7 +178,9 @@ lines. Compiler errors are always reported. Files with no added lines, such as a
 not checked.
 
 The hook checks every line when the files it gets have no changes, for example with
-`pre-commit run --all-files` on a clean working tree, or outside a git repository. To always check
+`pre-commit run --all-files` on a clean working tree, when a file on disk differs from the
+version the lines come from (unstaged changes in a direct run, or uncommitted changes on
+`pre-push`), or outside a git repository. To always check
 every line, for example in a manual stage, add `--all-lines`:
 
 ```yaml

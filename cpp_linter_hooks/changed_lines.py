@@ -87,10 +87,12 @@ def changed_lines(files: list[str]) -> dict[str, LineRanges] | None:
     """Return the added line ranges of each file, keyed by the given path.
 
     Returns None when the changed lines are unknown and every line should be
-    checked: outside a git repository, or when a file has no changes, which
+    checked: outside a git repository, when a file has no changes, which
     means the hook runs on files that were not changed (``--all-files`` or
-    ``--files``). A file that is changed but has no added lines, for example a
-    pure rename, maps to an empty list.
+    ``--files``), or when a file on disk differs from the version the lines
+    come from, so the line numbers would not match what clang-tidy reads. A
+    file that is changed but has no added lines, for example a pure rename,
+    maps to an empty list.
     """
     if not files:
         return None
@@ -101,6 +103,14 @@ def changed_lines(files: list[str]) -> dict[str, LineRanges] | None:
     changed = set(names.split("\0"))
     normalized = {path: normalize(path) for path in files}
     if any(name not in changed for name in normalized.values()):
+        return None
+    # pre-commit hides unstaged changes during a commit, so the files on disk
+    # match the index. A direct run, --files or a push with uncommitted
+    # changes can leave them different from the diffed version.
+    diffed_version = (
+        [] if revisions == ["--cached"] else [os.environ["PRE_COMMIT_TO_REF"]]
+    )
+    if _git_diff(["--quiet", *diffed_version, "--", *files]) is None:
         return None
 
     diff = _git_diff(["-U0", "--src-prefix=a/", "--dst-prefix=b/", *revisions])
