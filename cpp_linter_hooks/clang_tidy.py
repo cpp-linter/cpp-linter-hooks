@@ -184,6 +184,22 @@ def _subdirectories(parent: str) -> list[str]:
         return []
 
 
+def _newest_database(parent: str, prefix: str, names: list[str]) -> str | None:
+    """Return the prefix-matching directory with the newest compile_commands.json."""
+    newest, newest_mtime = None, 0.0
+    for name in names:
+        if not name.startswith(prefix):
+            continue
+        directory = f"{parent}/{name}" if parent else name
+        try:
+            mtime = os.stat(os.path.join(directory, COMPILE_COMMANDS_JSON)).st_mtime
+        except OSError:
+            continue
+        if newest is None or mtime > newest_mtime:
+            newest, newest_mtime = directory, mtime
+    return newest
+
+
 def _find_compile_commands() -> str | None:
     """Return the first common directory containing compile_commands.json."""
     # os.path and os.scandir instead of pathlib: this runs on every commit.
@@ -193,22 +209,11 @@ def _find_compile_commands() -> str | None:
     listings: dict[str, list[str]] = {}
     for pattern in COMPILE_DB_SEARCH_GLOBS:
         parent, _, name = pattern.rpartition("/")
-        prefix = name.removesuffix("*")
         if parent not in listings:
             listings[parent] = _subdirectories(parent or ".")
-        mtimes = {}
-        for subdirectory in listings[parent]:
-            if not subdirectory.startswith(prefix):
-                continue
-            directory = f"{parent}/{subdirectory}" if parent else subdirectory
-            try:
-                mtimes[directory] = os.stat(
-                    os.path.join(directory, COMPILE_COMMANDS_JSON)
-                ).st_mtime
-            except OSError:
-                continue
-        if mtimes:
-            return max(mtimes, key=mtimes.__getitem__)
+        found = _newest_database(parent, name.removesuffix("*"), listings[parent])
+        if found:
+            return found
     return None
 
 
