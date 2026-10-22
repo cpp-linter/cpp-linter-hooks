@@ -31,5 +31,7 @@ Then `cmake -B build` and `pre-commit install`.  Done.
 ---
 
 `compile_commands.json` is auto-detected from `build/`, `out/`, `cmake-build-debug/`,
-or `_build/`.  If your build dir has a different name, pass it explicitly:
-`args: [--compile-commands=mybuild, ...]`.
+`_build/`, `builddir/`, `cmake-build-*/`, `build-*/`, `build/*/` or `out/build/*/`.  If your
+build dir has a different name, pass it explicitly:
+`args: [--compile-commands=mybuild, ...]`.  Without a database, the clang-tidy hook skips
+clang-tidy on your machine and fails in CI.

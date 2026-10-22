@@ -14,7 +14,7 @@ repos:
         files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
 
       - id: clang-tidy
-        args: [--version=21, --compile-commands=builddir]
+        args: [--version=21]
         files: ^(src|include)/.*\.(cpp|cc|cxx)$
 ```
 
@@ -33,10 +33,9 @@ This gives `clang-tidy` the compiler flags and include paths for each source fil
 No separate compilation step is required to generate the database. If the project
 needs generated headers, build those first with `meson compile -C builddir`.
 
-`--compile-commands` takes the **directory** containing `compile_commands.json`,
-not the file path. `builddir/` is not one of the auto-detected directories, so the
-explicit argument above is required. If you use `meson setup build` instead,
-`build/` is auto-detected and the argument can be omitted.
+The hook auto-detects `builddir/` and `build/`. For another directory, pass
+`--compile-commands=<dir>`: it takes the **directory** containing
+`compile_commands.json`, not the file path.
 
 To regenerate the database after changing build options, run
 `meson setup --reconfigure builddir` before the hooks.
