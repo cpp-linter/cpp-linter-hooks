@@ -22,7 +22,8 @@ COMPILE_DB_SEARCH_DIRS = ["build", "out", "cmake-build-debug", "_build", "buildd
 # directories, the most recently written compile_commands.json wins.
 COMPILE_DB_SEARCH_GLOBS = ["cmake-build-*", "build-*", "build/*", "out/build/*"]
 # Files clang-tidy finds by itself in a source file's directory or its parents.
-COMPILATION_DATABASE_FILES = ("compile_commands.json", "compile_flags.txt")
+COMPILE_COMMANDS_JSON = "compile_commands.json"
+COMPILATION_DATABASE_FILES = (COMPILE_COMMANDS_JSON, "compile_flags.txt")
 SOURCE_FILE_SUFFIXES = {
     ".c",
     ".cc",
@@ -177,10 +178,10 @@ parser.add_argument(
 def _find_compile_commands() -> str | None:
     """Return the first common directory containing compile_commands.json."""
     for d in COMPILE_DB_SEARCH_DIRS:
-        if (Path(d) / "compile_commands.json").exists():
+        if (Path(d) / COMPILE_COMMANDS_JSON).exists():
             return d
     for pattern in COMPILE_DB_SEARCH_GLOBS:
-        databases = list(Path().glob(f"{pattern}/compile_commands.json"))
+        databases = list(Path().glob(f"{pattern}/{COMPILE_COMMANDS_JSON}"))
         if databases:
             newest = max(databases, key=lambda db: db.stat().st_mtime)
             return newest.parent.as_posix()
@@ -285,7 +286,7 @@ def _resolve_compile_db(
             )
             return None, None
         p = Path(hook_args.compile_commands)
-        if not p.is_dir() or not (p / "compile_commands.json").exists():
+        if not p.is_dir() or not (p / COMPILE_COMMANDS_JSON).exists():
             return None, (
                 1,
                 _compile_commands_not_found_message(hook_args.compile_commands),
@@ -301,7 +302,7 @@ def _resolve_compile_db(
 def _looks_like_compile_db_error(output: str) -> bool:
     """Return whether clang-tidy output indicates a compile database problem."""
     lower_output = output.lower()
-    compile_db_error = "compile_commands.json" in lower_output and any(
+    compile_db_error = COMPILE_COMMANDS_JSON in lower_output and any(
         pattern in lower_output
         for pattern in (
             "not found",
