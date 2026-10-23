@@ -1,5 +1,6 @@
 """Shared helpers for resolving and installing clang tool wheels."""
 
+import contextlib
 import json
 import logging
 import os
@@ -162,7 +163,9 @@ def _installed_wheel_version(tool: str) -> str | None:
     installed on an earlier run) into the hook's own environment. The version
     comes from the wheel's ``<name>-<version>.dist-info`` directory name, which
     needs neither the network nor a subprocess, and avoids parsing the large
-    METADATA file the way ``importlib.metadata.version`` does.
+    METADATA file the way ``importlib.metadata.version`` does. A wheel counts
+    only once its ``RECORD`` file exists: pip writes it last, so a wheel another
+    hook process is still installing is not used half-written.
     """
     prefix = f"{re.sub(r'[-_.]+', '_', tool).lower()}-"
     suffix = ".dist-info"
@@ -175,7 +178,11 @@ def _installed_wheel_version(tool: str) -> str | None:
             continue
         for name in names:
             lower = name.lower()
-            if lower.startswith(prefix) and lower.endswith(suffix):
+            if (
+                lower.startswith(prefix)
+                and lower.endswith(suffix)
+                and os.path.isfile(os.path.join(site_dir, name, "RECORD"))
+            ):
                 return name[len(prefix) : -len(suffix)]
     return None
 
@@ -207,6 +214,38 @@ def _find_installed_wheel(tool: str, version: str | None) -> tuple[Path, str] | 
     return Path(path), installed
 
 
+# Seconds to wait for another hook process to finish installing.
+_INSTALL_LOCK_TIMEOUT = 300
+
+
+@contextlib.contextmanager
+def _install_lock():
+    """Let one hook process at a time install tools into this environment.
+
+    pre-commit and prek run the hook on batches of files in parallel. Without
+    the lock, every batch runs ``pip install`` into the same directory at once.
+    If the lock is not free within 5 minutes, or the file system does not support
+    locks (some NFS mounts), the hook runs unlocked, as before. The limit also
+    covers filelock 3.x, which keeps retrying when the file system refuses the
+    lock, and a stale lock file left by a crashed process.
+    filelock is imported here because it is only needed to install, and
+    importing it takes longer than a whole hook run that finds the tool.
+    """
+    from filelock import FileLock
+
+    lock = FileLock(os.path.join(sys.prefix, ".cpp-linter-hooks-install.lock"))
+    try:
+        lock.acquire(timeout=_INSTALL_LOCK_TIMEOUT)
+    except (OSError, NotImplementedError) as exc:  # filelock.Timeout is an OSError
+        LOG.warning("Installing without a lock: %s", exc)
+        lock = None
+    try:
+        yield
+    finally:
+        if lock is not None:
+            lock.release()
+
+
 def _install_tool(tool: str, version: str) -> Path | None:
     """Install a tool using pip, logging output on failure."""
     result = subprocess.run(
@@ -233,17 +272,30 @@ def resolve_install_with_diagnostics(
     ``additional_dependencies`` are kept and the hook works offline.
     Otherwise the version is resolved dynamically from PyPI — no hardcoded
     list is maintained in-tree.
+
+    Installing runs under :func:`_install_lock`, so when several hook processes
+    start at once, one installs and the others wait and then use its wheel.
     """
     installed_wheel = _find_installed_wheel(tool, version)
-    if installed_wheel is not None:
-        path, installed = installed_wheel
-        if verbose:
-            print(
-                f"Using installed {tool} Python wheel version {installed}",
-                file=sys.stderr,
-            )
-        return path, None
+    if installed_wheel is None:
+        with _install_lock():
+            # Another hook process may have installed it while this one waited.
+            installed_wheel = _find_installed_wheel(tool, version)
+            if installed_wheel is None:
+                return _resolve_and_install(tool, version, verbose)
+    path, installed = installed_wheel
+    if verbose:
+        print(
+            f"Using installed {tool} Python wheel version {installed}",
+            file=sys.stderr,
+        )
+    return path, None
 
+
+def _resolve_and_install(
+    tool: str, version: str | None, verbose: bool
+) -> tuple[Path | None, str | None]:
+    """Resolve *version* on PyPI and install it, unless it is already on PATH."""
     user_version, error = _resolve_version_from_pypi(tool, version)
     if error is not None:
         return None, error
