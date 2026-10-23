@@ -1,20 +1,26 @@
 """Tests for cpp_linter_hooks.util -- dynamic PyPI version resolution."""
 
+import errno
 import json
 import logging
 import subprocess
 import sys
 import sysconfig
+import textwrap
+import types
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import pytest
 
+from cpp_linter_hooks import util
 from cpp_linter_hooks.util import (
+    _INSTALL_LOCK_NAME,
     _detect_installed_version,
     _env_paths,
     _find_installed_wheel,
     _get_pypi_versions,
+    _install_lock,
     _install_tool,
     _installed_wheel_version,
     _is_version_installed,
@@ -912,3 +918,138 @@ def test_resolve_install_verbose_reports_installed_wheel(capsys):
         "Using installed clang-format Python wheel version 21.1.8"
         in capsys.readouterr().err
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# _install_lock
+# ═══════════════════════════════════════════════════════════════════════
+
+LOCK_WORKER = textwrap.dedent(
+    """
+    import os, sys, time
+    sys.prefix = sys.argv[1]
+    from cpp_linter_hooks.util import _install_lock
+
+    log = sys.argv[2]
+    with _install_lock():
+        with open(log, "a") as f:
+            f.write("start\\n")
+        time.sleep(0.2)
+        with open(log, "a") as f:
+            f.write("end\\n")
+    """
+)
+
+
+def test_install_lock_serializes_processes(tmp_path):
+    """Hook processes started at once take turns instead of installing together."""
+    log = tmp_path / "log.txt"
+    workers = [
+        subprocess.Popen(
+            [sys.executable, "-c", LOCK_WORKER, str(tmp_path), str(log)],
+        )
+        for _ in range(3)
+    ]
+    for worker in workers:
+        assert worker.wait(timeout=60) == 0
+
+    assert log.read_text().split() == ["start", "end"] * 3
+    assert (tmp_path / _INSTALL_LOCK_NAME).is_file()
+
+
+def test_install_lock_can_be_taken_again(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys, "prefix", str(tmp_path))
+    with _install_lock():
+        pass
+    with _install_lock():
+        pass
+
+
+def test_install_lock_without_writable_environment(tmp_path, monkeypatch, caplog):
+    monkeypatch.setattr(sys, "prefix", str(tmp_path / "missing"))
+    with (
+        caplog.at_level(logging.DEBUG, logger="cpp_linter_hooks.util"),
+        _install_lock(),
+    ):
+        entered = True
+    assert entered
+    assert "installing without a lock" in caplog.text
+
+
+def test_install_lock_unlocks_on_error(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys, "prefix", str(tmp_path))
+    with pytest.raises(RuntimeError), _install_lock():
+        raise RuntimeError("pip crashed")
+    with _install_lock():
+        pass
+
+
+def _fake_msvcrt(locking):
+    return types.SimpleNamespace(LK_LOCK=1, LK_UNLCK=0, locking=locking)
+
+
+def test_lock_file_windows_waits_while_locked(monkeypatch):
+    calls = []
+
+    def locking(fileno, mode, nbytes):
+        calls.append((fileno, mode, nbytes))
+        # LK_LOCK gives up after about 10 seconds while another process holds it.
+        if len(calls) == 1:
+            raise OSError(errno.EDEADLOCK, "Resource deadlock avoided")
+
+    monkeypatch.setattr(util, "_WINDOWS", True)
+    monkeypatch.setitem(sys.modules, "msvcrt", _fake_msvcrt(locking))
+    util._lock_file(7)
+    util._unlock_file(7)
+
+    assert calls == [(7, 1, 1), (7, 1, 1), (7, 0, 1)]
+
+
+def test_lock_file_windows_other_error(monkeypatch):
+    def locking(fileno, mode, nbytes):
+        raise OSError(errno.EBADF, "Bad file descriptor")
+
+    monkeypatch.setattr(util, "_WINDOWS", True)
+    monkeypatch.setitem(sys.modules, "msvcrt", _fake_msvcrt(locking))
+    with pytest.raises(OSError, match="Bad file descriptor"):
+        util._lock_file(7)
+
+
+def test_lock_file_posix(monkeypatch):
+    fake_fcntl = types.SimpleNamespace(
+        LOCK_EX=2, LOCK_UN=8, flock=lambda fileno, op: None
+    )
+    monkeypatch.setattr(util, "_WINDOWS", False)
+    monkeypatch.setitem(sys.modules, "fcntl", fake_fcntl)
+    with patch.object(fake_fcntl, "flock") as flock:
+        util._lock_file(7)
+        util._unlock_file(7)
+    assert flock.call_args_list == [call(7, 2), call(7, 8)]
+
+
+def test_resolve_install_runs_under_install_lock():
+    events = []
+
+    class Lock:
+        def __enter__(self):
+            events.append("lock")
+
+        def __exit__(self, *exc):
+            events.append("unlock")
+
+    def install(tool, version):
+        events.append("install")
+        return Path("/venv/bin/clang-format")
+
+    with (
+        patch("cpp_linter_hooks.util._install_lock", return_value=Lock()),
+        patch("shutil.which", return_value=None),
+        patch(
+            "cpp_linter_hooks.util._get_pypi_versions", side_effect=_pypi_side_effect
+        ),
+        patch("cpp_linter_hooks.util._install_tool", side_effect=install),
+    ):
+        result = resolve_install_with_diagnostics("clang-format", "20")
+
+    assert result == (Path("/venv/bin/clang-format"), None)
+    assert events == ["lock", "install", "unlock"]

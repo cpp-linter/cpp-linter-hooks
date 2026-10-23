@@ -1,5 +1,7 @@
 """Shared helpers for resolving and installing clang tool wheels."""
 
+import contextlib
+import errno
 import json
 import logging
 import os
@@ -207,6 +209,73 @@ def _find_installed_wheel(tool: str, version: str | None) -> tuple[Path, str] | 
     return Path(path), installed
 
 
+# Lock file in the hook's environment, so that hook processes running at the
+# same time (pre-commit and prek run batches of files in parallel) install into
+# the environment one at a time.
+_INSTALL_LOCK_NAME = ".cpp-linter-hooks-install.lock"
+_WINDOWS = os.name == "nt"
+
+
+def _lock_file(fileno: int) -> None:
+    """Block until this process holds the exclusive lock on *fileno*."""
+    if _WINDOWS:
+        import msvcrt
+
+        while True:
+            try:
+                # Locks the first byte. LK_LOCK retries for about 10 seconds,
+                # then fails with EDEADLOCK while another process still holds it.
+                msvcrt.locking(fileno, msvcrt.LK_LOCK, 1)
+            except OSError as exc:
+                if exc.errno != errno.EDEADLOCK:
+                    raise
+            else:
+                return
+    else:
+        import fcntl
+
+        fcntl.flock(fileno, fcntl.LOCK_EX)
+
+
+def _unlock_file(fileno: int) -> None:
+    """Release the lock taken by :func:`_lock_file`."""
+    if _WINDOWS:
+        import msvcrt
+
+        msvcrt.locking(fileno, msvcrt.LK_UNLCK, 1)
+    else:
+        import fcntl
+
+        fcntl.flock(fileno, fcntl.LOCK_UN)
+
+
+@contextlib.contextmanager
+def _install_lock():
+    """Hold a lock on this Python environment while checking for and installing tools.
+
+    Without it, parallel hook processes all see that the tool is missing and run
+    ``pip install`` into the same directory at once, so one process deletes or
+    overwrites files another is still writing, or runs a binary another process
+    has not finished writing. The operating system releases the lock if the
+    process dies. If the lock file cannot be created, the hook runs unlocked.
+    """
+    path = os.path.join(sys.prefix, _INSTALL_LOCK_NAME)
+    try:
+        fileno = os.open(path, os.O_RDWR | os.O_CREAT, 0o644)
+    except OSError as exc:
+        LOG.debug("Could not open %s, installing without a lock: %s", path, exc)
+        yield
+        return
+    try:
+        _lock_file(fileno)
+        try:
+            yield
+        finally:
+            _unlock_file(fileno)
+    finally:
+        os.close(fileno)
+
+
 def _install_tool(tool: str, version: str) -> Path | None:
     """Install a tool using pip, logging output on failure."""
     result = subprocess.run(
@@ -233,7 +302,19 @@ def resolve_install_with_diagnostics(
     ``additional_dependencies`` are kept and the hook works offline.
     Otherwise the version is resolved dynamically from PyPI — no hardcoded
     list is maintained in-tree.
+
+    The check and the install run under :func:`_install_lock`, so when several
+    hook processes start at once, one installs and the others wait and then use
+    the wheel it installed.
     """
+    with _install_lock():
+        return _resolve_install_locked(tool, version, verbose)
+
+
+def _resolve_install_locked(
+    tool: str, version: str | None, verbose: bool
+) -> tuple[Path | None, str | None]:
+    """Body of :func:`resolve_install_with_diagnostics`, run under the lock."""
     installed_wheel = _find_installed_wheel(tool, version)
     if installed_wheel is not None:
         path, installed = installed_wheel
