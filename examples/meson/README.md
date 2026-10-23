@@ -11,11 +11,9 @@ repos:
     hooks:
       - id: clang-format
         args: [--style=file]
-        additional_dependencies: [clang-format==21.1.8]
         files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
 
       - id: clang-tidy
-        additional_dependencies: [clang-tidy==21.1.6]
         files: ^(src|include)/.*\.(cpp|cc|cxx)$
 ```
 
