@@ -984,6 +984,7 @@ def _crash():
     [
         OSError(errno.ENOLCK, "No locks available"),
         NotImplementedError("FileSystem does not appear to support flock"),
+        TimeoutError("The file lock could not be acquired"),
     ],
 )
 def test_install_lock_runs_unlocked_without_lock_support(
@@ -999,6 +1000,17 @@ def test_install_lock_runs_unlocked_without_lock_support(
         entered = True
     assert entered
     assert "Installing without a lock" in caplog.text
+
+
+def test_install_lock_waits_a_limited_time(tmp_path, monkeypatch):
+    monkeypatch.setattr(sys, "prefix", str(tmp_path))
+    with (
+        patch("filelock.FileLock.acquire") as acquire,
+        patch("filelock.FileLock.release"),
+        _install_lock(),
+    ):
+        pass
+    acquire.assert_called_once_with(timeout=300)
 
 
 def test_resolve_install_runs_under_install_lock():

@@ -214,13 +214,20 @@ def _find_installed_wheel(tool: str, version: str | None) -> tuple[Path, str] | 
     return Path(path), installed
 
 
+# Seconds to wait for another hook process to finish installing.
+_INSTALL_LOCK_TIMEOUT = 300
+
+
 @contextlib.contextmanager
 def _install_lock():
     """Let one hook process at a time install tools into this environment.
 
     pre-commit and prek run the hook on batches of files in parallel. Without
     the lock, every batch runs ``pip install`` into the same directory at once.
-    File systems without lock support (some NFS mounts) run unlocked, as before.
+    If the lock is not free within 5 minutes, or the file system does not support
+    locks (some NFS mounts), the hook runs unlocked, as before. The limit also
+    covers filelock 3.x, which keeps retrying when the file system refuses the
+    lock, and a stale lock file left by a crashed process.
     filelock is imported here because it is only needed to install, and
     importing it takes longer than a whole hook run that finds the tool.
     """
@@ -228,9 +235,9 @@ def _install_lock():
 
     lock = FileLock(os.path.join(sys.prefix, ".cpp-linter-hooks-install.lock"))
     try:
-        lock.acquire()
-    except (OSError, NotImplementedError) as exc:
-        LOG.debug("Installing without a lock: %s", exc)
+        lock.acquire(timeout=_INSTALL_LOCK_TIMEOUT)
+    except (OSError, NotImplementedError) as exc:  # filelock.Timeout is an OSError
+        LOG.warning("Installing without a lock: %s", exc)
         lock = None
     try:
         yield
