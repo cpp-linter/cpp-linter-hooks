@@ -3,6 +3,7 @@
 import errno
 import json
 import logging
+import os
 import subprocess
 import sys
 import sysconfig
@@ -976,12 +977,43 @@ def test_install_lock_without_writable_environment(tmp_path, monkeypatch, caplog
     assert "installing without a lock" in caplog.text
 
 
+def _crash():
+    raise RuntimeError("pip crashed")
+
+
 def test_install_lock_unlocks_on_error(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "prefix", str(tmp_path))
     with pytest.raises(RuntimeError), _install_lock():
-        raise RuntimeError("pip crashed")
+        _crash()
     with _install_lock():
         pass
+
+
+def test_install_lock_falls_back_when_locking_fails(tmp_path, monkeypatch, caplog):
+    """File systems without lock support (e.g. some NFS mounts) run unlocked."""
+    monkeypatch.setattr(sys, "prefix", str(tmp_path))
+    closed = []
+    real_close = os.close
+
+    def close(fileno):
+        closed.append(fileno)
+        real_close(fileno)
+
+    with (
+        patch(
+            "cpp_linter_hooks.util._lock_file",
+            side_effect=OSError(errno.ENOLCK, "No locks available"),
+        ),
+        patch("cpp_linter_hooks.util._unlock_file") as unlock,
+        patch("os.close", side_effect=close),
+        caplog.at_level(logging.DEBUG, logger="cpp_linter_hooks.util"),
+        _install_lock(),
+    ):
+        entered = True
+    assert entered
+    assert len(closed) == 1
+    unlock.assert_not_called()
+    assert "No locks available" in caplog.text
 
 
 def _fake_msvcrt(locking):
@@ -995,7 +1027,7 @@ def test_lock_file_windows_waits_while_locked(monkeypatch):
         calls.append((fileno, mode, nbytes))
         # LK_LOCK gives up after about 10 seconds while another process holds it.
         if len(calls) == 1:
-            raise OSError(errno.EDEADLOCK, "Resource deadlock avoided")
+            raise OSError(errno.EDEADLK, "Resource deadlock avoided")
 
     monkeypatch.setattr(util, "_WINDOWS", True)
     monkeypatch.setitem(sys.modules, "msvcrt", _fake_msvcrt(locking))

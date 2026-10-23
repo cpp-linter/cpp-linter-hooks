@@ -224,10 +224,12 @@ def _lock_file(fileno: int) -> None:
         while True:
             try:
                 # Locks the first byte. LK_LOCK retries for about 10 seconds,
-                # then fails with EDEADLOCK while another process still holds it.
+                # then fails with EDEADLOCK (the same number as EDEADLK, which,
+                # unlike EDEADLOCK, every platform's errno module defines)
+                # while another process still holds it.
                 msvcrt.locking(fileno, msvcrt.LK_LOCK, 1)
             except OSError as exc:
-                if exc.errno != errno.EDEADLOCK:
+                if exc.errno != errno.EDEADLK:
                     raise
             else:
                 return
@@ -257,23 +259,27 @@ def _install_lock():
     ``pip install`` into the same directory at once, so one process deletes or
     overwrites files another is still writing, or runs a binary another process
     has not finished writing. The operating system releases the lock if the
-    process dies. If the lock file cannot be created, the hook runs unlocked.
+    process dies. If the lock file cannot be created or locked (some network
+    file systems do not support locks), the hook runs unlocked, as before.
     """
     path = os.path.join(sys.prefix, _INSTALL_LOCK_NAME)
+    fileno = None
     try:
         fileno = os.open(path, os.O_RDWR | os.O_CREAT, 0o644)
-    except OSError as exc:
-        LOG.debug("Could not open %s, installing without a lock: %s", path, exc)
-        yield
-        return
-    try:
         _lock_file(fileno)
-        try:
-            yield
-        finally:
-            _unlock_file(fileno)
+    except OSError as exc:
+        LOG.debug("Could not lock %s, installing without a lock: %s", path, exc)
+        if fileno is not None:
+            os.close(fileno)
+            fileno = None
+    try:
+        yield
     finally:
-        os.close(fileno)
+        if fileno is not None:
+            try:
+                _unlock_file(fileno)
+            finally:
+                os.close(fileno)
 
 
 def _install_tool(tool: str, version: str) -> Path | None:
