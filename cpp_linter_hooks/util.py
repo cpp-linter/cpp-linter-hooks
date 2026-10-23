@@ -14,8 +14,6 @@ import urllib.request
 from functools import lru_cache
 from pathlib import Path
 
-from filelock import FileLock
-
 LOG = logging.getLogger(__name__)
 
 
@@ -165,7 +163,9 @@ def _installed_wheel_version(tool: str) -> str | None:
     installed on an earlier run) into the hook's own environment. The version
     comes from the wheel's ``<name>-<version>.dist-info`` directory name, which
     needs neither the network nor a subprocess, and avoids parsing the large
-    METADATA file the way ``importlib.metadata.version`` does.
+    METADATA file the way ``importlib.metadata.version`` does. A wheel counts
+    only once its ``RECORD`` file exists: pip writes it last, so a wheel another
+    hook process is still installing is not used half-written.
     """
     prefix = f"{re.sub(r'[-_.]+', '_', tool).lower()}-"
     suffix = ".dist-info"
@@ -178,7 +178,11 @@ def _installed_wheel_version(tool: str) -> str | None:
             continue
         for name in names:
             lower = name.lower()
-            if lower.startswith(prefix) and lower.endswith(suffix):
+            if (
+                lower.startswith(prefix)
+                and lower.endswith(suffix)
+                and os.path.isfile(os.path.join(site_dir, name, "RECORD"))
+            ):
                 return name[len(prefix) : -len(suffix)]
     return None
 
@@ -212,12 +216,16 @@ def _find_installed_wheel(tool: str, version: str | None) -> tuple[Path, str] | 
 
 @contextlib.contextmanager
 def _install_lock():
-    """Let one hook process at a time check for and install tools in this environment.
+    """Let one hook process at a time install tools into this environment.
 
     pre-commit and prek run the hook on batches of files in parallel. Without
     the lock, every batch runs ``pip install`` into the same directory at once.
     File systems without lock support (some NFS mounts) run unlocked, as before.
+    filelock is imported here because it is only needed to install, and
+    importing it takes longer than a whole hook run that finds the tool.
     """
+    from filelock import FileLock
+
     lock = FileLock(os.path.join(sys.prefix, ".cpp-linter-hooks-install.lock"))
     try:
         lock.acquire()
@@ -258,28 +266,29 @@ def resolve_install_with_diagnostics(
     Otherwise the version is resolved dynamically from PyPI — no hardcoded
     list is maintained in-tree.
 
-    The check and the install run under :func:`_install_lock`, so when several
-    hook processes start at once, one installs and the others wait and then use
-    the wheel it installed.
+    Installing runs under :func:`_install_lock`, so when several hook processes
+    start at once, one installs and the others wait and then use its wheel.
     """
-    with _install_lock():
-        return _resolve_install_locked(tool, version, verbose)
+    installed_wheel = _find_installed_wheel(tool, version)
+    if installed_wheel is None:
+        with _install_lock():
+            # Another hook process may have installed it while this one waited.
+            installed_wheel = _find_installed_wheel(tool, version)
+            if installed_wheel is None:
+                return _resolve_and_install(tool, version, verbose)
+    path, installed = installed_wheel
+    if verbose:
+        print(
+            f"Using installed {tool} Python wheel version {installed}",
+            file=sys.stderr,
+        )
+    return path, None
 
 
-def _resolve_install_locked(
+def _resolve_and_install(
     tool: str, version: str | None, verbose: bool
 ) -> tuple[Path | None, str | None]:
-    """Body of :func:`resolve_install_with_diagnostics`, run under the lock."""
-    installed_wheel = _find_installed_wheel(tool, version)
-    if installed_wheel is not None:
-        path, installed = installed_wheel
-        if verbose:
-            print(
-                f"Using installed {tool} Python wheel version {installed}",
-                file=sys.stderr,
-            )
-        return path, None
-
+    """Resolve *version* on PyPI and install it, unless it is already on PATH."""
     user_version, error = _resolve_version_from_pypi(tool, version)
     if error is not None:
         return None, error

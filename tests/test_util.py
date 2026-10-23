@@ -743,6 +743,12 @@ def test_env_paths_match_sysconfig():
     assert _env_paths() == sysconfig.get_paths()
 
 
+def _installed(dist_info: Path) -> None:
+    """Create a dist-info directory the way pip leaves it after an install."""
+    dist_info.mkdir(parents=True)
+    (dist_info / "RECORD").touch()
+
+
 def test_installed_wheel_version_reads_dist_info_name(tmp_path):
     for name in (
         "clang_tidy_extra-1.0.dist-info",
@@ -750,7 +756,7 @@ def test_installed_wheel_version_reads_dist_info_name(tmp_path):
         "clang_tidy",
         "Clang_Tidy-21.1.6.dist-info",
     ):
-        (tmp_path / name).mkdir()
+        _installed(tmp_path / name)
     with patch("cpp_linter_hooks.util._env_paths", return_value=_paths(tmp_path)):
         assert _installed_wheel_version("clang-tidy") == "21.1.6"
         assert _installed_wheel_version("clang-format") == "22.1.8"
@@ -759,14 +765,21 @@ def test_installed_wheel_version_reads_dist_info_name(tmp_path):
 def test_installed_wheel_version_checks_platlib(tmp_path):
     purelib, platlib = tmp_path / "purelib", tmp_path / "platlib"
     purelib.mkdir()
-    (platlib / "clang_tidy-21.1.6.dist-info").mkdir(parents=True)
+    _installed(platlib / "clang_tidy-21.1.6.dist-info")
     paths = {"purelib": str(purelib), "platlib": str(platlib), "scripts": ""}
     with patch("cpp_linter_hooks.util._env_paths", return_value=paths):
         assert _installed_wheel_version("clang-tidy") == "21.1.6"
 
 
-def test_installed_wheel_version_missing_distribution(tmp_path):
+def test_installed_wheel_version_ignores_unfinished_install(tmp_path):
+    """pip writes RECORD last; without it another process is still installing."""
     (tmp_path / "clang_format-22.1.8.dist-info").mkdir()
+    with patch("cpp_linter_hooks.util._env_paths", return_value=_paths(tmp_path)):
+        assert _installed_wheel_version("clang-format") is None
+
+
+def test_installed_wheel_version_missing_distribution(tmp_path):
+    _installed(tmp_path / "clang_format-22.1.8.dist-info")
     with patch("cpp_linter_hooks.util._env_paths", return_value=_paths(tmp_path)):
         assert _installed_wheel_version("clang-tidy") is None
     with patch(
@@ -979,7 +992,7 @@ def test_install_lock_runs_unlocked_without_lock_support(
     """File systems without lock support (e.g. some NFS mounts) run unlocked."""
     monkeypatch.setattr(sys, "prefix", str(tmp_path))
     with (
-        patch("cpp_linter_hooks.util.FileLock.acquire", side_effect=error),
+        patch("filelock.FileLock.acquire", side_effect=error),
         caplog.at_level(logging.DEBUG, logger="cpp_linter_hooks.util"),
         _install_lock(),
     ):
@@ -1014,3 +1027,34 @@ def test_resolve_install_runs_under_install_lock():
 
     assert result == (Path("/venv/bin/clang-format"), None)
     assert events == ["lock", "install", "unlock"]
+
+
+def test_resolve_install_skips_lock_when_installed():
+    with (
+        patch(
+            "cpp_linter_hooks.util._find_installed_wheel",
+            return_value=(Path("/venv/bin/clang-format"), "20.1.8"),
+        ),
+        patch("cpp_linter_hooks.util._install_lock") as lock,
+    ):
+        result = resolve_install_with_diagnostics("clang-format", "20")
+
+    assert result == (Path("/venv/bin/clang-format"), None)
+    lock.assert_not_called()
+
+
+def test_resolve_install_uses_wheel_installed_while_waiting():
+    """Another hook process installed the wheel while this one waited for the lock."""
+    with (
+        patch(
+            "cpp_linter_hooks.util._find_installed_wheel",
+            side_effect=[None, (Path("/venv/bin/clang-format"), "20.1.8")],
+        ),
+        patch("cpp_linter_hooks.util._get_pypi_versions") as pypi,
+        patch("cpp_linter_hooks.util._install_tool") as install,
+    ):
+        result = resolve_install_with_diagnostics("clang-format", "20")
+
+    assert result == (Path("/venv/bin/clang-format"), None)
+    pypi.assert_not_called()
+    install.assert_not_called()
