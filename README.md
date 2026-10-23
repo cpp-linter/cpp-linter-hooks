@@ -19,7 +19,7 @@ Add this configuration to your `.pre-commit-config.yaml` file:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.7.0
+    rev: v1.8.0
     hooks:
       - id: clang-format
         args: [--style=file, --version=21]
@@ -35,12 +35,16 @@ a `compile_commands.json`, which it looks for in `build/` and a few other direct
 it skips clang-tidy on your machine and fails in CI (see
 [Compilation database](https://github.com/cpp-linter/cpp-linter-hooks#compilation-database)).
 
+For teams, CI and machines behind a firewall or a company PyPI mirror, also pin the wheel in
+`additional_dependencies` so pre-commit installs it once, with the hook (see
+[Install the tool with the hook](https://github.com/cpp-linter/cpp-linter-hooks#install-the-tool-with-the-hook)).
+
 ## Usage
 
 ### Custom clang tool version
 
 > [!TIP]
-> The `rev` tag (e.g. `v1.7.0`) is the **project** version, not the clang tool version. Without
+> The `rev` tag (e.g. `v1.8.0`) is the **project** version, not the clang tool version. Without
 > `--version`, each hook installs the newest clang-format or clang-tidy wheel on PyPI the first time
 > it runs and keeps it until pre-commit rebuilds the hook environment, so two machines can run
 > different LLVM versions with the same configuration. For production use, always pin the tool
@@ -53,12 +57,14 @@ it skips clang-tidy on your machine and fails in CI (see
   a wheel, the hook fails and lists some of the versions that exist.
 - When the hook environment already has a wheel that matches `--version` (or any wheel, without
   `--version`), the hook uses it and does not contact pypi.org. Otherwise it looks the version up
-  on pypi.org and installs it, so that run needs network access.
+  on pypi.org and installs it, so that run needs network access. pre-commit runs the hook on
+  groups of files in parallel; one of them installs the wheel and the others wait for it.
 
-### Offline and pre-commit.ci
+### Install the tool with the hook
 
-To install the clang tool together with the hook, list the exact wheel in
-`additional_dependencies`:
+We recommend listing the exact wheel in `additional_dependencies`. pre-commit then installs the
+clang tool once, when it creates the hook environment, the same way
+[mirrors-clang-format](https://github.com/pre-commit/mirrors-clang-format) does:
 
 ```yaml
       - id: clang-format
@@ -69,11 +75,16 @@ To install the clang tool together with the hook, list the exact wheel in
         additional_dependencies: [clang-tidy==21.1.6]
 ```
 
-pre-commit installs `additional_dependencies` when it creates the hook environment (for example
-with `pre-commit install-hooks`), so the hooks need no network access when they run. Use this on
-[pre-commit.ci](https://pre-commit.ci/), which runs hooks without network access, and behind a
-firewall. The pinned wheel must match `--version`; otherwise the hook installs the `--version` one
-at run time.
+pre-commit installs `additional_dependencies` with the hook (for example on
+`pre-commit install-hooks`), through the same package index it uses for the hook itself. The hooks
+then never install anything or contact pypi.org when they run, so this works:
+
+- on [pre-commit.ci](https://pre-commit.ci/), which runs hooks without network access,
+- behind a firewall or with a company PyPI mirror, where pypi.org may be blocked or slow,
+- for teams and CI, where every machine gets exactly the same wheel.
+
+The pinned wheel must match `--version`; otherwise the hook installs the `--version` one at run
+time. Without `--version`, the hook uses the pinned wheel.
 
 ### clang-format
 
@@ -204,7 +215,7 @@ See [Performance optimization](https://github.com/cpp-linter/cpp-linter-hooks#pe
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.7.0  # includes --fix support
+    rev: v1.8.0  # includes --fix support
     hooks:
       - id: clang-tidy
         args: [--fix]
@@ -227,7 +238,7 @@ repository root works too.
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.7.0
+    rev: v1.8.0
     hooks:
       - id: clang-tidy
         # Auto-detects ./build/compile_commands.json if present
@@ -282,7 +293,7 @@ Three self-contained templates plus quick snippets for other common setups.
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.7.0
+  rev: v1.8.0
   hooks:
     - id: clang-format
       args: [--style=file, --version=21]
@@ -297,7 +308,7 @@ or `-j`:
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.7.0
+  rev: v1.8.0
   hooks:
     - id: clang-tidy
       args: [--version=21, --jobs=4]
@@ -334,7 +345,7 @@ This approach ensures that only modified files are checked, further speeding up 
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.7.0
+    rev: v1.8.0
     hooks:
       - id: clang-format
         args: [--style=file, --version=21, --verbose]   # Shows processed files

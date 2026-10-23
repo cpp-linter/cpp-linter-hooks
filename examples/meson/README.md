@@ -7,7 +7,7 @@ If you already have a Meson project, configure the hooks and generate a compilat
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.7.0
+    rev: v1.8.0
     hooks:
       - id: clang-format
         args: [--style=file, --version=21]
