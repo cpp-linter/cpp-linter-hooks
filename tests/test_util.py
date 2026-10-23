@@ -3,6 +3,7 @@
 import errno
 import json
 import logging
+import os
 import subprocess
 import sys
 import sysconfig
@@ -12,17 +13,23 @@ from unittest.mock import patch
 
 import pytest
 
+from cpp_linter_hooks import util
 from cpp_linter_hooks.util import (
     _detect_installed_version,
     _env_paths,
+    _find_installed,
     _find_installed_wheel,
+    _find_versioned_install,
     _get_pypi_versions,
     _install_lock,
     _install_tool,
     _installed_wheel_version,
     _is_version_installed,
     _resolve_version_from_pypi,
+    _version_key,
     _version_satisfies,
+    _versioned_executable,
+    _versions_dir,
     resolve_install,
     resolve_install_with_diagnostics,
 )
@@ -34,13 +41,20 @@ MOCK_PYPI_TIDY = ("21.1.6", ["21.1.6", "21.1.1", "20.1.0", "19.1.0.1", "18.1.8"]
 
 
 @pytest.fixture(autouse=True)
-def no_installed_wheel():
+def no_installed_wheel(tmp_path):
     """Hide wheels installed in the test environment from the resolver.
 
-    Tests that need an installed wheel patch ``_installed_wheel_version`` or
+    Per-version installs go to an empty temporary directory. Tests that need an
+    installed wheel patch ``_installed_wheel_version`` or
     ``_find_installed_wheel`` themselves.
     """
-    with patch("cpp_linter_hooks.util._installed_wheel_version", return_value=None):
+    with (
+        patch("cpp_linter_hooks.util._installed_wheel_version", return_value=None),
+        patch(
+            "cpp_linter_hooks.util._versions_dir",
+            return_value=str(tmp_path / "versions"),
+        ),
+    ):
         yield
 
 
@@ -393,7 +407,7 @@ def test_resolve_install_tool_version_mismatch_reinstalls():
     ):
         result = resolve_install("clang-format", "20.1.8")
     assert result == Path(mock_path)
-    mock_install.assert_called_once_with("clang-format", "20.1.8")
+    mock_install.assert_called_once_with("clang-format", "20.1.8", versioned=True)
 
 
 @pytest.mark.benchmark
@@ -410,7 +424,7 @@ def test_resolve_install_tool_not_installed():
     ):
         result = resolve_install("clang-format", "20.1.8")
     assert result == Path("/usr/bin/clang-format")
-    mock_install.assert_called_once_with("clang-format", "20.1.8")
+    mock_install.assert_called_once_with("clang-format", "20.1.8", versioned=True)
 
 
 @pytest.mark.benchmark
@@ -427,7 +441,7 @@ def test_resolve_install_no_version_uses_latest():
     ):
         result = resolve_install("clang-format", None)
     assert result == Path("/usr/bin/clang-format")
-    mock_install.assert_called_once_with("clang-format", "22.1.5")
+    mock_install.assert_called_once_with("clang-format", "22.1.5", versioned=False)
 
 
 @pytest.mark.benchmark
@@ -648,7 +662,7 @@ def test_resolve_install_with_diagnostics_is_quiet_by_default(capsys):
 
     assert result == (Path("/usr/bin/clang-tidy"), None)
     assert capsys.readouterr().err == ""
-    mock_install.assert_called_once_with("clang-tidy", "21.1.6")
+    mock_install.assert_called_once_with("clang-tidy", "21.1.6", versioned=True)
 
 
 def test_resolve_install_with_diagnostics_offline_uses_installed_tool():
@@ -914,7 +928,7 @@ def test_resolve_install_other_installed_wheel_resolves_from_pypi():
         result = resolve_install_with_diagnostics("clang-tidy", "21")
 
     assert result == (Path("/venv/bin/clang-tidy"), None)
-    mock_install.assert_called_once_with("clang-tidy", "21.1.6")
+    mock_install.assert_called_once_with("clang-tidy", "21.1.6", versioned=True)
 
 
 def test_resolve_install_verbose_reports_installed_wheel(capsys):
@@ -1023,7 +1037,7 @@ def test_resolve_install_runs_under_install_lock():
         def __exit__(self, *exc):
             events.append("unlock")
 
-    def install(tool, version):
+    def install(tool, version, versioned):
         events.append("install")
         return Path("/venv/bin/clang-format")
 
@@ -1068,5 +1082,151 @@ def test_resolve_install_uses_wheel_installed_while_waiting():
         result = resolve_install_with_diagnostics("clang-format", "20")
 
     assert result == (Path("/venv/bin/clang-format"), None)
+    pypi.assert_not_called()
+    install.assert_not_called()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Per-version installs (--version gets its own directory)
+# ═══════════════════════════════════════════════════════════════════════
+
+EXE = ".exe" if os.name == "nt" else ""
+
+
+def _base() -> Path:
+    """Return the per-version directory the autouse fixture points to."""
+    return Path(util._versions_dir())
+
+
+def _fake_versioned_install(
+    base: Path, tool: str, version: str, bin_dir=("data", "bin"), record=True
+) -> Path:
+    """Lay out what ``pip install --target`` leaves for a clang tool wheel."""
+    target = base / f"{tool}-{version}"
+    package = target / tool.replace("-", "_")
+    executable = package.joinpath(*bin_dir) / f"{tool}{EXE}"
+    executable.parent.mkdir(parents=True)
+    executable.write_text("")
+    executable.chmod(0o755)
+    dist_info = target / f"{tool.replace('-', '_')}-{version}.dist-info"
+    dist_info.mkdir()
+    if record:
+        (dist_info / "RECORD").write_text("")
+    return executable
+
+
+def test_versions_dir_is_in_hook_environment(monkeypatch):
+    # The original function: the autouse fixture patches only the module attribute.
+    monkeypatch.setattr(sys, "prefix", "/env")
+    assert _versions_dir() == os.path.join("/env", "cpp-linter-hooks")
+
+
+@pytest.mark.parametrize("bin_dir", [("data", "bin"), ("bin",)])
+def test_versioned_executable_finds_wheel_binary(tmp_path, bin_dir):
+    executable = _fake_versioned_install(tmp_path, "clang-format", "21.1.8", bin_dir)
+    target = str(tmp_path / "clang-format-21.1.8")
+    assert Path(_versioned_executable("clang-format", target)) == executable
+
+
+def test_versioned_executable_missing(tmp_path):
+    assert _versioned_executable("clang-tidy", str(tmp_path)) is None
+
+
+@pytest.mark.parametrize(
+    "version, expected",
+    [("21.1.8", (21, 1, 8)), ("19.1.0.1", (19, 1, 0, 1)), ("10.0.1.1", (10, 0, 1, 1))],
+)
+def test_version_key(version, expected):
+    assert _version_key(version) == expected
+
+
+def test_find_versioned_install_newest_match():
+    base = _base()
+    _fake_versioned_install(base, "clang-tidy", "21.1.1")
+    newest = _fake_versioned_install(base, "clang-tidy", "21.1.6")
+    _fake_versioned_install(base, "clang-tidy", "20.1.0")
+    _fake_versioned_install(base, "clang-format", "21.1.8")
+
+    assert _find_versioned_install("clang-tidy", "21") == (newest, "21.1.6")
+    assert _find_versioned_install("clang-tidy", "21.1.1")[1] == "21.1.1"
+    assert _find_versioned_install("clang-tidy", "22") is None
+
+
+def test_find_versioned_install_skips_unfinished_and_broken():
+    base = _base()
+    _fake_versioned_install(base, "clang-format", "21.1.8", record=False)
+    (base / "clang-format-20.1.8").mkdir()
+    assert _find_versioned_install("clang-format", "21") is None
+    assert _find_versioned_install("clang-format", "20") is None
+
+
+def test_find_versioned_install_without_directory():
+    assert not _base().exists()
+    assert _find_versioned_install("clang-format", "21") is None
+
+
+def test_find_installed_pinned_uses_versioned_install():
+    executable = _fake_versioned_install(_base(), "clang-format", "18.1.8")
+    assert _find_installed("clang-format", "18") == (executable, "18.1.8")
+
+
+def test_find_installed_unpinned_ignores_versioned_install():
+    """A run without --version never picks a version another project asked for."""
+    _fake_versioned_install(_base(), "clang-format", "18.1.8")
+    assert _find_installed("clang-format", None) is None
+
+
+def test_find_installed_prefers_environment_wheel():
+    _fake_versioned_install(_base(), "clang-format", "21.1.8")
+    with patch(
+        "cpp_linter_hooks.util._find_installed_wheel",
+        return_value=(Path("/venv/bin/clang-format"), "21.1.8"),
+    ):
+        assert _find_installed("clang-format", "21") == (
+            Path("/venv/bin/clang-format"),
+            "21.1.8",
+        )
+
+
+def test_install_tool_versioned_uses_own_directory():
+    base = _base()
+    target = base / "clang-format-18.1.8"
+    leftover = target / "leftover"
+    leftover.mkdir(parents=True)
+
+    def pip(command, **kwargs):
+        assert not leftover.exists()
+        _fake_versioned_install(base, "clang-format", "18.1.8")
+        return subprocess.CompletedProcess(command, returncode=0)
+
+    with patch("subprocess.run", side_effect=pip) as run:
+        result = _install_tool("clang-format", "18.1.8", versioned=True)
+
+    assert Path(result) == (
+        target / "clang_format" / "data" / "bin" / f"clang-format{EXE}"
+    )
+    assert run.call_args.args[0] == [
+        sys.executable,
+        "-m",
+        "pip",
+        "install",
+        "clang-format==18.1.8",
+        "--target",
+        str(target),
+    ]
+
+
+def test_resolve_install_versions_coexist_without_pypi():
+    """Switching --version between projects reuses each install, offline."""
+    base = _base()
+    v18 = _fake_versioned_install(base, "clang-format", "18.1.8")
+    v21 = _fake_versioned_install(base, "clang-format", "21.1.8")
+    with (
+        patch("cpp_linter_hooks.util._get_pypi_versions") as pypi,
+        patch("cpp_linter_hooks.util._install_tool") as install,
+    ):
+        assert resolve_install("clang-format", "18") == v18
+        assert resolve_install("clang-format", "21") == v21
+        assert resolve_install("clang-format", "18.1.8") == v18
     pypi.assert_not_called()
     install.assert_not_called()
