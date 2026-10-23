@@ -60,6 +60,13 @@ Generate compile_commands.json with one of:
 The hook finds it in build/ and builddir/. For another directory, pass
 --compile-commands=<dir>."""
 
+NO_CHECKS_ERROR = "Error: no checks enabled."
+NO_CHECKS_HINT = """\
+clang-tidy found no checks to run. LLVM 22 and newer enable no checks by
+default. Add a .clang-tidy file with the checks you want, for example
+  Checks: 'bugprone-*,performance-*,readability-*'
+or set them in args: ["--checks=bugprone-*,performance-*"]."""
+
 MSVC_HINT = """\
 Windows/MSVC clang-tidy hints:
   - Run from a Visual Studio Developer Command Prompt, or call vcvars64.bat first.
@@ -705,6 +712,9 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
             [executable] + clang_tidy_args, source_files, lines
         )
 
+    if NO_CHECKS_ERROR in output:
+        # Instead of clang-tidy's error followed by its whole --help text.
+        return 1, _append_notes(NO_CHECKS_HINT, notes)
     if not hook_args.verbose:
         output = _strip_noise(output)
     return retval, _append_notes(output, notes)

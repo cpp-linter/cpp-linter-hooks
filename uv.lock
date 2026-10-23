@@ -12,6 +12,31 @@ wheels = [
 ]
 
 [[package]]
+name = "clang-format"
+version = "23.1.3"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/33/c1/76dcec575f5fa6598e32cc66731c499349610ebdcb0393e76cceaa74c3bb/clang_format-23.1.3.tar.gz", hash = "sha256:9f7a4e7a2b8eb766bdef11da742fa93fc58c2b0e960e6a6041716618326a07c5", size = 11506, upload-time = "2026-10-06T20:27:32.799Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/05/0f/a1813ede1e149e700ee810baf22dd9c863ca0bd719d73f86e8c10b67a6bb/clang_format-23.1.3-py2.py3-none-macosx_10_9_x86_64.whl", hash = "sha256:0b8e86cc5a870ca42989bd1ccfe5220fbab96e386922d0a8f0ca350db30593df", size = 1565137, upload-time = "2026-10-06T20:27:05.231Z" },
+    { url = "https://files.pythonhosted.org/packages/47/a5/2007b7a7a53dfe417e66d0a6b38b2f87f16391bfe6fe522d436d1e50be1c/clang_format-23.1.3-py2.py3-none-macosx_11_0_arm64.whl", hash = "sha256:79f53ac55434af6dda88eb90eeb65d903ff920c910f78041de41e3ca666dfba5", size = 1552313, upload-time = "2026-10-06T20:27:07.196Z" },
+    { url = "https://files.pythonhosted.org/packages/1d/00/a0f99e24dc4892fb120e82fa9cf6e8fcb92714181ffd1165ab7eaf5ba1fd/clang_format-23.1.3-py2.py3-none-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:072113527b49a9c0ab9058006d9fe20e583823e6482608a34e1883dd2c49ae7d", size = 1820841, upload-time = "2026-10-06T20:27:08.675Z" },
+    { url = "https://files.pythonhosted.org/packages/b2/d4/c74dbdaaa72dcb447007c6611ca1a50751c451a75c1d58d1965728001b32/clang_format-23.1.3-py2.py3-none-manylinux_2_26_i686.manylinux_2_28_i686.whl", hash = "sha256:8736b2cd4ed510ceeb1cac2ed0687fd03ce32f82ea960c3c3e62020c5ec88b40", size = 1954844, upload-time = "2026-10-06T20:27:10.441Z" },
+    { url = "https://files.pythonhosted.org/packages/d3/51/0517ba621f554044201e44a61abb2bf64821fac79e3b6260670ff4ef2398/clang_format-23.1.3-py2.py3-none-manylinux_2_26_ppc64le.manylinux_2_28_ppc64le.whl", hash = "sha256:b1ab2973aa6d2b72289709df1b2969e0a3f1e09dccb665745b18ca265d4419f3", size = 2192373, upload-time = "2026-10-06T20:27:11.911Z" },
+    { url = "https://files.pythonhosted.org/packages/ac/9a/7c3dd660c8655e2c8d96d7684b05557f0a407a7e6338749d1d47355a7d41/clang_format-23.1.3-py2.py3-none-manylinux_2_26_s390x.manylinux_2_28_s390x.whl", hash = "sha256:9d4bf253feb752a3a52cc5ca595bdae88c9e41de7b35a0f470c8b26c316c2643", size = 2161068, upload-time = "2026-10-06T20:27:13.367Z" },
+    { url = "https://files.pythonhosted.org/packages/11/d1/658d3da4dcbca98620956868c7cf6f4ba19fccecbdfc30cc055e19c9d4a7/clang_format-23.1.3-py2.py3-none-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:58bf1804216501669832a39f2415e14284337438a062ff564729792adec664ac", size = 1906888, upload-time = "2026-10-06T20:27:14.79Z" },
+    { url = "https://files.pythonhosted.org/packages/d6/b6/80d700f3f02a158e6510a1c16ea70a2d9c55e072d3388081152c03cbf44d/clang_format-23.1.3-py2.py3-none-manylinux_2_31_armv7l.whl", hash = "sha256:4e55a20db2d6bc7e9a3341f818a2638f269d45d5a92d2121dfe1c64d47d5b22a", size = 1738515, upload-time = "2026-10-06T20:27:16.193Z" },
+    { url = "https://files.pythonhosted.org/packages/19/f1/2680a4545159dae13f96668dcfcc04d49127f3a4bc04e232cd3f5d67e9d8/clang_format-23.1.3-py2.py3-none-musllinux_1_2_aarch64.whl", hash = "sha256:fdb92131587b1ec71e587d35de552b5a9cfe32c55c5faa9c7e0956c08ee2667f", size = 2804820, upload-time = "2026-10-06T20:27:17.628Z" },
+    { url = "https://files.pythonhosted.org/packages/6a/eb/3d80137f08f6c3ae5789e63fca26c3f5f06246b611529593012a32e77898/clang_format-23.1.3-py2.py3-none-musllinux_1_2_armv7l.whl", hash = "sha256:07070f0f5aaa584eb0f7613c4608709adc01c34f14a3b7efb75152d8dcfcf948", size = 2580768, upload-time = "2026-10-06T20:27:19.136Z" },
+    { url = "https://files.pythonhosted.org/packages/ee/0e/bf8e7202082d2d00c1a4a79833f28725bff715eebcc505bb48d33b837bf9/clang_format-23.1.3-py2.py3-none-musllinux_1_2_i686.whl", hash = "sha256:6b87338ce8862dde24d9844970a2638d5f7fb2c5cd9d868062ccfcbd6e39f4fd", size = 3058043, upload-time = "2026-10-06T20:27:20.938Z" },
+    { url = "https://files.pythonhosted.org/packages/d7/ce/db9b28062cdf54b01bc2eb7545f1368ca231545a712e7090d59327f1c4ac/clang_format-23.1.3-py2.py3-none-musllinux_1_2_ppc64le.whl", hash = "sha256:a92fac41b6a553205f69892b99c49e84195ad9b48055dbca53ec62305f2d7275", size = 3250030, upload-time = "2026-10-06T20:27:22.729Z" },
+    { url = "https://files.pythonhosted.org/packages/c3/65/cee67955f7f4e3dba78e6eb243b76ce32c1d915d31760ba10abb63ea9ef8/clang_format-23.1.3-py2.py3-none-musllinux_1_2_s390x.whl", hash = "sha256:22095e50d7aa66b0336dba712dbaec76ad79b54f95bd1d4bd4cffa2aadbdab75", size = 3287158, upload-time = "2026-10-06T20:27:24.219Z" },
+    { url = "https://files.pythonhosted.org/packages/81/9d/eb9c0d0d7188929a6c07ca5bc83775e3457a63123515f7692a0d310095bf/clang_format-23.1.3-py2.py3-none-musllinux_1_2_x86_64.whl", hash = "sha256:ae316062f0266f4f1c914dff24158fafc6009bef0e407bdebb6a2e2308a40a70", size = 2920230, upload-time = "2026-10-06T20:27:26.512Z" },
+    { url = "https://files.pythonhosted.org/packages/32/af/51bb1f77e54863e769d5527a606298da2988520e7d43328648b6d9c6b7b5/clang_format-23.1.3-py2.py3-none-win32.whl", hash = "sha256:1560b5d7b12c9fe6ace14c659b8fae16d580dfe4abfe18eb02583ba290f01ed0", size = 1363845, upload-time = "2026-10-06T20:27:28.259Z" },
+    { url = "https://files.pythonhosted.org/packages/23/a6/90148f91544e3c056e78c514f0e764c1b44d50a33344c83fd03011ea97c8/clang_format-23.1.3-py2.py3-none-win_amd64.whl", hash = "sha256:6c2b74c3a3e942ec172d768e7b945f8e136db05a7b735d49ecfc69bda97643ad", size = 1537541, upload-time = "2026-10-06T20:27:29.654Z" },
+    { url = "https://files.pythonhosted.org/packages/fb/ed/47bda876e360ca71f366f256939dd674e7a5f4f8deae6eddf7819ea21832/clang_format-23.1.3-py2.py3-none-win_arm64.whl", hash = "sha256:583af22e6593b8ea463412cf3411f55731f117546ad13e88b9ce585e7c47475f", size = 1442230, upload-time = "2026-10-06T20:27:31.241Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -152,6 +177,7 @@ wheels = [
 name = "cpp-linter-hooks"
 source = { editable = "." }
 dependencies = [
+    { name = "clang-format" },
     { name = "filelock" },
     { name = "pip" },
 ]
@@ -166,6 +192,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "clang-format" },
     { name = "filelock", specifier = ">=3.16" },
     { name = "pip", specifier = ">=26.1" },
 ]

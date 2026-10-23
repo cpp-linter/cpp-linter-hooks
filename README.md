@@ -46,10 +46,12 @@ them once, with the hook (see
 
 > [!TIP]
 > The `rev` tag (e.g. `v1.8.0`) is the **project** version, not the clang tool version. Without
-> `additional_dependencies` or `--version`, each hook installs the newest clang-format or
-> clang-tidy wheel on PyPI the first time it runs and keeps it until pre-commit rebuilds the hook
-> environment, so two machines can run different LLVM versions with the same configuration. Pin
-> the version in one of the two places, not both.
+> `additional_dependencies` or `--version`, the hooks use the newest wheel on PyPI: pre-commit
+> installs the newest clang-format together with the hook environment, and the clang-tidy hook
+> installs the newest clang-tidy wheel the first time it runs. Both are kept until pre-commit
+> rebuilds the hook environment (a new `rev` or `pre-commit clean`), so two machines can run
+> different LLVM versions with the same configuration. Pin the version in one of the two places,
+> not both.
 
 Instead of `additional_dependencies`, you can give the version in `--version`. The hook then
 picks and installs the wheel the first time it runs:
@@ -151,6 +153,10 @@ int main() {for (;;) break; printf("Hello world!\n");return 0;}
 ```
 
 ### clang-tidy
+
+clang-tidy 22 and newer enable no checks by themselves. Without a `.clang-tidy` file or
+`--checks`, the hook fails and says how to choose checks, for example with a `.clang-tidy` file
+that contains `Checks: 'bugprone-*,performance-*,readability-*'`.
 
 To set the checks in `args` instead of your `.clang-tidy` file, quote the whole option: inside
 `[...]`, YAML splits an unquoted value at each comma. When that happens, the hook joins the pieces

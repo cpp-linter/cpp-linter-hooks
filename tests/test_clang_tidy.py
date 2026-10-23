@@ -13,6 +13,7 @@ from cpp_linter_hooks.clang_tidy import (
     COMPILE_COMMANDS_HINT,
     COMPILE_DB_SEARCH_DIRS,
     MSVC_HINT,
+    NO_CHECKS_HINT,
     _append_guidance,
     _combine_outputs,
     _exec_clang_tidy,
@@ -878,6 +879,23 @@ def test_main_reads_arguments_from_command_line(monkeypatch, mock_resolve, mock_
 
     mock_resolve.assert_called_once_with("clang-tidy", "21", False)
     mock_exec.assert_called_once_with(["clang-tidy", "-quiet", "a.cpp"])
+
+
+# --- no checks enabled (LLVM 22+ without a Checks setting) ---
+
+
+@pytest.mark.parametrize("verbose", [[], ["--verbose"]])
+def test_no_checks_enabled_shows_hint_instead_of_help(mock_exec, verbose):
+    mock_exec.return_value = (
+        1,
+        "Error: no checks enabled.\nUSAGE: clang-tidy [options] <source0>\n...",
+    )
+
+    retval, output = run_clang_tidy(verbose + ["--no-compile-commands", "a.cpp"])
+
+    assert retval == 1
+    assert output == NO_CHECKS_HINT
+    assert "USAGE" not in output
 
 
 # --- quiet output ---
