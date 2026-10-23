@@ -69,9 +69,9 @@ picks and installs the wheel the first time it runs:
   your projects that use the same `rev`, so projects that ask for different versions keep their
   own copy instead of reinstalling. A wheel from `additional_dependencies` that matches
   `--version` is used as well.
-- The first run with a new `--version`, or without any version, looks the version up on pypi.org
-  and installs it, so that run needs network access. pre-commit runs the hook on groups of files
-  in parallel; one of them installs the wheel and the others wait for it.
+- Only a run that finds no matching wheel installed looks the version up on pypi.org and
+  installs it, so that run needs network access. pre-commit runs the hook on groups of files in
+  parallel; one of them installs the wheel and the others wait for it.
 
 ### Install the tool with the hook
 
