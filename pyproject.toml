@@ -31,6 +31,7 @@ classifiers = [
     "Topic :: Software Development :: Build Tools",
 ]
 dependencies = [
+    "filelock>=3.16", # One hook process at a time installs clang tools
     "pip>=26.1", # Required to install clang-format and clang-tidy
 ]
 dynamic = ["version"]

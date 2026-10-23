@@ -3,20 +3,16 @@
 import errno
 import json
 import logging
-import os
 import subprocess
 import sys
 import sysconfig
 import textwrap
-import types
 from pathlib import Path
-from unittest.mock import call, patch
+from unittest.mock import patch
 
 import pytest
 
-from cpp_linter_hooks import util
 from cpp_linter_hooks.util import (
-    _INSTALL_LOCK_NAME,
     _detect_installed_version,
     _env_paths,
     _find_installed_wheel,
@@ -955,30 +951,7 @@ def test_install_lock_serializes_processes(tmp_path):
         assert worker.wait(timeout=60) == 0
 
     assert log.read_text().split() == ["start", "end"] * 3
-    assert (tmp_path / _INSTALL_LOCK_NAME).is_file()
-
-
-def test_install_lock_can_be_taken_again(tmp_path, monkeypatch):
-    monkeypatch.setattr(sys, "prefix", str(tmp_path))
-    with _install_lock():
-        pass
-    with _install_lock():
-        pass
-
-
-def test_install_lock_without_writable_environment(tmp_path, monkeypatch, caplog):
-    monkeypatch.setattr(sys, "prefix", str(tmp_path / "missing"))
-    with (
-        caplog.at_level(logging.DEBUG, logger="cpp_linter_hooks.util"),
-        _install_lock(),
-    ):
-        entered = True
-    assert entered
-    assert "installing without a lock" in caplog.text
-
-
-def _crash():
-    raise RuntimeError("pip crashed")
+    assert (tmp_path / ".cpp-linter-hooks-install.lock").is_file()
 
 
 def test_install_lock_unlocks_on_error(tmp_path, monkeypatch):
@@ -989,74 +962,30 @@ def test_install_lock_unlocks_on_error(tmp_path, monkeypatch):
         pass
 
 
-def test_install_lock_falls_back_when_locking_fails(tmp_path, monkeypatch, caplog):
+def _crash():
+    raise RuntimeError("pip crashed")
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        OSError(errno.ENOLCK, "No locks available"),
+        NotImplementedError("FileSystem does not appear to support flock"),
+    ],
+)
+def test_install_lock_runs_unlocked_without_lock_support(
+    tmp_path, monkeypatch, caplog, error
+):
     """File systems without lock support (e.g. some NFS mounts) run unlocked."""
     monkeypatch.setattr(sys, "prefix", str(tmp_path))
-    closed = []
-    real_close = os.close
-
-    def close(fileno):
-        closed.append(fileno)
-        real_close(fileno)
-
     with (
-        patch(
-            "cpp_linter_hooks.util._lock_file",
-            side_effect=OSError(errno.ENOLCK, "No locks available"),
-        ),
-        patch("cpp_linter_hooks.util._unlock_file") as unlock,
-        patch("os.close", side_effect=close),
+        patch("cpp_linter_hooks.util.FileLock.acquire", side_effect=error),
         caplog.at_level(logging.DEBUG, logger="cpp_linter_hooks.util"),
         _install_lock(),
     ):
         entered = True
     assert entered
-    assert len(closed) == 1
-    unlock.assert_not_called()
-    assert "No locks available" in caplog.text
-
-
-def _fake_msvcrt(locking):
-    return types.SimpleNamespace(LK_LOCK=1, LK_UNLCK=0, locking=locking)
-
-
-def test_lock_file_windows_waits_while_locked(monkeypatch):
-    calls = []
-
-    def locking(fileno, mode, nbytes):
-        calls.append((fileno, mode, nbytes))
-        # LK_LOCK gives up after about 10 seconds while another process holds it.
-        if len(calls) == 1:
-            raise OSError(errno.EDEADLK, "Resource deadlock avoided")
-
-    monkeypatch.setattr(util, "_WINDOWS", True)
-    monkeypatch.setitem(sys.modules, "msvcrt", _fake_msvcrt(locking))
-    util._lock_file(7)
-    util._unlock_file(7)
-
-    assert calls == [(7, 1, 1), (7, 1, 1), (7, 0, 1)]
-
-
-def test_lock_file_windows_other_error(monkeypatch):
-    def locking(fileno, mode, nbytes):
-        raise OSError(errno.EBADF, "Bad file descriptor")
-
-    monkeypatch.setattr(util, "_WINDOWS", True)
-    monkeypatch.setitem(sys.modules, "msvcrt", _fake_msvcrt(locking))
-    with pytest.raises(OSError, match="Bad file descriptor"):
-        util._lock_file(7)
-
-
-def test_lock_file_posix(monkeypatch):
-    fake_fcntl = types.SimpleNamespace(
-        LOCK_EX=2, LOCK_UN=8, flock=lambda fileno, op: None
-    )
-    monkeypatch.setattr(util, "_WINDOWS", False)
-    monkeypatch.setitem(sys.modules, "fcntl", fake_fcntl)
-    with patch.object(fake_fcntl, "flock") as flock:
-        util._lock_file(7)
-        util._unlock_file(7)
-    assert flock.call_args_list == [call(7, 2), call(7, 8)]
+    assert "Installing without a lock" in caplog.text
 
 
 def test_resolve_install_runs_under_install_lock():
