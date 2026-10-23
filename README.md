@@ -64,10 +64,14 @@ picks and installs the wheel the first time it runs:
   give clang-tidy the major version.
 - clang-format wheels cover LLVM 6 to 23 and clang-tidy wheels LLVM 13 to 23. For a version without
   a wheel, the hook fails and lists some of the versions that exist.
-- When the hook environment already has a wheel that matches `--version` (or any wheel, without
-  `--version`), the hook uses it and does not contact pypi.org. Otherwise it looks the version up
-  on pypi.org and installs it, so that run needs network access. pre-commit runs the hook on
-  groups of files in parallel; one of them installs the wheel and the others wait for it.
+- Each `--version` is installed once, into its own directory in the hook environment, and later
+  runs use it without contacting pypi.org. pre-commit shares the hook environment between all
+  your projects that use the same `rev`, so projects that ask for different versions keep their
+  own copy instead of reinstalling. A wheel from `additional_dependencies` that matches
+  `--version` is used as well.
+- Only a run that finds no matching wheel installed looks the version up on pypi.org and
+  installs it, so that run needs network access. pre-commit runs the hook on groups of files in
+  parallel; one of them installs the wheel and the others wait for it.
 
 ### Install the tool with the hook
 

@@ -156,6 +156,11 @@ def _env_paths() -> dict[str, str]:
     return sysconfig.get_paths()
 
 
+def _dist_name(tool: str) -> str:
+    """Return the normalized distribution name, as in ``clang_format``."""
+    return re.sub(r"[-_.]+", "_", tool).lower()
+
+
 def _installed_wheel_version(tool: str) -> str | None:
     """Return the version of the *tool* wheel installed in this Python environment.
 
@@ -167,7 +172,7 @@ def _installed_wheel_version(tool: str) -> str | None:
     only once its ``RECORD`` file exists: pip writes it last, so a wheel another
     hook process is still installing is not used half-written.
     """
-    prefix = f"{re.sub(r'[-_.]+', '_', tool).lower()}-"
+    prefix = f"{_dist_name(tool)}-"
     suffix = ".dist-info"
     paths = _env_paths()
     site_dirs = dict.fromkeys((paths["purelib"], paths["platlib"]))
@@ -214,6 +219,77 @@ def _find_installed_wheel(tool: str, version: str | None) -> tuple[Path, str] | 
     return Path(path), installed
 
 
+def _versions_dir() -> str:
+    """Return the directory that holds one install per requested ``--version``.
+
+    pre-commit shares one hook environment between all projects on a machine
+    that use the same ``rev``. Each version gets its own directory there, so
+    projects that ask for different versions do not replace each other's wheel.
+    """
+    return os.path.join(sys.prefix, "cpp-linter-hooks")
+
+
+def _versioned_executable(tool: str, target: str) -> str | None:
+    """Return the executable inside a wheel installed with ``pip --target``.
+
+    The wheel's own console script cannot run from there, because its package
+    is not on ``sys.path``, so this returns the binary the wheel ships: in
+    ``<package>/data/bin`` (or ``<package>/bin`` in old clang-format wheels).
+    """
+    package = os.path.join(target, _dist_name(tool))
+    bin_dirs = (os.path.join(package, "data", "bin"), os.path.join(package, "bin"))
+    return shutil.which(tool, path=os.pathsep.join(bin_dirs))
+
+
+def _version_key(version: str) -> tuple[int, ...]:
+    """Return a sortable key for a release version such as ``21.1.8``."""
+    return tuple(int(part) for part in version.split(".") if part.isdigit())
+
+
+def _find_versioned_install(tool: str, version: str) -> tuple[Path, str] | None:
+    """Return (path, version) of the newest finished install that matches *version*.
+
+    An install counts only once its ``RECORD`` file exists, so a directory left
+    behind by an interrupted ``pip install`` is never used.
+    """
+    base = _versions_dir()
+    prefix = f"{tool}-"
+    try:
+        names = os.listdir(base)
+    except OSError:
+        return None
+    found = []
+    for name in names:
+        installed = name[len(prefix) :]
+        if not name.startswith(prefix) or not _version_satisfies(installed, version):
+            continue
+        target = os.path.join(base, name)
+        record = os.path.join(
+            target, f"{_dist_name(tool)}-{installed}.dist-info", "RECORD"
+        )
+        executable = _versioned_executable(tool, target)
+        if os.path.isfile(record) and executable:
+            found.append((_version_key(installed), Path(executable), installed))
+    if not found:
+        return None
+    _, path, installed = max(found, key=lambda item: item[0])
+    return path, installed
+
+
+def _find_installed(tool: str, version: str | None) -> tuple[Path, str] | None:
+    """Return (path, version) of an installed tool that satisfies *version*.
+
+    The wheel in the hook environment (from ``additional_dependencies``, or from
+    a run without ``--version``) comes first; then the per-version installs.
+    A run without ``--version`` never uses a per-version install, which another
+    project may have asked for.
+    """
+    installed = _find_installed_wheel(tool, version)
+    if installed is None and version is not None:
+        installed = _find_versioned_install(tool, version)
+    return installed
+
+
 # Seconds to wait for another hook process to finish installing.
 _INSTALL_LOCK_TIMEOUT = 300
 
@@ -246,15 +322,23 @@ def _install_lock():
             lock.release()
 
 
-def _install_tool(tool: str, version: str) -> Path | None:
-    """Install a tool using pip, logging output on failure."""
-    result = subprocess.run(
-        [sys.executable, "-m", "pip", "install", f"{tool}=={version}"],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+def _install_tool(tool: str, version: str, versioned: bool = False) -> Path | None:
+    """Install a tool using pip, logging output on failure.
+
+    With *versioned*, the wheel goes to its own directory under
+    :func:`_versions_dir` instead of the hook environment.
+    """
+    command = [sys.executable, "-m", "pip", "install", f"{tool}=={version}"]
+    if versioned:
+        target = os.path.join(_versions_dir(), f"{tool}-{version}")
+        # Remove what an interrupted install left behind; pip --target does
+        # not replace an existing directory.
+        shutil.rmtree(target, ignore_errors=True)
+        command += ["--target", target]
+    result = subprocess.run(command, capture_output=True, text=True, check=False)
     if result.returncode == 0:
+        if versioned:
+            return _versioned_executable(tool, target)
         return _env_executable(tool) or shutil.which(tool)
     LOG.error("pip failed to install %s %s", tool, version)
     LOG.error(result.stdout)
@@ -269,18 +353,20 @@ def resolve_install_with_diagnostics(
 
     A wheel already installed in the hook's environment is used as is when it
     matches ``--version`` (or when no version was given), so pinned
-    ``additional_dependencies`` are kept and the hook works offline.
-    Otherwise the version is resolved dynamically from PyPI — no hardcoded
-    list is maintained in-tree.
+    ``additional_dependencies`` are kept and the hook works offline. So is an
+    earlier per-version install that matches ``--version``. Otherwise the
+    version is resolved dynamically from PyPI — no hardcoded list is
+    maintained in-tree — and a ``--version`` is installed into its own
+    directory.
 
     Installing runs under :func:`_install_lock`, so when several hook processes
     start at once, one installs and the others wait and then use its wheel.
     """
-    installed_wheel = _find_installed_wheel(tool, version)
+    installed_wheel = _find_installed(tool, version)
     if installed_wheel is None:
         with _install_lock():
             # Another hook process may have installed it while this one waited.
-            installed_wheel = _find_installed_wheel(tool, version)
+            installed_wheel = _find_installed(tool, version)
             if installed_wheel is None:
                 return _resolve_and_install(tool, version, verbose)
     path, installed = installed_wheel
@@ -316,7 +402,8 @@ def _resolve_and_install(
             )
 
     return (
-        _is_version_installed(tool, user_version) or _install_tool(tool, user_version),
+        _is_version_installed(tool, user_version)
+        or _install_tool(tool, user_version, versioned=version is not None),
         None,
     )
 
