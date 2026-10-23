@@ -10,11 +10,12 @@ repos:
     rev: v1.8.0
     hooks:
       - id: clang-format
-        args: [--style=file, --version=21]
+        args: [--style=file]
+        additional_dependencies: [clang-format==21.1.8]
         files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
 
       - id: clang-tidy
-        args: [--version=21]
+        additional_dependencies: [clang-tidy==21.1.6]
         files: ^(src|include)/.*\.(cpp|cc|cxx)$
 ```
 
