@@ -27,4 +27,3 @@ uv run pytest -vv      # Run tests
 uv run coverage run --source=tests,cpp_linter_hooks -m pytest -vv  # With coverage
 bash testing/run.sh    # Integration tests (full pre-commit pipeline)
 ```
-
