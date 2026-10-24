@@ -32,7 +32,7 @@ classifiers = [
 ]
 dependencies = [
     # Unpinned, so a new hook environment gets the latest clang-format at install
-    # time. Pin it with additional_dependencies or --version.
+    # time; additional_dependencies can pin it, and --version runs another version.
     "clang-format",
     "filelock>=3.16", # One hook process at a time installs clang tools
     "pip>=26.1", # Required to install other clang-format and clang-tidy versions

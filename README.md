@@ -27,7 +27,9 @@ repos:
 ```
 
 Run `pre-commit install` once in each clone. `--style=file` loads the style from your
-`.clang-format` file, and clang-tidy reads your `.clang-tidy` file by itself. The clang-tidy hook
+`.clang-format` file, and clang-tidy reads your `.clang-tidy` file by itself. clang-tidy 22 and
+newer run no checks without one, so add a `.clang-tidy` file that contains, for example,
+`Checks: 'bugprone-*,performance-*,readability-*'`. The clang-tidy hook
 reports only problems on the lines that your commit adds or changes (see
 [Only changed lines](https://github.com/cpp-linter/cpp-linter-hooks#only-changed-lines)). It needs
 a `compile_commands.json`, which it looks for in `build/` and a few other directories; without one
@@ -67,10 +69,11 @@ Choose the clang tool version with `--version`:
 
 #### Without network access
 
-A `--version` that is not installed yet needs network access the first time the hook runs. On
-[pre-commit.ci](https://pre-commit.ci/), which runs hooks without network access, or where
-pypi.org is blocked, pin the version with pre-commit's own `additional_dependencies` instead of
-`--version`. pre-commit installs it together with the hook, through the package index it uses for
+clang-format without `--version` is installed together with the hook and runs offline. clang-tidy
+without `--version`, and any `--version` that is not installed yet, is installed the first time
+the hook runs, which needs network access. On [pre-commit.ci](https://pre-commit.ci/), which runs
+hooks without network access, or where pypi.org is blocked, pin the version with pre-commit's own
+`additional_dependencies` instead of `--version`. pre-commit installs it together with the hook, through the package index it uses for
 the hook itself:
 
 ```yaml
