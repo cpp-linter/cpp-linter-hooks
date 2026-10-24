@@ -19,77 +19,67 @@ Add this configuration to your `.pre-commit-config.yaml` file:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.8.0
+    rev: v1.8.1
     hooks:
       - id: clang-format
         args: [--style=file]
-        additional_dependencies: [clang-format==21.1.8]
       - id: clang-tidy
-        additional_dependencies: [clang-tidy==21.1.6]
 ```
 
 Run `pre-commit install` once in each clone. `--style=file` loads the style from your
-`.clang-format` file, and clang-tidy reads your `.clang-tidy` file by itself. The clang-tidy hook
+`.clang-format` file, and clang-tidy reads your `.clang-tidy` file by itself. clang-tidy 22 and
+newer run no checks without one, so add a `.clang-tidy` file that contains, for example,
+`Checks: 'bugprone-*,performance-*,readability-*'`. The clang-tidy hook
 reports only problems on the lines that your commit adds or changes (see
 [Only changed lines](https://github.com/cpp-linter/cpp-linter-hooks#only-changed-lines)). It needs
 a `compile_commands.json`, which it looks for in `build/` and a few other directories; without one
 it skips clang-tidy on your machine and fails in CI (see
 [Compilation database](https://github.com/cpp-linter/cpp-linter-hooks#compilation-database)).
 
-`additional_dependencies` pins the clang-format and clang-tidy versions, and pre-commit installs
-them once, with the hook (see
-[Install the tool with the hook](https://github.com/cpp-linter/cpp-linter-hooks#install-the-tool-with-the-hook)).
+This uses the newest clang-format and clang-tidy. To choose a version, add `--version` (see
+[Clang tool version](https://github.com/cpp-linter/cpp-linter-hooks#clang-tool-version)).
 
 ## Usage
 
-### Custom clang tool version
+### Clang tool version
 
-> [!TIP]
-> The `rev` tag (e.g. `v1.8.0`) is the **project** version, not the clang tool version. Without
-> `additional_dependencies` or `--version`, each hook installs the newest clang-format or
-> clang-tidy wheel on PyPI the first time it runs and keeps it until pre-commit rebuilds the hook
-> environment, so two machines can run different LLVM versions with the same configuration. Pin
-> the version in one of the two places, not both.
-
-Instead of `additional_dependencies`, you can give the version in `--version`. The hook then
-picks and installs the wheel the first time it runs:
+The `rev` tag (e.g. `v1.8.1`) is the version of these hooks, not of clang-format or clang-tidy.
+Choose the clang tool version with `--version`:
 
 ```yaml
       - id: clang-format
         args: [--style=file, --version=21]
+      - id: clang-tidy
+        args: [--version=21]
 ```
 
-- `--version=21` installs the newest 21.x wheel, and `--version=21.1.8` pins an exact release.
+- Without `--version`, the hooks use the newest wheel on PyPI: pre-commit installs the newest
+  clang-format together with the hook, and the clang-tidy hook installs the newest clang-tidy the
+  first time it runs. Both are kept until pre-commit rebuilds the hook (a new `rev` or
+  `pre-commit clean`), so two machines can end up with different versions. Teams and CI should
+  set `--version`.
+- `--version=21` installs the newest 21.x wheel, and `--version=21.1.8` an exact release.
   clang-tidy wheels are released separately from clang-format wheels and skip some releases, so
   give clang-tidy the major version.
 - clang-format wheels cover LLVM 6 to 23 and clang-tidy wheels LLVM 13 to 23. For a version without
   a wheel, the hook fails and lists some of the versions that exist.
-- Each `--version` is installed once, into its own directory in the hook environment, and later
-  runs use it without contacting pypi.org. pre-commit shares the hook environment between all
-  your projects that use the same `rev`, so projects that ask for different versions keep their
-  own copy instead of reinstalling. A wheel from `additional_dependencies` that matches
-  `--version` is used as well.
-- Only a run that finds no matching wheel installed looks the version up on pypi.org and
-  installs it, so that run needs network access. pre-commit runs the hook on groups of files in
-  parallel; one of them installs the wheel and the others wait for it.
+- Each version is installed once, the first time the hook runs with it, and later runs use it
+  without contacting pypi.org. pre-commit shares the hook between all your projects that use the
+  same `rev`, and projects that ask for different versions each keep their own copy.
 
-### Install the tool with the hook
+#### Without network access
 
-We recommend giving the version in `additional_dependencies`, as in the Quick start. pre-commit
-then installs the clang tool once, when it creates the hook environment, the same way
-[mirrors-clang-format](https://github.com/pre-commit/mirrors-clang-format) does. The hook uses
-that wheel, so do not set `--version` as well.
+clang-format without `--version` is installed together with the hook and runs offline. clang-tidy
+without `--version`, and any `--version` that is not installed yet, is installed the first time
+the hook runs, which needs network access. On [pre-commit.ci](https://pre-commit.ci/), which runs
+hooks without network access, or where pypi.org is blocked, pin the version with pre-commit's own
+`additional_dependencies` instead of `--version`. pre-commit installs it together with the hook, through the package index it uses for
+the hook itself:
 
-pre-commit installs `additional_dependencies` with the hook (for example on
-`pre-commit install-hooks`), through the same package index it uses for the hook itself. The hooks
-then never install anything or contact pypi.org when they run, so this works:
-
-- on [pre-commit.ci](https://pre-commit.ci/), which runs hooks without network access,
-- behind a firewall or with a company PyPI mirror, where pypi.org may be blocked or slow,
-- for teams and CI, where every machine gets exactly the same wheel.
-
-If you set both and they do not match, `--version` wins and the hook installs that wheel at run
-time, which needs network access.
+```yaml
+      - id: clang-tidy
+        additional_dependencies: [clang-tidy==21.1.6]
+```
 
 ### clang-format
 
@@ -151,6 +141,10 @@ int main() {for (;;) break; printf("Hello world!\n");return 0;}
 ```
 
 ### clang-tidy
+
+clang-tidy 22 and newer enable no checks by themselves. Without a `.clang-tidy` file or
+`--checks`, the hook fails and says how to choose checks, for example with a `.clang-tidy` file
+that contains `Checks: 'bugprone-*,performance-*,readability-*'`.
 
 To set the checks in `args` instead of your `.clang-tidy` file, quote the whole option: inside
 `[...]`, YAML splits an unquoted value at each comma. When that happens, the hook joins the pieces
@@ -220,7 +214,7 @@ See [Performance optimization](https://github.com/cpp-linter/cpp-linter-hooks#pe
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.8.0  # includes --fix support
+    rev: v1.8.1  # includes --fix support
     hooks:
       - id: clang-tidy
         args: [--fix]
@@ -243,7 +237,7 @@ repository root works too.
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.8.0
+    rev: v1.8.1
     hooks:
       - id: clang-tidy
         # Auto-detects ./build/compile_commands.json if present
@@ -298,7 +292,7 @@ Three self-contained templates plus quick snippets for other common setups.
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.8.0
+  rev: v1.8.1
   hooks:
     - id: clang-format
       args: [--style=file]
@@ -312,7 +306,7 @@ or `-j`:
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.8.0
+  rev: v1.8.1
   hooks:
     - id: clang-tidy
       args: [--jobs=4]
@@ -349,7 +343,7 @@ This approach ensures that only modified files are checked, further speeding up 
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.8.0
+    rev: v1.8.1
     hooks:
       - id: clang-format
         args: [--style=file, --verbose]   # Shows processed files
@@ -366,7 +360,7 @@ mirror of the clang-format wheel.
 |----------------------------------|-------------------------------------------|----------------------------------------|
 | Supports `clang-format` and `clang-tidy` | Both                              | `clang-format` only                    |
 | Custom configuration files       | `.clang-format`, `.clang-tidy`            | `.clang-format`                        |
-| Specify tool version             | `additional_dependencies` or `--version` | via `rev` tag (e.g. `rev: v21.1.8`)    |
+| Specify tool version             | `--version`                               | via `rev` tag (e.g. `rev: v21.1.8`)    |
 | `rev` tag meaning                | Project version, not the tool version     | Equals the clang-format version directly |
 | Default file types               | C, C++                                    | C, C++, C#, CUDA, Java, JavaScript, JSON, Objective-C, proto, textproto, Metal |
 | Supports passing format style string | via `--style`                         | via `--style`                          |

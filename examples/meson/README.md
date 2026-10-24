@@ -1,22 +1,29 @@
 # Meson Project
 
-If you already have a Meson project, configure the hooks and generate a compilation database.
+If you already have a Meson project, configure the hooks and the clang-tidy checks, and generate a compilation
+database.
 
 ## .pre-commit-config.yaml
 
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.8.0
+    rev: v1.8.1
     hooks:
       - id: clang-format
         args: [--style=file]
-        additional_dependencies: [clang-format==21.1.8]
         files: ^(src|include)/.*\.(cpp|cc|cxx|h|hpp)$
 
       - id: clang-tidy
-        additional_dependencies: [clang-tidy==21.1.6]
         files: ^(src|include)/.*\.(cpp|cc|cxx)$
+```
+
+## .clang-tidy
+
+clang-tidy 22 and newer run no checks without one. Choose the checks you want, for example:
+
+```yaml
+Checks: 'bugprone-*,performance-*,readability-*'
 ```
 
 ## Generate the compilation database

@@ -60,6 +60,15 @@ Generate compile_commands.json with one of:
 The hook finds it in build/ and builddir/. For another directory, pass
 --compile-commands=<dir>."""
 
+NO_CHECKS_ERROR = "Error: no checks enabled."
+NO_CHECKS_HINT = """\
+clang-tidy found no checks to run for some files. Their .clang-tidy file turns
+every check off (for example Checks: '-*'), or they have none and clang-tidy 22
+and newer enable no checks by default. To check them, set the checks you want
+in a .clang-tidy file, for example
+  Checks: 'bugprone-*,performance-*,readability-*'
+or in args: ["--checks=bugprone-*,performance-*"]."""
+
 MSVC_HINT = """\
 Windows/MSVC clang-tidy hints:
   - Run from a Visual Studio Developer Command Prompt, or call vcvars64.bat first.
@@ -393,6 +402,9 @@ def _exec_clang_tidy(command) -> tuple[int, str]:
     try:
         sp = subprocess.run(command, capture_output=True, encoding="utf-8", check=False)
         output = (sp.stdout or "") + (sp.stderr or "")
+        if NO_CHECKS_ERROR in output:
+            # Keep the error line, not the whole --help text that follows it.
+            return 1, NO_CHECKS_ERROR
         output = _append_guidance(output)
         retval = (
             1 if sp.returncode != 0 or "warning:" in output or "error:" in output else 0
@@ -705,6 +717,12 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
             [executable] + clang_tidy_args, source_files, lines
         )
 
+    if NO_CHECKS_ERROR in output:
+        # Other runs' warnings stay; the hint explains the error once.
+        output = "\n".join(
+            line for line in output.splitlines() if line != NO_CHECKS_ERROR
+        )
+        notes.append(NO_CHECKS_HINT)
     if not hook_args.verbose:
         output = _strip_noise(output)
     return retval, _append_notes(output, notes)

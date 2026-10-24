@@ -31,8 +31,11 @@ classifiers = [
     "Topic :: Software Development :: Build Tools",
 ]
 dependencies = [
+    # Unpinned, so a new hook environment gets the latest clang-format at install
+    # time; additional_dependencies can pin it, and --version runs another version.
+    "clang-format",
     "filelock>=3.16", # One hook process at a time installs clang tools
-    "pip>=26.1", # Required to install clang-format and clang-tidy
+    "pip>=26.1", # Required to install other clang-format and clang-tidy versions
 ]
 dynamic = ["version"]
 

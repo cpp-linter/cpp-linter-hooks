@@ -13,6 +13,8 @@ from cpp_linter_hooks.clang_tidy import (
     COMPILE_COMMANDS_HINT,
     COMPILE_DB_SEARCH_DIRS,
     MSVC_HINT,
+    NO_CHECKS_ERROR,
+    NO_CHECKS_HINT,
     _append_guidance,
     _combine_outputs,
     _exec_clang_tidy,
@@ -878,6 +880,42 @@ def test_main_reads_arguments_from_command_line(monkeypatch, mock_resolve, mock_
 
     mock_resolve.assert_called_once_with("clang-tidy", "21", False)
     mock_exec.assert_called_once_with(["clang-tidy", "-quiet", "a.cpp"])
+
+
+# --- no checks enabled (LLVM 22+ without a Checks setting) ---
+
+
+def test_exec_keeps_only_the_no_checks_error():
+    help_text = "Error: no checks enabled.\nUSAGE: clang-tidy [options] <source0>\n..."
+    with patch("cpp_linter_hooks.clang_tidy.subprocess.run") as mock_run:
+        mock_run.return_value = subprocess.CompletedProcess(
+            ["clang-tidy"], 1, stdout="", stderr=help_text
+        )
+        assert _exec_clang_tidy(["clang-tidy", "a.cpp"]) == (1, NO_CHECKS_ERROR)
+
+
+@pytest.mark.parametrize("verbose", [[], ["--verbose"]])
+def test_no_checks_enabled_shows_hint(mock_exec, verbose):
+    mock_exec.return_value = (1, NO_CHECKS_ERROR)
+
+    retval, output = run_clang_tidy(verbose + ["--no-compile-commands", "a.cpp"])
+
+    assert retval == 1
+    assert output == NO_CHECKS_HINT
+
+
+def test_no_checks_hint_keeps_other_files_warnings(mock_exec):
+    warning = "b.cpp:1:5: warning: use a trailing return type [modernize-x]"
+    mock_exec.side_effect = lambda command: (
+        (1, NO_CHECKS_ERROR) if command[-1] == "sub/c.cpp" else (1, warning)
+    )
+
+    retval, output = run_clang_tidy(
+        ["--jobs=2", "--no-compile-commands", "b.cpp", "sub/c.cpp"]
+    )
+
+    assert retval == 1
+    assert output == warning + "\n\n" + NO_CHECKS_HINT
 
 
 # --- quiet output ---
