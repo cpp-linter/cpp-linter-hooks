@@ -1,6 +1,6 @@
 # CMake Project
 
-If you already have a CMake project, you need **two files**:
+If you already have a CMake project, you need **three files**:
 
 ## .pre-commit-config.yaml
 
@@ -15,6 +15,14 @@ repos:
 
       - id: clang-tidy
         files: ^(src|include)/.*\.(cpp|cc|cxx)$
+```
+
+## .clang-tidy
+
+clang-tidy 22 and newer run no checks without one. Choose the checks you want, for example:
+
+```yaml
+Checks: 'bugprone-*,performance-*,readability-*'
 ```
 
 ## CMakeLists.txt

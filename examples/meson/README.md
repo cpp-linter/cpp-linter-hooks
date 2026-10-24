@@ -1,6 +1,7 @@
 # Meson Project
 
-If you already have a Meson project, configure the hooks and generate a compilation database.
+If you already have a Meson project, configure the hooks and the clang-tidy checks, and generate a compilation
+database.
 
 ## .pre-commit-config.yaml
 
@@ -15,6 +16,14 @@ repos:
 
       - id: clang-tidy
         files: ^(src|include)/.*\.(cpp|cc|cxx)$
+```
+
+## .clang-tidy
+
+clang-tidy 22 and newer run no checks without one. Choose the checks you want, for example:
+
+```yaml
+Checks: 'bugprone-*,performance-*,readability-*'
 ```
 
 ## Generate the compilation database
