@@ -14,3 +14,62 @@ jobs:
       contents: write
       pull-requests: read
     uses: cpp-linter/.github/.github/workflows/release-drafter.yml@main
+
+  # Keep the `rev:` in the README examples equal to the next release, so the
+  # tagged commit (and the PyPI page built from it) shows the right version.
+  # This opens or updates a PR; merge it before publishing the draft release.
+  bump-readme-rev:
+    needs: draft-release
+    runs-on: ubuntu-latest
+    permissions:
+      # read the draft release, push the PR branch and open the PR
+      contents: write
+      pull-requests: write
+    concurrency:
+      group: bump-readme-rev
+      cancel-in-progress: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Get the draft release tag
+        id: draft
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          # release-drafter updates the first draft it finds, so read the same one
+          tag=$(gh api "repos/$REPO/releases" --jq '[.[] | select(.draft)][0].tag_name // ""')
+          if ! [[ "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "No draft release with a vX.Y.Z tag ('$tag'), nothing to do."
+            tag=""
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Use the tag in the README examples
+        if: steps.draft.outputs.tag != ''
+        env:
+          TAG: ${{ steps.draft.outputs.tag }}
+        run: |
+          sed -E -i "s/^([[:space:]]*rev: )v[0-9]+\.[0-9]+\.[0-9]+/\1${TAG}/" \
+            README.md examples/*/README.md
+          git diff --stat
+
+      - name: Open or update the pull request
+        if: steps.draft.outputs.tag != ''
+        uses: peter-evans/create-pull-request@5f6978faf089d4d20b00c7766989d076bb2fc7f1 # v8.1.1
+        with:
+          token: ${{ github.token }}
+          sign-commits: true
+          branch: bump-readme-rev
+          delete-branch: true
+          commit-message: "docs: use ${{ steps.draft.outputs.tag }} in README"
+          title: "docs: use ${{ steps.draft.outputs.tag }} in README"
+          body: |
+            Sets `rev:` in the README examples to `${{ steps.draft.outputs.tag }}`, the version of the
+            current draft release. Merge this PR first, then publish the draft release, so the tag and
+            the PyPI page show the new version.
+          labels: |
+            documentation
+            skip-changelog
