@@ -49,3 +49,8 @@ related issues.
 Releases are tagged by maintainers. Versioning follows
 [setuptools-scm](https://github.com/pypa/setuptools-scm) — the version is
 derived from git tags automatically.
+
+Release Drafter keeps a draft of the next release. Whenever the `rev:` in the
+README examples differs from that draft's tag, a bot PR named
+`docs: use vX.Y.Z in README` updates it. Merge that PR first, then publish the
+draft release, so the tag and the PyPI page show the new version.
