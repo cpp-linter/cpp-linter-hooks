@@ -76,6 +76,24 @@ def test_run_clang_format_dry_run_unformatted(tmp_path):
     assert output.strip()  # Should report which file needs formatting
 
 
+def test_run_clang_format_dry_run_short_option_fails_unformatted(tmp_path):
+    """-n is --dry-run, so it also reports unformatted files as a failure."""
+    test_file = tmp_path / "main.c"
+    test_file.write_bytes(Path("testing/main.c").read_bytes())
+    ret, output = run_clang_format(["-n", "--style=Google", str(test_file)])
+    assert ret == 1
+    assert "clang-format-violations" in output
+
+
+def test_run_clang_format_dry_run_on_a_file_that_is_not_utf8(tmp_path):
+    """clang-format prints the source line; Latin-1 bytes must not crash the hook."""
+    test_file = tmp_path / "latin1.c"
+    test_file.write_bytes(b"int  x = 1; /* caf\xe9 */\n")
+    ret, output = run_clang_format(["--dry-run", str(test_file)])
+    assert ret == 1
+    assert "caf\ufffd" in output
+
+
 @pytest.mark.benchmark
 def test_run_clang_format_dry_run_formatted(tmp_path):
     """Dry-run on already-formatted files returns success."""
@@ -200,6 +218,7 @@ def test_run_clang_format_formats_files_in_place(mock_clang_format):
         ["clang-format", "-i", "--style=Google", "a.cpp", "b.cpp"],
         capture_output=True,
         encoding="utf-8",
+        errors="replace",
         check=False,
     )
 
@@ -217,6 +236,20 @@ def test_run_clang_format_formats_files_in_place(mock_clang_format):
         ),
         (["--Werror", "a.cpp"], ["clang-format", "-i", "--Werror", "a.cpp"]),
         (["a.cpp"], ["clang-format", "-i", "a.cpp"]),
+        # -n is clang-format's short form of --dry-run.
+        (["-n", "a.cpp"], ["clang-format", "-i", "-n", "a.cpp", "--Werror"]),
+        (
+            ["--dry-run=true", "a.cpp"],
+            ["clang-format", "-i", "--dry-run=true", "a.cpp", "--Werror"],
+        ),
+        (
+            ["--dry-run=false", "a.cpp"],
+            ["clang-format", "-i", "--dry-run=false", "a.cpp"],
+        ),
+        (
+            ["-n", "--Werror=false", "a.cpp"],
+            ["clang-format", "-i", "-n", "--Werror=false", "a.cpp"],
+        ),
     ),
 )
 def test_run_clang_format_adds_werror_only_for_dry_run(

@@ -600,8 +600,19 @@ def test_exec_clang_tidy_return_value(returncode, stdout, stderr, expected_retva
 
     assert (ret, output) == (expected_retval, stdout + stderr)
     mock_run.assert_called_once_with(
-        ["clang-tidy", "a.cpp"], capture_output=True, encoding="utf-8", check=False
+        ["clang-tidy", "a.cpp"],
+        capture_output=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
     )
+
+
+def test_exec_clang_tidy_reads_output_that_is_not_utf8():
+    # Source lines in the output can be Latin-1 or GBK.
+    command = [sys.executable, "-c", "import sys; sys.stdout.buffer.write(b'caf\\xe9')"]
+
+    assert _exec_clang_tidy(command) == (0, "caf\ufffd")
 
 
 def test_exec_clang_tidy_handles_missing_streams():
@@ -779,7 +790,36 @@ def test_fix_flag_is_inserted_before_source_files(mock_exec):
     )
 
 
-@pytest.mark.parametrize("existing", ["-fix", "-fix-errors"])
+@pytest.mark.parametrize(
+    "option",
+    [
+        "--fix-errors",
+        "-fix-notes",
+        "--fix-notes",
+        "-export-fixes=fixes.yaml",
+    ],
+)
+def test_jobs_with_any_fix_option_spelling_forces_serial_execution(mock_exec, option):
+    run_clang_tidy(["--jobs=4", "-p", "./build", option, "a.cpp", "b.cpp"])
+
+    mock_exec.assert_called_once_with(
+        ["clang-tidy", "-quiet", "-p", "./build", option, "a.cpp", "b.cpp"]
+    )
+
+
+def test_file_named_like_an_option_is_not_read_as_one(tmp_path, monkeypatch, mock_exec):
+    # A file named --load=plugin.cpp would make clang-tidy load a plugin.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "--load=plugin.cpp").write_text("int x;\n")
+
+    run_clang_tidy(["--all-lines", "-p", "./build", "--load=plugin.cpp", "a.cpp"])
+
+    mock_exec.assert_called_once_with(
+        ["clang-tidy", "-quiet", "-p", "./build", "./--load=plugin.cpp", "a.cpp"]
+    )
+
+
+@pytest.mark.parametrize("existing", ["-fix", "-fix-errors", "--fix-errors"])
 def test_fix_flag_does_not_add_a_second_fix_option(mock_exec, existing):
     run_clang_tidy(["--fix", "-p", "./build", existing, "a.cpp"])
 

@@ -133,6 +133,17 @@ CHECK_GLOB_FRAGMENT = re.compile(
     + r""")-[\w.*-]*)['"]?$"""
 )
 QUOTES = ("'", '"')
+# Options that change files in place, and the one that writes a fixes file;
+# clang-tidy accepts each with one or two dashes.
+FIX_OPTIONS = (
+    "-fix",
+    "--fix",
+    "-fix-errors",
+    "--fix-errors",
+    "-fix-notes",
+    "--fix-notes",
+)
+EXPORT_FIXES_OPTIONS = ("-export-fixes", "--export-fixes")
 
 
 def _positive_int(value: str) -> int:
@@ -426,7 +437,14 @@ def _set_macos_sdkroot(verbose: bool) -> None:
 def _exec_clang_tidy(command) -> tuple[int, str]:
     """Run clang-tidy and return (retval, output)."""
     try:
-        sp = subprocess.run(command, capture_output=True, encoding="utf-8", check=False)
+        # errors="replace": clang-tidy prints source lines, which may not be UTF-8.
+        sp = subprocess.run(
+            command,
+            capture_output=True,
+            encoding="utf-8",
+            errors="replace",
+            check=False,
+        )
         output = (sp.stdout or "") + (sp.stderr or "")
         if NO_CHECKS_ERROR in output:
             # Keep the error line, not the whole --help text that follows it.
@@ -604,6 +622,19 @@ def _split_source_files(args: list[str]) -> tuple[list[str], list[str]]:
     return args[:split_idx], list(reversed(source_files))
 
 
+def _file_argument(path: str) -> str:
+    """Return a file name that clang-tidy cannot read as an option.
+
+    pre-commit passes file names as they are, so a file named
+    ``--load=plugin.cpp`` would make clang-tidy load a plugin. Such a name gets
+    a ``./`` prefix. clang-tidy has no ``--`` to end its options, because ``--``
+    starts the compiler flags.
+    """
+    if path.startswith("-") and os.path.isfile(path):
+        return f"./{path}"
+    return path
+
+
 def _combine_outputs(results: list[tuple[int, str]]) -> str:
     """Join non-empty clang-tidy outputs from multiple executions."""
     return "\n".join(output.rstrip("\n") for _, output in results if output)
@@ -665,6 +696,7 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
         return error
 
     clang_tidy_args, source_files = _split_source_files(other_args)
+    source_files = [_file_argument(f) for f in source_files]
     clang_tidy_args, notes = _repair_check_args(clang_tidy_args)
 
     lines = None
@@ -717,23 +749,14 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
     if not hook_args.verbose and not _has_quiet_option(clang_tidy_args):
         clang_tidy_args.insert(0, "-quiet")
 
-    if (
-        hook_args.fix
-        and "-fix" not in clang_tidy_args
-        and "-fix-errors" not in clang_tidy_args
-    ):
+    if hook_args.fix and not _has_option(clang_tidy_args, *FIX_OPTIONS):
         clang_tidy_args.append("-fix")
 
     # Parallel execution is unsafe when arguments include flags that write to a
     # shared output path (e.g., --export-fixes fixes.yaml) or that apply in-place
-    # fixes (-fix, -fix-errors), since multiple clang-tidy processes may attempt
-    # to modify the same header file concurrently.
-    unsafe_parallel = any(
-        arg == "--export-fixes"
-        or arg.startswith("--export-fixes=")
-        or arg in ("-fix", "-fix-errors")
-        for arg in clang_tidy_args
-    )
+    # fixes (-fix, -fix-errors, -fix-notes), since multiple clang-tidy processes
+    # may attempt to modify the same header file concurrently.
+    unsafe_parallel = _has_option(clang_tidy_args, *FIX_OPTIONS, *EXPORT_FIXES_OPTIONS)
 
     if hook_args.jobs > 1 and len(source_files) > 1 and not unsafe_parallel:
         retval, output = _exec_parallel_clang_tidy(
