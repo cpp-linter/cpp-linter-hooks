@@ -397,6 +397,32 @@ def _append_guidance(output: str) -> str:
     return output.rstrip("\n") + separator + "\n\n".join(hints)
 
 
+def _set_macos_sdkroot(verbose: bool) -> None:
+    """Point clang-tidy at the macOS SDK when nothing else does.
+
+    On macOS the C and C++ standard headers are in the Xcode or Command Line
+    Tools SDK, and /usr/include does not exist. Apple's clang finds the SDK by
+    itself, but clang-tidy is built from upstream LLVM and stops at
+    "'ctype.h' file not found" unless SDKROOT or -isysroot names the SDK.
+    An -isysroot in the compile command still wins over SDKROOT.
+    """
+    if sys.platform != "darwin" or os.environ.get("SDKROOT"):
+        return
+    try:
+        sdk = subprocess.run(
+            ["xcrun", "--show-sdk-path"],
+            capture_output=True,
+            encoding="utf-8",
+            check=True,
+        ).stdout.strip()
+    except (OSError, subprocess.CalledProcessError):
+        return
+    if sdk:
+        os.environ["SDKROOT"] = sdk
+        if verbose:
+            print(f"Using the macOS SDK in {sdk} (SDKROOT)", file=sys.stderr)
+
+
 def _exec_clang_tidy(command) -> tuple[int, str]:
     """Run clang-tidy and return (retval, output)."""
     try:
@@ -684,6 +710,7 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
         return 1, version_error
     # Run the executable that was resolved, not whatever comes first on PATH.
     executable = str(tool_path) if tool_path else "clang-tidy"
+    _set_macos_sdkroot(hook_args.verbose)
 
     # -quiet hides clang-tidy's statistics about suppressed warnings; --verbose
     # keeps clang-tidy's full output.

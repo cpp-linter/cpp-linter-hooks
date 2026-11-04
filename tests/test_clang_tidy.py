@@ -25,6 +25,7 @@ from cpp_linter_hooks.clang_tidy import (
     _looks_like_msvc_error,
     _positive_int,
     _repair_check_args,
+    _set_macos_sdkroot,
     _split_source_files,
     _strip_noise,
     main,
@@ -1537,3 +1538,56 @@ def test_split_source_files_knows_pre_commit_cpp_types(name):
         ["-quiet"],
         ["a.cpp", name],
     )
+
+
+def test_set_macos_sdkroot_uses_xcrun(monkeypatch, capsys):
+    monkeypatch.setattr(clang_tidy.sys, "platform", "darwin")
+    monkeypatch.delenv("SDKROOT", raising=False)
+    completed = MagicMock(stdout="/Applications/Xcode.app/MacOSX.sdk\n")
+    with patch(
+        "cpp_linter_hooks.clang_tidy.subprocess.run", return_value=completed
+    ) as run:
+        _set_macos_sdkroot(verbose=True)
+
+    assert run.call_args.args[0] == ["xcrun", "--show-sdk-path"]
+    assert os.environ["SDKROOT"] == "/Applications/Xcode.app/MacOSX.sdk"
+    assert "/Applications/Xcode.app/MacOSX.sdk" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("platform", "sdkroot"),
+    (("linux", None), ("win32", None), ("darwin", "/my/sdk")),
+)
+def test_set_macos_sdkroot_keeps_environment(monkeypatch, platform, sdkroot):
+    monkeypatch.setattr(clang_tidy.sys, "platform", platform)
+    if sdkroot is None:
+        monkeypatch.delenv("SDKROOT", raising=False)
+    else:
+        monkeypatch.setenv("SDKROOT", sdkroot)
+    with patch("cpp_linter_hooks.clang_tidy.subprocess.run") as run:
+        _set_macos_sdkroot(verbose=False)
+
+    run.assert_not_called()
+    assert os.environ.get("SDKROOT") == sdkroot
+
+
+@pytest.mark.parametrize(
+    "outcome",
+    (
+        OSError("xcrun not found"),
+        subprocess.CalledProcessError(1, ["xcrun"]),
+        MagicMock(stdout="\n"),
+    ),
+)
+def test_set_macos_sdkroot_without_sdk(monkeypatch, outcome):
+    monkeypatch.setattr(clang_tidy.sys, "platform", "darwin")
+    monkeypatch.delenv("SDKROOT", raising=False)
+    kwargs = (
+        {"return_value": outcome}
+        if isinstance(outcome, MagicMock)
+        else {"side_effect": outcome}
+    )
+    with patch("cpp_linter_hooks.clang_tidy.subprocess.run", **kwargs):
+        _set_macos_sdkroot(verbose=True)
+
+    assert "SDKROOT" not in os.environ
