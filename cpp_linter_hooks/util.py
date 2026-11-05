@@ -17,17 +17,17 @@ from pathlib import Path
 LOG = logging.getLogger(__name__)
 
 
-def turns_on(args: list[str], names: tuple[str, ...]) -> bool:
-    """Return whether args turn on a boolean option, in any of its spellings.
+def file_argument(arg: str) -> str:
+    """Return a file name that a clang tool cannot read as an option.
 
-    LLVM tools take ``-n``, ``--dry-run``, ``--dry-run=true`` or ``--dry-run=1``
-    (older versions also an empty value), and ``=false`` or ``=0`` turns it off.
+    pre-commit passes file names as they are, so a file named
+    ``--load=plugin.cpp`` would make clang-tidy load a plugin, and one named
+    ``--files=list.cpp`` would make clang-format format the files listed in it.
+    Such a name gets a ``./`` prefix.
     """
-    for arg in args:
-        name, _, value = arg.partition("=")
-        if name in names and value.lower() in ("", "true", "1"):
-            return True
-    return False
+    if arg.startswith("-") and os.path.isfile(arg):
+        return f"./{arg}"
+    return arg
 
 
 @lru_cache(maxsize=4)

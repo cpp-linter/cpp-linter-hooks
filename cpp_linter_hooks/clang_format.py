@@ -4,7 +4,7 @@ import subprocess
 import sys
 from argparse import ArgumentParser
 
-from cpp_linter_hooks.util import resolve_install_with_diagnostics, turns_on
+from cpp_linter_hooks.util import file_argument, resolve_install_with_diagnostics
 
 parser = ArgumentParser()
 parser.add_argument(
@@ -19,14 +19,11 @@ parser.add_argument(
     "-v", "--verbose", action="store_true", help="Enable verbose output"
 )
 
-# clang-format's spellings of --dry-run and --Werror.
-DRY_RUN_OPTIONS = ("-n", "-dry-run", "--dry-run")
-WERROR_OPTIONS = ("-Werror", "--Werror")
-
 
 def run_clang_format(args=None) -> tuple[int, str]:
     """Run clang-format with hook-specific arguments removed."""
     hook_args, other_args = parser.parse_known_args(args)
+    other_args = [file_argument(arg) for arg in other_args]
     tool_path, version_error = resolve_install_with_diagnostics(
         "clang-format", hook_args.version, hook_args.verbose
     )
@@ -41,10 +38,8 @@ def run_clang_format(args=None) -> tuple[int, str]:
 
     # Auto-inject --Werror when --dry-run (or -n) is used, so clang-format returns
     # non-zero when formatting changes are needed (mirrors-clang-format behavior).
-    # A --Werror the user set, even --Werror=false, is kept as it is. It goes
-    # before the user's arguments, which may end the options with "--".
-    if turns_on(other_args, DRY_RUN_OPTIONS) and not any(
-        arg.partition("=")[0] in WERROR_OPTIONS for arg in other_args
+    if any(a in ("-n", "--dry-run") for a in other_args) and not any(
+        a.startswith("--Werror") for a in other_args
     ):
         command.append("--Werror")
 
