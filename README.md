@@ -19,7 +19,7 @@ Add this configuration to your `.pre-commit-config.yaml` file:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.8.4
+    rev: v1.8.5
     hooks:
       - id: clang-format
         args: [--style=file]
@@ -214,7 +214,7 @@ See [Performance optimization](https://github.com/cpp-linter/cpp-linter-hooks#pe
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.8.4  # includes --fix support
+    rev: v1.8.5  # includes --fix support
     hooks:
       - id: clang-tidy
         args: [--fix]
@@ -237,7 +237,7 @@ repository root works too.
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.8.4
+    rev: v1.8.5
     hooks:
       - id: clang-tidy
         # Auto-detects ./build/compile_commands.json if present
@@ -292,7 +292,7 @@ Three self-contained templates plus quick snippets for other common setups.
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.8.4
+  rev: v1.8.5
   hooks:
     - id: clang-format
       args: [--style=file]
@@ -306,7 +306,7 @@ or `-j`:
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.8.4
+  rev: v1.8.5
   hooks:
     - id: clang-tidy
       args: [--jobs=4]
@@ -343,7 +343,7 @@ This approach ensures that only modified files are checked, further speeding up 
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.8.4
+    rev: v1.8.5
     hooks:
       - id: clang-format
         args: [--style=file, --verbose]   # Shows processed files
