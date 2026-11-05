@@ -315,8 +315,7 @@ def _install_lock():
     the lock, every batch runs ``pip install`` into the same directory at once.
     If the lock is not free within 5 minutes, or the file system does not support
     locks (some NFS mounts), the hook runs unlocked, as before. The limit also
-    covers filelock 3.x, which keeps retrying when the file system refuses the
-    lock, and a stale lock file left by a crashed process.
+    covers a stale lock file left by a crashed process.
     filelock is imported here because it is only needed to install, and
     importing it takes longer than a whole hook run that finds the tool.
     """

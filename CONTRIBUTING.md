@@ -4,7 +4,7 @@ Thanks for your interest in contributing to `cpp-linter-hooks`!
 
 ## Setup
 
-You'll need Python 3.10+ and [uv](https://docs.astral.sh/uv/).
+You'll need Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```bash
 git clone https://github.com/cpp-linter/cpp-linter-hooks.git
