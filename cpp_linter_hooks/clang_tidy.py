@@ -15,7 +15,7 @@ from cpp_linter_hooks.changed_lines import (
     diff_range,
     normalize,
 )
-from cpp_linter_hooks.util import resolve_install_with_diagnostics
+from cpp_linter_hooks.util import file_argument, resolve_install_with_diagnostics
 
 COMPILE_DB_SEARCH_DIRS = ["build", "out", "cmake-build-debug", "_build", "builddir"]
 # Searched after COMPILE_DB_SEARCH_DIRS. When a pattern matches several
@@ -133,6 +133,8 @@ CHECK_GLOB_FRAGMENT = re.compile(
     + r""")-[\w.*-]*)['"]?$"""
 )
 QUOTES = ("'", '"')
+# clang-tidy options that change files, with either one or two dashes.
+FIX_NAMES = {"fix", "fix-errors", "fix-notes", "export-fixes"}
 
 
 def _positive_int(value: str) -> int:
@@ -665,6 +667,7 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
         return error
 
     clang_tidy_args, source_files = _split_source_files(other_args)
+    source_files = [file_argument(f) for f in source_files]
     clang_tidy_args, notes = _repair_check_args(clang_tidy_args)
 
     lines = None
@@ -717,23 +720,16 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
     if not hook_args.verbose and not _has_quiet_option(clang_tidy_args):
         clang_tidy_args.insert(0, "-quiet")
 
-    if (
-        hook_args.fix
-        and "-fix" not in clang_tidy_args
-        and "-fix-errors" not in clang_tidy_args
-    ):
+    # Option names without dashes or value, e.g. "fix-errors" for --fix-errors.
+    names = {arg.lstrip("-").partition("=")[0] for arg in clang_tidy_args}
+    if hook_args.fix and not names & {"fix", "fix-errors", "fix-notes"}:
         clang_tidy_args.append("-fix")
 
     # Parallel execution is unsafe when arguments include flags that write to a
     # shared output path (e.g., --export-fixes fixes.yaml) or that apply in-place
-    # fixes (-fix, -fix-errors), since multiple clang-tidy processes may attempt
-    # to modify the same header file concurrently.
-    unsafe_parallel = any(
-        arg == "--export-fixes"
-        or arg.startswith("--export-fixes=")
-        or arg in ("-fix", "-fix-errors")
-        for arg in clang_tidy_args
-    )
+    # fixes (-fix, -fix-errors, -fix-notes), since multiple clang-tidy processes
+    # may attempt to modify the same header file concurrently.
+    unsafe_parallel = hook_args.fix or bool(names & FIX_NAMES)
 
     if hook_args.jobs > 1 and len(source_files) > 1 and not unsafe_parallel:
         retval, output = _exec_parallel_clang_tidy(

@@ -17,6 +17,19 @@ from pathlib import Path
 LOG = logging.getLogger(__name__)
 
 
+def file_argument(arg: str) -> str:
+    """Return a file name that a clang tool cannot read as an option.
+
+    pre-commit passes file names as they are, so a file named
+    ``--load=plugin.cpp`` would make clang-tidy load a plugin, and one named
+    ``--files=list.cpp`` would make clang-format format the files listed in it.
+    Such a name gets a ``./`` prefix.
+    """
+    if arg.startswith("-") and os.path.isfile(arg):
+        return f"./{arg}"
+    return arg
+
+
 @lru_cache(maxsize=4)
 def _get_pypi_versions(tool: str) -> tuple[str | None, list]:
     """Fetch (latest_version, [stable_versions_descending]) from PyPI JSON API.

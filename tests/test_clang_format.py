@@ -76,6 +76,24 @@ def test_run_clang_format_dry_run_unformatted(tmp_path):
     assert output.strip()  # Should report which file needs formatting
 
 
+def test_run_clang_format_short_dry_run_fails_unformatted(tmp_path):
+    """-n is short for --dry-run, so it also fails on unformatted files."""
+    test_file = tmp_path / "main.c"
+    test_file.write_bytes(Path("testing/main.c").read_bytes())
+    ret, output = run_clang_format(["-n", "--style=Google", str(test_file)])
+    assert ret == 1
+    assert "clang-format-violations" in output
+
+
+def test_run_clang_format_dry_run_on_a_file_that_is_not_utf8(tmp_path):
+    """clang-format prints source lines; Latin-1 bytes must not crash the hook."""
+    test_file = tmp_path / "latin1.c"
+    test_file.write_bytes(b"int  x = 1; /* caf\xe9 */\n")
+    ret, output = run_clang_format(["--dry-run", str(test_file)])
+    assert ret == 1
+    assert "caf\ufffd" in output
+
+
 @pytest.mark.benchmark
 def test_run_clang_format_dry_run_formatted(tmp_path):
     """Dry-run on already-formatted files returns success."""
@@ -200,6 +218,7 @@ def test_run_clang_format_formats_files_in_place(mock_clang_format):
         ["clang-format", "-i", "--style=Google", "a.cpp", "b.cpp"],
         capture_output=True,
         encoding="utf-8",
+        errors="replace",
         check=False,
     )
 
@@ -209,7 +228,7 @@ def test_run_clang_format_formats_files_in_place(mock_clang_format):
     (
         (
             ["--dry-run", "a.cpp"],
-            ["clang-format", "-i", "--dry-run", "a.cpp", "--Werror"],
+            ["clang-format", "-i", "--Werror", "--dry-run", "a.cpp"],
         ),
         (
             ["--dry-run", "--Werror", "a.cpp"],
@@ -227,6 +246,20 @@ def test_run_clang_format_adds_werror_only_for_dry_run(
     run_clang_format(args)
 
     assert mock_run.call_args.args[0] == expected_command
+
+
+def test_run_clang_format_does_not_read_a_file_name_as_an_option(
+    mock_clang_format, tmp_path, monkeypatch
+):
+    # A file named --files=list.cpp would make clang-format format the files
+    # listed in it, even outside the repository.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "--files=list.cpp").write_text("/etc/hosts\n")
+    _, mock_run = mock_clang_format
+
+    run_clang_format(["--files=list.cpp"])
+
+    assert mock_run.call_args.args[0] == ["clang-format", "-i", "./--files=list.cpp"]
 
 
 def test_run_clang_format_combines_stdout_and_stderr(mock_clang_format):

@@ -779,6 +779,26 @@ def test_fix_flag_is_inserted_before_source_files(mock_exec):
     )
 
 
+def test_jobs_with_fix_notes_forces_serial_execution(mock_exec):
+    run_clang_tidy(["--jobs=4", "-p", "./build", "--fix-notes", "a.cpp", "b.cpp"])
+
+    mock_exec.assert_called_once_with(
+        ["clang-tidy", "-quiet", "-p", "./build", "--fix-notes", "a.cpp", "b.cpp"]
+    )
+
+
+def test_file_named_like_an_option_is_not_read_as_one(tmp_path, monkeypatch, mock_exec):
+    # A file named --load=plugin.cpp would make clang-tidy load a plugin.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "--load=plugin.cpp").write_text("int x;\n")
+
+    run_clang_tidy(["--all-lines", "-p", "./build", "--load=plugin.cpp", "a.cpp"])
+
+    mock_exec.assert_called_once_with(
+        ["clang-tidy", "-quiet", "-p", "./build", "./--load=plugin.cpp", "a.cpp"]
+    )
+
+
 @pytest.mark.parametrize("existing", ["-fix", "-fix-errors"])
 def test_fix_flag_does_not_add_a_second_fix_option(mock_exec, existing):
     run_clang_tidy(["--fix", "-p", "./build", existing, "a.cpp"])
