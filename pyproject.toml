@@ -3,7 +3,7 @@ requires = ["setuptools>=45", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 name = "cpp_linter_hooks"
 description = "Automatically formats and lints C/C++ code using clang-format and clang-tidy"
 readme = "README.md"
@@ -22,7 +22,6 @@ classifiers = [
     "Operating System :: Microsoft :: Windows",
     "Operating System :: POSIX :: Linux",
     "Operating System :: MacOS",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
@@ -34,7 +33,7 @@ dependencies = [
     # Unpinned, so a new hook environment gets the latest clang-format at install
     # time; additional_dependencies can pin it, and --version runs another version.
     "clang-format",
-    "filelock>=3.16", # One hook process at a time installs clang tools
+    "filelock>=4.2.1", # One hook process at a time installs clang tools
     "pip>=26.1", # Required to install other clang-format and clang-tidy versions
 ]
 dynamic = ["version"]
