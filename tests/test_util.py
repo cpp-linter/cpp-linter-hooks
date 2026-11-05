@@ -32,6 +32,7 @@ from cpp_linter_hooks.util import (
     _versions_dir,
     resolve_install,
     resolve_install_with_diagnostics,
+    turns_on,
 )
 
 # ── sample PyPI responses for consistent test data ──────────────────────
@@ -1230,3 +1231,22 @@ def test_resolve_install_versions_coexist_without_pypi():
         assert resolve_install("clang-format", "18.1.8") == v18
     pypi.assert_not_called()
     install.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    ("args", "expected"),
+    (
+        (["--dry-run"], True),
+        (["-n", "a.cpp"], True),
+        (["--dry-run=true"], True),
+        (["--dry-run=TRUE"], True),
+        (["--dry-run=1"], True),
+        (["--dry-run="], True),
+        (["--dry-run=false"], False),
+        (["--dry-run=0"], False),
+        (["--dry-run-x"], False),
+        (["a.cpp"], False),
+    ),
+)
+def test_turns_on(args, expected):
+    assert turns_on(args, ("-n", "--dry-run")) is expected

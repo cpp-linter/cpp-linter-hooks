@@ -15,7 +15,7 @@ from cpp_linter_hooks.changed_lines import (
     diff_range,
     normalize,
 )
-from cpp_linter_hooks.util import resolve_install_with_diagnostics
+from cpp_linter_hooks.util import resolve_install_with_diagnostics, turns_on
 
 COMPILE_DB_SEARCH_DIRS = ["build", "out", "cmake-build-debug", "_build", "builddir"]
 # Searched after COMPILE_DB_SEARCH_DIRS. When a pattern matches several
@@ -749,14 +749,16 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
     if not hook_args.verbose and not _has_quiet_option(clang_tidy_args):
         clang_tidy_args.insert(0, "-quiet")
 
-    if hook_args.fix and not _has_option(clang_tidy_args, *FIX_OPTIONS):
+    if hook_args.fix and not turns_on(clang_tidy_args, FIX_OPTIONS):
         clang_tidy_args.append("-fix")
 
     # Parallel execution is unsafe when arguments include flags that write to a
     # shared output path (e.g., --export-fixes fixes.yaml) or that apply in-place
     # fixes (-fix, -fix-errors, -fix-notes), since multiple clang-tidy processes
     # may attempt to modify the same header file concurrently.
-    unsafe_parallel = _has_option(clang_tidy_args, *FIX_OPTIONS, *EXPORT_FIXES_OPTIONS)
+    unsafe_parallel = turns_on(clang_tidy_args, FIX_OPTIONS) or _has_option(
+        clang_tidy_args, *EXPORT_FIXES_OPTIONS
+    )
 
     if hook_args.jobs > 1 and len(source_files) > 1 and not unsafe_parallel:
         retval, output = _exec_parallel_clang_tidy(

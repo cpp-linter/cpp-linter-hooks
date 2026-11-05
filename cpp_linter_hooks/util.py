@@ -17,6 +17,19 @@ from pathlib import Path
 LOG = logging.getLogger(__name__)
 
 
+def turns_on(args: list[str], names: tuple[str, ...]) -> bool:
+    """Return whether args turn on a boolean option, in any of its spellings.
+
+    LLVM tools take ``-n``, ``--dry-run``, ``--dry-run=true`` or ``--dry-run=1``
+    (older versions also an empty value), and ``=false`` or ``=0`` turns it off.
+    """
+    for arg in args:
+        name, _, value = arg.partition("=")
+        if name in names and value.lower() in ("", "true", "1"):
+            return True
+    return False
+
+
 @lru_cache(maxsize=4)
 def _get_pypi_versions(tool: str) -> tuple[str | None, list]:
     """Fetch (latest_version, [stable_versions_descending]) from PyPI JSON API.

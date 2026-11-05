@@ -828,6 +828,15 @@ def test_fix_flag_does_not_add_a_second_fix_option(mock_exec, existing):
     )
 
 
+@pytest.mark.parametrize("disabled", ["-fix-errors=false", "--fix-notes=0"])
+def test_fix_flag_is_added_when_a_fix_option_is_turned_off(mock_exec, disabled):
+    run_clang_tidy(["--fix", "-p", "./build", disabled, "a.cpp"])
+
+    mock_exec.assert_called_once_with(
+        ["clang-tidy", "-quiet", "-p", "./build", disabled, "-fix", "a.cpp"]
+    )
+
+
 @pytest.mark.parametrize("db_dir", COMPILE_DB_SEARCH_DIRS)
 def test_compile_commands_auto_detect_each_search_dir(
     tmp_path, monkeypatch, mock_exec, db_dir
@@ -1428,6 +1437,27 @@ def test_real_tool_keeps_the_lines_of_files_with_similar_names(braces_repo, tmp_
 
     assert ret == 1
     assert "data.cpp:2:" in output
+
+
+def test_real_tool_checks_the_changed_lines_of_a_file_named_like_an_option(
+    braces_repo, tmp_path
+):
+    # Without the ./ prefix, clang-tidy would read "-b.cpp" as an option.
+    dashed = tmp_path / "-b.cpp"
+    dashed.write_text("int g(int x) {\n  if (x)\n    return 1;\n  return 0;\n}\n")
+    _git(tmp_path, "add", "--", "-b.cpp")
+    _git(tmp_path, "commit", "-q", "-m", "dashed")
+    dashed.write_text(
+        "int g(int x) {\n  if (x)\n    return 1;\n  if (x > 1)\n    return 2;\n"
+        "  return 0;\n}\n"
+    )
+    _git(tmp_path, "add", "--", "-b.cpp")
+
+    ret, output = run_clang_tidy(CHECK_BRACES + ["-b.cpp"])
+
+    assert ret == 1
+    assert "-b.cpp:4:" in output
+    assert "-b.cpp:2:" not in output
 
 
 # --- what happens without a compilation database ---

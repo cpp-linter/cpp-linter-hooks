@@ -228,7 +228,7 @@ def test_run_clang_format_formats_files_in_place(mock_clang_format):
     (
         (
             ["--dry-run", "a.cpp"],
-            ["clang-format", "-i", "--dry-run", "a.cpp", "--Werror"],
+            ["clang-format", "-i", "--Werror", "--dry-run", "a.cpp"],
         ),
         (
             ["--dry-run", "--Werror", "a.cpp"],
@@ -237,14 +237,24 @@ def test_run_clang_format_formats_files_in_place(mock_clang_format):
         (["--Werror", "a.cpp"], ["clang-format", "-i", "--Werror", "a.cpp"]),
         (["a.cpp"], ["clang-format", "-i", "a.cpp"]),
         # -n is clang-format's short form of --dry-run.
-        (["-n", "a.cpp"], ["clang-format", "-i", "-n", "a.cpp", "--Werror"]),
+        (["-n", "a.cpp"], ["clang-format", "-i", "--Werror", "-n", "a.cpp"]),
         (
             ["--dry-run=true", "a.cpp"],
-            ["clang-format", "-i", "--dry-run=true", "a.cpp", "--Werror"],
+            ["clang-format", "-i", "--Werror", "--dry-run=true", "a.cpp"],
         ),
         (
             ["--dry-run=false", "a.cpp"],
             ["clang-format", "-i", "--dry-run=false", "a.cpp"],
+        ),
+        # Older clang-format versions read an empty value as true.
+        (
+            ["--dry-run=", "a.cpp"],
+            ["clang-format", "-i", "--Werror", "--dry-run=", "a.cpp"],
+        ),
+        # Everything after "--" is a file name, so --Werror goes before it.
+        (
+            ["-n", "--", "a.cpp"],
+            ["clang-format", "-i", "--Werror", "-n", "--", "a.cpp"],
         ),
         (
             ["-n", "--Werror=false", "a.cpp"],

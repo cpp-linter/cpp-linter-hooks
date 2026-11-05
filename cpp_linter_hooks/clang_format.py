@@ -4,7 +4,7 @@ import subprocess
 import sys
 from argparse import ArgumentParser
 
-from cpp_linter_hooks.util import resolve_install_with_diagnostics
+from cpp_linter_hooks.util import resolve_install_with_diagnostics, turns_on
 
 parser = ArgumentParser()
 parser.add_argument(
@@ -24,22 +24,6 @@ DRY_RUN_OPTIONS = ("-n", "-dry-run", "--dry-run")
 WERROR_OPTIONS = ("-Werror", "--Werror")
 
 
-def _option_name(arg: str) -> str:
-    """Return the option name of an argument such as ``--dry-run=true``."""
-    return arg.partition("=")[0]
-
-
-def _is_dry_run(args: list[str]) -> bool:
-    """Return whether args turn on --dry-run, in any spelling, e.g. ``-n``."""
-    for arg in args:
-        name, has_value, value = arg.partition("=")
-        if name in DRY_RUN_OPTIONS and (
-            not has_value or value.lower() in ("true", "1")
-        ):
-            return True
-    return False
-
-
 def run_clang_format(args=None) -> tuple[int, str]:
     """Run clang-format with hook-specific arguments removed."""
     hook_args, other_args = parser.parse_known_args(args)
@@ -55,15 +39,16 @@ def run_clang_format(args=None) -> tuple[int, str]:
     if hook_args.verbose:
         command.append("--verbose")
 
-    command.extend(other_args)
-
     # Auto-inject --Werror when --dry-run (or -n) is used, so clang-format returns
     # non-zero when formatting changes are needed (mirrors-clang-format behavior).
-    # A --Werror the user set, even --Werror=false, is kept as it is.
-    if _is_dry_run(other_args) and not any(
-        _option_name(arg) in WERROR_OPTIONS for arg in other_args
+    # A --Werror the user set, even --Werror=false, is kept as it is. It goes
+    # before the user's arguments, which may end the options with "--".
+    if turns_on(other_args, DRY_RUN_OPTIONS) and not any(
+        arg.partition("=")[0] in WERROR_OPTIONS for arg in other_args
     ):
         command.append("--Werror")
+
+    command.extend(other_args)
 
     try:
         # Run the clang-format command with captured output
