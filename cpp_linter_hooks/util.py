@@ -141,9 +141,16 @@ def _find_versioned_install(tool: str, version: str) -> tuple[Path, str] | None:
         names = os.listdir(base)
     except OSError:
         return None
+    prefix = f"{tool}-"
     found = []
     for name in names:
-        if not name.startswith(f"{tool}-"):
+        # Each directory is named after the --version it was installed for,
+        # so only directories for a related version need to be read.
+        requested = name[len(prefix) :]
+        if not name.startswith(prefix) or not (
+            _version_satisfies(requested, version)
+            or _version_satisfies(version, requested)
+        ):
             continue
         target = os.path.join(base, name)
         installed = _wheel_version(tool, [target])
