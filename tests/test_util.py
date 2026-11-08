@@ -67,7 +67,11 @@ def test_install_tool_without_version_installs_into_environment():
 
 @pytest.mark.parametrize(
     ("version", "requirement"),
-    [("21", "clang-tidy==21.*"), ("21.1.6", "clang-tidy==21.1.6.*")],
+    [
+        ("21", "clang-tidy==21.*"),
+        ("21.1", "clang-tidy==21.1.*"),
+        ("19.1.0", "clang-tidy==19.1.0"),
+    ],
 )
 def test_install_tool_lets_pip_pick_the_version(version, requirement):
     """pip resolves the version, so PIP_INDEX_URL and pip.conf mirrors work."""
@@ -164,6 +168,19 @@ def test_resolve_install_is_quiet_by_default(capsys):
         resolve_install_with_diagnostics("clang-tidy", None)
 
     assert capsys.readouterr().err == ""
+
+
+@pytest.mark.parametrize("version", ["v21", "21/../../victim", "21.*", "latest", ""])
+def test_resolve_install_rejects_invalid_version(version):
+    with patch("cpp_linter_hooks.util._install_tool") as mock:
+        path, error = resolve_install_with_diagnostics("clang-tidy", version)
+
+    assert path is None
+    assert error == (
+        f"Invalid clang-tidy --version '{version}': use a version number such as "
+        "21 or 21.1.8."
+    )
+    mock.assert_not_called()
 
 
 def test_resolve_install_reports_missing_executable():

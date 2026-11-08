@@ -216,15 +216,18 @@ def _install_tool(tool: str, version: str | None) -> str | None:
     pip picks the version, so it uses the package index from the user's pip
     configuration (``PIP_INDEX_URL``, ``pip.conf``). Without *version* the
     newest wheel goes into the hook environment. ``--version=21`` installs the
-    newest 21.x wheel (``clang-tidy==21.*``) into its own directory under
-    :func:`_versions_dir`.
+    newest 21.x wheel (``clang-tidy==21.*``), and ``--version=21.1.8`` that
+    release, into its own directory under :func:`_versions_dir`.
     """
     command = [sys.executable, "-m", "pip", "install", "--disable-pip-version-check"]
     if version is None:
         requirement = tool
         command.append(requirement)
     else:
-        requirement = f"{tool}=={version}.*"
+        # A full release such as 21.1.8 is installed exactly; a shorter one
+        # such as 21 picks the newest matching release.
+        exact = version.count(".") >= 2
+        requirement = f"{tool}=={version}" if exact else f"{tool}=={version}.*"
         target = os.path.join(_versions_dir(), f"{tool}-{version}")
         # Remove what an interrupted install left behind; pip --target does
         # not replace an existing directory.
@@ -253,6 +256,12 @@ def resolve_install_with_diagnostics(
     Installing runs under :func:`_install_lock`, so when several hook processes
     start at once, one installs and the others wait and then use its wheel.
     """
+    # The version also names a directory that is deleted before installing.
+    if version is not None and not re.fullmatch(r"\d+(\.\d+)*", version):
+        return None, (
+            f"Invalid {tool} --version '{version}': use a version number such as "
+            "21 or 21.1.8."
+        )
     installed = _find_installed(tool, version)
     action = "Using installed"
     if installed is None:

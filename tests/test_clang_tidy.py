@@ -1673,6 +1673,8 @@ def test_source_files_go_before_compiler_arguments_in_every_command(
 
     commands = [call.args[0] for call in mock_exec.call_args_list]
     assert len(commands) == 4
+    for run in (commands[:2], commands[2:]):
+        assert sorted(command[-3] for command in run) == ["a.cpp", "b.cpp"]
     for command in commands:
         assert command[-4][:14] == "--line-filter="
         assert command[-3] in ("a.cpp", "b.cpp")
