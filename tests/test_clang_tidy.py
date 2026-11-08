@@ -1611,3 +1611,69 @@ def test_set_macos_sdkroot_without_sdk(monkeypatch, outcome):
         _set_macos_sdkroot(verbose=True)
 
     assert "SDKROOT" not in os.environ
+
+
+def test_split_source_files_keeps_files_with_other_suffixes(tmp_path, monkeypatch):
+    # types_or or files can add suffixes the hook does not know; such a file
+    # must not hide the files before it.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "x.metal").write_text("")
+
+    assert _split_source_files(["-quiet", "a.cpp", "x.metal", "b.cpp"]) == (
+        ["-quiet"],
+        ["a.cpp", "x.metal", "b.cpp"],
+    )
+
+
+def test_split_source_files_keeps_an_option_value_that_is_a_file(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "fixes.yaml").write_text("")
+
+    assert _split_source_files(["--export-fixes", "fixes.yaml", "a.cpp"]) == (
+        ["--export-fixes", "fixes.yaml"],
+        ["a.cpp"],
+    )
+
+
+def test_objective_c_files_are_checked_on_changed_lines(monkeypatch, mock_exec):
+    monkeypatch.setattr(clang_tidy.os, "sep", "/")
+    monkeypatch.setattr(
+        clang_tidy, "changed_lines", lambda paths: {f: [[1, 1]] for f in paths}
+    )
+
+    run_clang_tidy(["-p", "./build", "a.cpp", "x.m", "b.cpp"])
+
+    command = mock_exec.call_args.args[0]
+    assert command[-3:] == ["a.cpp", "x.m", "b.cpp"]
+    names = {entry["name"] for entry in json.loads(command[-4].split("=", 1)[1])}
+    assert names == {"a.cpp", "x.m", "b.cpp"}
+
+
+def test_source_files_go_before_compiler_arguments(tmp_path, monkeypatch, mock_exec):
+    # pre-commit appends the files after args: ["--", "-std=c++17"].
+    monkeypatch.chdir(tmp_path)
+    run_clang_tidy(["--fix", "--all-lines", "--", "-std=c++17", "a.cpp", "b.cpp"])
+
+    mock_exec.assert_called_once_with(
+        ["clang-tidy", "-quiet", "-fix", "a.cpp", "b.cpp", "--", "-std=c++17"]
+    )
+
+
+def test_source_files_go_before_compiler_arguments_in_every_command(
+    tmp_path, monkeypatch, mock_exec
+):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        clang_tidy, "changed_lines", lambda paths: {f: [[1, 1]] for f in paths}
+    )
+    monkeypatch.setattr(clang_tidy, "COMMAND_LINE_BUDGET", 0)
+
+    run_clang_tidy(["--", "-std=c++17", "a.cpp", "b.cpp"])
+    run_clang_tidy(["--jobs=2", "--", "-std=c++17", "a.cpp", "b.cpp"])
+
+    commands = [call.args[0] for call in mock_exec.call_args_list]
+    assert len(commands) == 4
+    for command in commands:
+        assert command[-4][:14] == "--line-filter="
+        assert command[-3] in ("a.cpp", "b.cpp")
+        assert command[-2:] == ["--", "-std=c++17"]

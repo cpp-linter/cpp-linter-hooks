@@ -232,7 +232,8 @@ to clang-tidy automatically — no configuration needed for most projects. It lo
 `build-*/`, `build/*/` and `out/build/*/` (CMake presets, Visual Studio), where the most recently
 written one wins. Without `-p`, clang-tidy also finds a `compile_commands.json` or
 `compile_flags.txt` next to each file or in its parent directories, so a database in the
-repository root works too.
+repository root works too. With only a `compile_flags.txt`, clang reads `.h` files as C, so a C++
+project adds `-xc++` to it; otherwise a flag such as `-std=c++17` fails on every header.
 
 ```yaml
 repos:
@@ -258,8 +259,8 @@ problems in your code, so the hook:
 - **fails in CI**, when the `CI` environment variable is set (GitHub Actions, GitLab CI and most CI
   services set it), so a broken setup does not pass unnoticed.
 
-The hook runs clang-tidy anyway when `args` tell it how to compile: `-p`, `--extra-arg` or
-`--extra-arg-before`.
+The hook runs clang-tidy anyway when `args` tell it how to compile: `-p`, `--extra-arg`,
+`--extra-arg-before`, or `--` followed by the compiler flags, as in `args: ["--", "-std=c++17"]`.
 
 To disable auto-detection and always run clang-tidy without a database (e.g. in a monorepo where
 auto-detect might pick the wrong database, or for code that needs no compiler flags):
