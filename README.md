@@ -62,18 +62,20 @@ Choose the clang tool version with `--version`:
   clang-tidy wheels are released separately from clang-format wheels and skip some releases, so
   give clang-tidy the major version.
 - clang-format wheels cover LLVM 6 to 23 and clang-tidy wheels LLVM 13 to 23. For a version without
-  a wheel, the hook fails and lists some of the versions that exist.
+  a wheel, the hook fails and shows pip's list of the versions that exist.
 - Each version is installed once, the first time the hook runs with it, and later runs use it
-  without contacting pypi.org. pre-commit shares the hook between all your projects that use the
+  without network access. pre-commit shares the hook between all your projects that use the
   same `rev`, and projects that ask for different versions each keep their own copy.
+- pip installs the wheels, so a package index set in your pip configuration (`PIP_INDEX_URL`,
+  `pip.conf`) is used, for example a company mirror.
 
 #### Without network access
 
 clang-format without `--version` is installed together with the hook and runs offline. clang-tidy
 without `--version`, and any `--version` that is not installed yet, is installed the first time
 the hook runs, which needs network access. On [pre-commit.ci](https://pre-commit.ci/), which runs
-hooks without network access, or where pypi.org is blocked, pin the version with pre-commit's own
-`additional_dependencies` instead of `--version`. pre-commit installs it together with the hook, through the package index it uses for
+hooks without network access, pin the version with pre-commit's own `additional_dependencies`
+instead of `--version`. pre-commit installs it together with the hook, through the package index it uses for
 the hook itself:
 
 ```yaml
@@ -232,7 +234,8 @@ to clang-tidy automatically — no configuration needed for most projects. It lo
 `build-*/`, `build/*/` and `out/build/*/` (CMake presets, Visual Studio), where the most recently
 written one wins. Without `-p`, clang-tidy also finds a `compile_commands.json` or
 `compile_flags.txt` next to each file or in its parent directories, so a database in the
-repository root works too.
+repository root works too. With only a `compile_flags.txt`, clang reads `.h` files as C, so a C++
+project adds `-xc++` to it; otherwise a flag such as `-std=c++17` fails on every header.
 
 ```yaml
 repos:
@@ -258,8 +261,8 @@ problems in your code, so the hook:
 - **fails in CI**, when the `CI` environment variable is set (GitHub Actions, GitLab CI and most CI
   services set it), so a broken setup does not pass unnoticed.
 
-The hook runs clang-tidy anyway when `args` tell it how to compile: `-p`, `--extra-arg` or
-`--extra-arg-before`.
+The hook runs clang-tidy anyway when `args` tell it how to compile: `-p`, `--extra-arg`,
+`--extra-arg-before`, or `--` followed by the compiler flags, as in `args: ["--", "-std=c++17"]`.
 
 To disable auto-detection and always run clang-tidy without a database (e.g. in a monorepo where
 auto-detect might pick the wrong database, or for code that needs no compiler flags):

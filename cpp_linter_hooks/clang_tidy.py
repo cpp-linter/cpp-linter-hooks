@@ -49,6 +49,7 @@ SOURCE_FILE_SUFFIXES = {
     ".ipp",
     ".inl",
     ".ixx",
+    ".m",
     ".mm",
     ".tpp",
     ".txx",
@@ -595,15 +596,23 @@ def _looks_like_source_file(path: str) -> bool:
 
 
 def _split_source_files(args: list[str]) -> tuple[list[str], list[str]]:
-    """Split clang-tidy options from trailing source file arguments."""
+    """Split clang-tidy options from the source files pre-commit appends.
+
+    Going back from the end, an argument is a source file when it has a C or
+    C++ suffix, or when it is an existing file that does not follow an option,
+    which could take it as its value (``--export-fixes fixes.yaml``). The
+    second case covers suffixes added with ``types_or`` or ``files``.
+    """
     split_idx = len(args)
-    source_files: list[str] = []
-    for idx in range(len(args) - 1, -1, -1):
-        if not _looks_like_source_file(args[idx]):
+    while split_idx > 0:
+        arg = args[split_idx - 1]
+        previous = args[split_idx - 2] if split_idx > 1 else ""
+        if not _looks_like_source_file(arg) and (
+            previous.startswith("-") or not os.path.isfile(arg)
+        ):
             break
-        source_files.append(args[idx])
-        split_idx = idx
-    return args[:split_idx], list(reversed(source_files))
+        split_idx -= 1
+    return args[:split_idx], args[split_idx:]
 
 
 def _combine_outputs(results: list[tuple[int, str]]) -> str:
@@ -621,16 +630,23 @@ def _exec_serial_clang_tidy(
     command_prefix: list[str],
     source_files: list[str],
     lines: dict[str, LineRanges] | None,
+    compiler_args: tuple[str, ...] = (),
 ) -> tuple[int, str]:
-    """Run clang-tidy over all source files, in one command when possible."""
+    """Run clang-tidy over all source files, in one command when possible.
+
+    *compiler_args* is ``--`` and the compiler arguments after it, which go
+    after the source files.
+    """
     if lines is None:
-        return _exec_clang_tidy(command_prefix + source_files)
+        return _exec_clang_tidy([*command_prefix, *source_files, *compiler_args])
     # Several commands only for very large commits; they run one after another,
     # so -fix stays safe.
     return _combine_results(
         [
-            _exec_clang_tidy(command_prefix + batch)
-            for batch in _line_filter_batches(command_prefix, source_files, lines)
+            _exec_clang_tidy([*command_prefix, *batch, *compiler_args])
+            for batch in _line_filter_batches(
+                [*command_prefix, *compiler_args], source_files, lines
+            )
         ]
     )
 
@@ -640,6 +656,7 @@ def _exec_parallel_clang_tidy(
     source_files: list[str],
     jobs: int,
     lines: dict[str, LineRanges] | None = None,
+    compiler_args: tuple[str, ...] = (),
 ) -> tuple[int, str]:
     """Run clang-tidy over source files in parallel and combine the results."""
 
@@ -650,7 +667,9 @@ def _exec_parallel_clang_tidy(
             if lines is None
             else [_line_filter_option({source_file: lines[source_file]})]
         )
-        return _exec_clang_tidy(command_prefix + line_filter + [source_file])
+        return _exec_clang_tidy(
+            [*command_prefix, *line_filter, source_file, *compiler_args]
+        )
 
     with ThreadPoolExecutor(max_workers=min(jobs, len(source_files))) as executor:
         results = list(executor.map(run_file, source_files))
@@ -669,6 +688,13 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
     clang_tidy_args, source_files = _split_source_files(other_args)
     source_files = [file_argument(f) for f in source_files]
     clang_tidy_args, notes = _repair_check_args(clang_tidy_args)
+    # clang-tidy reads everything after "--" as compiler arguments, so the
+    # source files and the hook's own options go before it.
+    compiler_args: tuple[str, ...] = ()
+    if "--" in clang_tidy_args:
+        split_idx = clang_tidy_args.index("--")
+        compiler_args = tuple(clang_tidy_args[split_idx:])
+        clang_tidy_args = clang_tidy_args[:split_idx]
 
     lines = None
     if not hook_args.all_lines and not _has_option(
@@ -695,7 +721,7 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
         clang_tidy_args = ["-p", compile_db_path] + clang_tidy_args
     elif (
         not hook_args.no_compile_commands
-        and not _gives_compile_flags(clang_tidy_args)
+        and not _gives_compile_flags([*clang_tidy_args, *compiler_args])
         and not _has_compilation_database(source_files)
     ):
         retval, message = _missing_compile_db_result()
@@ -733,11 +759,15 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
 
     if hook_args.jobs > 1 and len(source_files) > 1 and not unsafe_parallel:
         retval, output = _exec_parallel_clang_tidy(
-            [executable] + clang_tidy_args, source_files, hook_args.jobs, lines
+            [executable] + clang_tidy_args,
+            source_files,
+            hook_args.jobs,
+            lines,
+            compiler_args,
         )
     else:
         retval, output = _exec_serial_clang_tidy(
-            [executable] + clang_tidy_args, source_files, lines
+            [executable] + clang_tidy_args, source_files, lines, compiler_args
         )
 
     if NO_CHECKS_ERROR in output:

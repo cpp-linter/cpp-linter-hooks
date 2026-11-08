@@ -1,7 +1,6 @@
-"""Shared helpers for resolving and installing clang tool wheels."""
+"""Shared helpers for finding and installing clang tool wheels."""
 
 import contextlib
-import json
 import logging
 import os
 import re
@@ -9,8 +8,6 @@ import shutil
 import subprocess
 import sys
 import sysconfig
-import urllib.error
-import urllib.request
 from functools import lru_cache
 from pathlib import Path
 
@@ -30,139 +27,6 @@ def file_argument(arg: str) -> str:
     return arg
 
 
-@lru_cache(maxsize=4)
-def _get_pypi_versions(tool: str) -> tuple[str | None, list]:
-    """Fetch (latest_version, [stable_versions_descending]) from PyPI JSON API.
-
-    Results are cached per tool name so repeated calls within the same
-    process reuse the last HTTP response.
-    """
-    try:
-        url = f"https://pypi.org/pypi/{tool}/json"
-        with urllib.request.urlopen(url, timeout=10) as response:
-            data = json.loads(response.read())
-    except (OSError, json.JSONDecodeError) as exc:
-        LOG.warning("Failed to fetch versions for %s from PyPI: %s", tool, exc)
-        return None, []
-
-    all_versions = list(data["releases"].keys())
-
-    # Filter out pre-release versions
-    pre_release_pattern = re.compile(
-        r".*(alpha|beta|rc|dev|a\d+|b\d+).*", re.IGNORECASE
-    )
-    stable = [v for v in all_versions if not pre_release_pattern.match(v)]
-
-    if not stable:
-        LOG.warning("No stable versions found for %s on PyPI", tool)
-        return None, []
-
-    # Sort ascending by version tuple
-    stable.sort(key=lambda x: tuple(map(int, x.split("."))))
-
-    latest = stable[-1]
-    # Return descending for prefix matching (newest first)
-    return latest, list(reversed(stable))
-
-
-def _resolve_version_from_pypi(
-    tool: str, user_input: str | None
-) -> tuple[str | None, str | None]:
-    """Resolve a version dynamically from PyPI.
-
-    Returns (resolved_version, error_message).  The error_message is
-    suitable for displaying directly to the end user.
-
-    When PyPI is unreachable and no explicit version was requested,
-    falls back to whatever version is already installed on the host
-    so that pre-installed tools keep working offline.
-    """
-    latest, versions = _get_pypi_versions(tool)
-
-    if not versions:
-        if user_input is None:
-            # PyPI is unreachable, but the user didn't ask for a specific
-            # version – try the locally installed tool as a fallback.
-            installed = _detect_installed_version(tool)
-            if installed:
-                LOG.info(
-                    "PyPI unreachable; using locally installed %s %s",
-                    tool,
-                    installed,
-                )
-                return installed, None
-        return (
-            None,
-            (
-                f"Could not find any stable versions of {tool} on PyPI. "
-                "Check your network connection."
-            ),
-        )
-
-    if user_input is None:
-        return latest, None
-
-    # Exact match
-    if user_input in versions:
-        return user_input, None
-
-    # Prefix match on whole version components (e.g. "20" → "20.1.8", while
-    # "2" must not match "20.1.8").  Versions are newest-first, so the first
-    # matching entry is the latest for that prefix.
-    matched = [v for v in versions if v.startswith(f"{user_input}.")]
-    if matched:
-        return matched[0], None
-
-    # No match – help the user
-    sample = ", ".join(versions[:15])
-    return (
-        None,
-        (
-            f"Unsupported {tool} version '{user_input}'.\n"
-            f"Latest stable version: {latest}\n"
-            f"Available versions (sample): {sample}\n"
-            f"Run `pip index versions {tool}` to see all available versions."
-        ),
-    )
-
-
-def _detect_installed_version(tool: str) -> str | None:
-    """Return the version of *tool* already on PATH, or None.
-
-    Used as a fallback when PyPI is unreachable and no explicit version
-    was requested.  Extracts the version string from ``<tool> --version``
-    output (e.g. ``"clang-format version 18.1.8"`` → ``"18.1.8"``).
-    """
-    existing = shutil.which(tool)
-    if not existing:
-        return None
-    try:
-        result = subprocess.run(
-            [existing, "--version"],
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return None
-    matches = re.findall(r"\d+\.\d+\.\d+(?:\.\d+)?", result.stdout)
-    return matches[0] if matches else None
-
-
-def _is_version_installed(tool: str, version: str) -> Path | None:
-    """Return the tool path if the installed version matches, otherwise None."""
-    existing = shutil.which(tool)
-    if not existing:
-        return None
-    result = subprocess.run(
-        [existing, "--version"], capture_output=True, text=True, check=False
-    )
-    if version in result.stdout:
-        return Path(existing)
-    return None
-
-
 @lru_cache(maxsize=1)
 def _env_paths() -> dict[str, str]:
     """Return this Python environment's install paths, which never change at runtime."""
@@ -174,21 +38,17 @@ def _dist_name(tool: str) -> str:
     return re.sub(r"[-_.]+", "_", tool).lower()
 
 
-def _installed_wheel_version(tool: str) -> str | None:
-    """Return the version of the *tool* wheel installed in this Python environment.
+def _wheel_version(tool: str, site_dirs) -> str | None:
+    """Return the version of the *tool* wheel installed in one of *site_dirs*.
 
-    pre-commit installs ``additional_dependencies`` (and every wheel this hook
-    installed on an earlier run) into the hook's own environment. The version
-    comes from the wheel's ``<name>-<version>.dist-info`` directory name, which
-    needs neither the network nor a subprocess, and avoids parsing the large
-    METADATA file the way ``importlib.metadata.version`` does. A wheel counts
-    only once its ``RECORD`` file exists: pip writes it last, so a wheel another
-    hook process is still installing is not used half-written.
+    The version comes from the wheel's ``<name>-<version>.dist-info`` directory
+    name, which needs neither the network nor a subprocess, and avoids parsing
+    the large METADATA file the way ``importlib.metadata.version`` does. A wheel
+    counts only once its ``RECORD`` file exists: pip writes it last, so a wheel
+    another hook process is still installing is not used half-written.
     """
     prefix = f"{_dist_name(tool)}-"
     suffix = ".dist-info"
-    paths = _env_paths()
-    site_dirs = dict.fromkeys((paths["purelib"], paths["platlib"]))
     for site_dir in site_dirs:
         try:
             names = os.listdir(site_dir)
@@ -203,6 +63,17 @@ def _installed_wheel_version(tool: str) -> str | None:
             ):
                 return name[len(prefix) : -len(suffix)]
     return None
+
+
+def _installed_wheel_version(tool: str) -> str | None:
+    """Return the version of the *tool* wheel installed in this Python environment.
+
+    pre-commit installs ``additional_dependencies`` (and every wheel this hook
+    installed on an earlier run without ``--version``) into the hook's own
+    environment.
+    """
+    paths = _env_paths()
+    return _wheel_version(tool, dict.fromkeys((paths["purelib"], paths["platlib"])))
 
 
 def _version_satisfies(installed: str, requested: str | None) -> bool:
@@ -266,22 +137,27 @@ def _find_versioned_install(tool: str, version: str) -> tuple[Path, str] | None:
     behind by an interrupted ``pip install`` is never used.
     """
     base = _versions_dir()
-    prefix = f"{tool}-"
     try:
         names = os.listdir(base)
     except OSError:
         return None
+    prefix = f"{tool}-"
     found = []
     for name in names:
-        installed = name[len(prefix) :]
-        if not name.startswith(prefix) or not _version_satisfies(installed, version):
+        # Each directory is named after the --version it was installed for,
+        # so only directories for a related version need to be read.
+        requested = name[len(prefix) :]
+        if not name.startswith(prefix) or not (
+            _version_satisfies(requested, version)
+            or _version_satisfies(version, requested)
+        ):
             continue
         target = os.path.join(base, name)
-        record = os.path.join(
-            target, f"{_dist_name(tool)}-{installed}.dist-info", "RECORD"
-        )
+        installed = _wheel_version(tool, [target])
+        if installed is None or not _version_satisfies(installed, version):
+            continue
         executable = _versioned_executable(tool, target)
-        if os.path.isfile(record) and executable:
+        if executable:
             found.append((_version_key(installed), Path(executable), installed))
     if not found:
         return None
@@ -334,94 +210,83 @@ def _install_lock():
             lock.release()
 
 
-def _install_tool(tool: str, version: str, versioned: bool = False) -> Path | None:
-    """Install a tool using pip, logging output on failure.
+def _install_tool(tool: str, version: str | None) -> str | None:
+    """Install *tool* with pip and return an error message if that fails.
 
-    With *versioned*, the wheel goes to its own directory under
-    :func:`_versions_dir` instead of the hook environment.
+    pip picks the version, so it uses the package index from the user's pip
+    configuration (``PIP_INDEX_URL``, ``pip.conf``). Without *version* the
+    newest wheel goes into the hook environment. ``--version=21`` installs the
+    newest 21.x wheel (``clang-tidy==21.*``), and ``--version=21.1.8`` that
+    release, into its own directory under :func:`_versions_dir`.
     """
-    command = [sys.executable, "-m", "pip", "install", f"{tool}=={version}"]
-    if versioned:
+    command = [sys.executable, "-m", "pip", "install", "--disable-pip-version-check"]
+    if version is None:
+        requirement = tool
+        command.append(requirement)
+    else:
+        # A full release such as 21.1.8 is installed exactly; a shorter one
+        # such as 21 picks the newest matching release.
+        exact = version.count(".") >= 2
+        requirement = f"{tool}=={version}" if exact else f"{tool}=={version}.*"
         target = os.path.join(_versions_dir(), f"{tool}-{version}")
         # Remove what an interrupted install left behind; pip --target does
         # not replace an existing directory.
         shutil.rmtree(target, ignore_errors=True)
-        command += ["--target", target]
+        command += [requirement, "--target", target]
     result = subprocess.run(command, capture_output=True, text=True, check=False)
     if result.returncode == 0:
-        if versioned:
-            return _versioned_executable(tool, target)
-        return _env_executable(tool) or shutil.which(tool)
-    LOG.error("pip failed to install %s %s", tool, version)
-    LOG.error(result.stdout)
-    LOG.error(result.stderr)
-    return None
+        return None
+    return (
+        f"pip could not install {requirement}:\n{result.stderr.strip()}\n"
+        f"Run `pip index versions {tool}` to see the available versions."
+    )
 
 
 def resolve_install_with_diagnostics(
     tool: str, version: str | None, verbose: bool = False
 ) -> tuple[Path | None, str | None]:
-    """Resolve/install a tool, returning a user-facing error for bad versions.
+    """Find or install a tool, returning a user-facing error if that fails.
 
     A wheel already installed in the hook's environment is used as is when it
     matches ``--version`` (or when no version was given), so pinned
     ``additional_dependencies`` are kept and the hook works offline. So is an
-    earlier per-version install that matches ``--version``. Otherwise the
-    version is resolved dynamically from PyPI — no hardcoded list is
-    maintained in-tree — and a ``--version`` is installed into its own
-    directory.
+    earlier per-version install that matches ``--version``. Otherwise pip
+    installs it.
 
     Installing runs under :func:`_install_lock`, so when several hook processes
     start at once, one installs and the others wait and then use its wheel.
     """
-    installed_wheel = _find_installed(tool, version)
-    if installed_wheel is None:
+    # The version also names a directory that is deleted before installing.
+    if version is not None and not re.fullmatch(r"\d+(\.\d+)*", version):
+        return None, (
+            f"Invalid {tool} --version '{version}': use a version number such as "
+            "21 or 21.1.8."
+        )
+    installed = _find_installed(tool, version)
+    action = "Using installed"
+    if installed is None:
         with _install_lock():
             # Another hook process may have installed it while this one waited.
-            installed_wheel = _find_installed(tool, version)
-            if installed_wheel is None:
-                return _resolve_and_install(tool, version, verbose)
-    path, installed = installed_wheel
+            installed = _find_installed(tool, version)
+            if installed is None:
+                error = _install_tool(tool, version)
+                if error is not None:
+                    return None, error
+                installed = _find_installed(tool, version)
+                if installed is None:
+                    return None, f"pip installed {tool}, but its executable is missing."
+                action = "Installed"
+    path, installed_version = installed
     if verbose:
         print(
-            f"Using installed {tool} Python wheel version {installed}",
+            f"{action} {tool} Python wheel version {installed_version}",
             file=sys.stderr,
         )
     return path, None
 
 
-def _resolve_and_install(
-    tool: str, version: str | None, verbose: bool
-) -> tuple[Path | None, str | None]:
-    """Resolve *version* on PyPI and install it, unless it is already on PATH."""
-    user_version, error = _resolve_version_from_pypi(tool, version)
-    if error is not None:
-        return None, error
-
-    if verbose:
-        if version is None:
-            print(
-                f"Using latest {tool} Python wheel version {user_version}",
-                file=sys.stderr,
-            )
-        elif version == user_version:
-            print(f"Using {tool} Python wheel version {user_version}", file=sys.stderr)
-        else:
-            print(
-                f"Resolved {tool} --version={version} to Python wheel version "
-                f"{user_version}",
-                file=sys.stderr,
-            )
-
-    return (
-        _is_version_installed(tool, user_version)
-        or _install_tool(tool, user_version, versioned=version is not None),
-        None,
-    )
-
-
 def resolve_install(tool: str, version: str | None) -> Path | None:
-    """Resolve/install a tool, logging bad-version diagnostics."""
+    """Find or install a tool, logging the error if that fails."""
     path, error = resolve_install_with_diagnostics(tool, version)
     if error is not None:
         LOG.error(error)
