@@ -15,7 +15,11 @@ from cpp_linter_hooks.changed_lines import (
     diff_range,
     normalize,
 )
-from cpp_linter_hooks.util import file_argument, resolve_install_with_diagnostics
+from cpp_linter_hooks.util import (
+    file_argument,
+    resolve_install_with_diagnostics,
+    split_source_files,
+)
 
 COMPILE_DB_SEARCH_DIRS = ["build", "out", "cmake-build-debug", "_build", "builddir"]
 # Searched after COMPILE_DB_SEARCH_DIRS. When a pattern matches several
@@ -27,33 +31,6 @@ COMPILATION_DATABASE_FILES = (COMPILE_COMMANDS_JSON, "compile_flags.txt")
 # Windows limits a whole command line to 32,767 characters and Linux limits one
 # argument to 128 KiB. Commands that carry a --line-filter stay below this.
 COMMAND_LINE_BUDGET = 30_000 if os.name == "nt" else 100_000
-SOURCE_FILE_SUFFIXES = {
-    ".c",
-    ".cc",
-    ".ccm",
-    ".cp",
-    ".cpp",
-    ".cppm",
-    ".cxx",
-    ".cxxm",
-    ".c++",
-    ".c++m",
-    ".cu",
-    ".cuh",
-    ".h",
-    ".hh",
-    ".hpp",
-    ".hxx",
-    ".h++",
-    ".ino",
-    ".ipp",
-    ".inl",
-    ".ixx",
-    ".m",
-    ".mm",
-    ".tpp",
-    ".txx",
-}
 COMPILE_COMMANDS_HINT = """\
 Generate compile_commands.json with one of:
   CMake: cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
@@ -590,31 +567,6 @@ def _append_notes(output: str, notes: list[str]) -> str:
     return output.rstrip("\n") + separator + "\n".join(notes)
 
 
-def _looks_like_source_file(path: str) -> bool:
-    """Return whether a path has a recognized C or C++ source suffix."""
-    return Path(path).suffix.lower() in SOURCE_FILE_SUFFIXES
-
-
-def _split_source_files(args: list[str]) -> tuple[list[str], list[str]]:
-    """Split clang-tidy options from the source files pre-commit appends.
-
-    Going back from the end, an argument is a source file when it has a C or
-    C++ suffix, or when it is an existing file that does not follow an option,
-    which could take it as its value (``--export-fixes fixes.yaml``). The
-    second case covers suffixes added with ``types_or`` or ``files``.
-    """
-    split_idx = len(args)
-    while split_idx > 0:
-        arg = args[split_idx - 1]
-        previous = args[split_idx - 2] if split_idx > 1 else ""
-        if not _looks_like_source_file(arg) and (
-            previous.startswith("-") or not os.path.isfile(arg)
-        ):
-            break
-        split_idx -= 1
-    return args[:split_idx], args[split_idx:]
-
-
 def _combine_outputs(results: list[tuple[int, str]]) -> str:
     """Join non-empty clang-tidy outputs from multiple executions."""
     return "\n".join(output.rstrip("\n") for _, output in results if output)
@@ -685,7 +637,7 @@ def run_clang_tidy(args=None) -> tuple[int, str]:
     if error is not None:
         return error
 
-    clang_tidy_args, source_files = _split_source_files(other_args)
+    clang_tidy_args, source_files = split_source_files(other_args)
     source_files = [file_argument(f) for f in source_files]
     clang_tidy_args, notes = _repair_check_args(clang_tidy_args)
     # clang-tidy reads everything after "--" as compiler arguments, so the

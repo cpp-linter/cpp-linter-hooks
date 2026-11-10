@@ -26,12 +26,12 @@ from cpp_linter_hooks.clang_tidy import (
     _positive_int,
     _repair_check_args,
     _set_macos_sdkroot,
-    _split_source_files,
     _strip_noise,
     main,
     parser,
     run_clang_tidy,
 )
+from cpp_linter_hooks.util import split_source_files
 
 
 def test_all_arguments_have_help():
@@ -708,7 +708,7 @@ def test_append_guidance_appends_every_matching_hint():
     ),
 )
 def test_split_source_files(args, expected):
-    assert _split_source_files(args) == expected
+    assert split_source_files(args) == expected
 
 
 def test_combine_outputs_skips_empty_results():
@@ -1554,7 +1554,7 @@ def test_fixed_directories_win_over_patterns(tmp_path, monkeypatch):
     "name", ("a.mm", "a.cppm", "a.ccm", "a.cxxm", "a.c++m", "sketch.ino")
 )
 def test_split_source_files_knows_pre_commit_cpp_types(name):
-    assert _split_source_files(["-quiet", "a.cpp", name]) == (
+    assert split_source_files(["-quiet", "a.cpp", name]) == (
         ["-quiet"],
         ["a.cpp", name],
     )
@@ -1619,7 +1619,7 @@ def test_split_source_files_keeps_files_with_other_suffixes(tmp_path, monkeypatc
     monkeypatch.chdir(tmp_path)
     (tmp_path / "x.metal").write_text("")
 
-    assert _split_source_files(["-quiet", "a.cpp", "x.metal", "b.cpp"]) == (
+    assert split_source_files(["-quiet", "a.cpp", "x.metal", "b.cpp"]) == (
         ["-quiet"],
         ["a.cpp", "x.metal", "b.cpp"],
     )
@@ -1629,7 +1629,7 @@ def test_split_source_files_keeps_an_option_value_that_is_a_file(tmp_path, monke
     monkeypatch.chdir(tmp_path)
     (tmp_path / "fixes.yaml").write_text("")
 
-    assert _split_source_files(["--export-fixes", "fixes.yaml", "a.cpp"]) == (
+    assert split_source_files(["--export-fixes", "fixes.yaml", "a.cpp"]) == (
         ["--export-fixes", "fixes.yaml"],
         ["a.cpp"],
     )

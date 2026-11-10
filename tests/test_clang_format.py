@@ -5,6 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
+from cpp_linter_hooks import clang_format
 from cpp_linter_hooks.clang_format import main, parser, run_clang_format
 
 
@@ -361,3 +362,132 @@ def test_run_clang_format_uses_the_resolved_executable(mock_clang_format):
     run_clang_format(["a.cpp"])
 
     assert mock_run.call_args.args[0] == [str(tool), "-i", "a.cpp"]
+
+
+# --- --lines-changed-only ---
+
+
+def test_lines_changed_only_runs_once_per_file_with_its_lines(
+    mock_clang_format, monkeypatch
+):
+    _, mock_run = mock_clang_format
+    monkeypatch.setattr(
+        clang_format,
+        "changed_lines",
+        lambda files: {"a.cpp": [[3, 3], [7, 8]], "b.cpp": [[1, 2]], "c.cpp": []},
+    )
+
+    assert run_clang_format(
+        ["--lines-changed-only", "--style=Google", "a.cpp", "b.cpp", "c.cpp"]
+    ) == (0, "")
+
+    # c.cpp has no added lines, so it is not formatted.
+    assert [call.args[0] for call in mock_run.call_args_list] == [
+        ["clang-format", "-i", "--style=Google", "--lines=3:3", "--lines=7:8", "a.cpp"],
+        ["clang-format", "-i", "--style=Google", "--lines=1:2", "b.cpp"],
+    ]
+
+
+def test_lines_changed_only_formats_every_line_when_the_lines_are_unknown(
+    mock_clang_format, monkeypatch
+):
+    _, mock_run = mock_clang_format
+    monkeypatch.setattr(clang_format, "changed_lines", lambda files: None)
+
+    run_clang_format(["--lines-changed-only", "--style=Google", "a.cpp", "b.cpp"])
+
+    mock_run.assert_called_once()
+    assert mock_run.call_args.args[0] == [
+        "clang-format",
+        "-i",
+        "--style=Google",
+        "a.cpp",
+        "b.cpp",
+    ]
+
+
+@pytest.mark.parametrize("lines", (["--lines=1:2"], ["-lines=1:2"], ["--lines", "1:2"]))
+def test_lines_changed_only_keeps_lines_given_in_args(
+    mock_clang_format, monkeypatch, lines
+):
+    _, mock_run = mock_clang_format
+    monkeypatch.setattr(
+        clang_format, "changed_lines", lambda files: {"a.cpp": [[5, 5]]}
+    )
+
+    run_clang_format(["--lines-changed-only", *lines, "a.cpp"])
+
+    mock_run.assert_called_once()
+    assert mock_run.call_args.args[0] == ["clang-format", "-i", *lines, "a.cpp"]
+
+
+def test_lines_changed_only_runs_nothing_without_added_lines(
+    mock_clang_format, monkeypatch
+):
+    _, mock_run = mock_clang_format
+    monkeypatch.setattr(clang_format, "changed_lines", lambda files: {"a.cpp": []})
+
+    assert run_clang_format(["--lines-changed-only", "a.cpp"]) == (0, "")
+
+    mock_run.assert_not_called()
+
+
+def test_lines_changed_only_reports_every_failing_file(mock_clang_format, monkeypatch):
+    _, mock_run = mock_clang_format
+    monkeypatch.setattr(
+        clang_format,
+        "changed_lines",
+        lambda files: {name: [[1, 1]] for name in files},
+    )
+    mock_run.side_effect = [
+        subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr=""),
+        subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="b\n"),
+        subprocess.CompletedProcess(args=[], returncode=2, stdout="", stderr="c\n"),
+    ]
+
+    assert run_clang_format(
+        ["--lines-changed-only", "--dry-run", "a.cpp", "b.cpp", "c.cpp"]
+    ) == (1, "b\nc\n")
+
+    assert mock_run.call_args.args[0] == [
+        "clang-format",
+        "-i",
+        "--Werror",
+        "--dry-run",
+        "--lines=1:1",
+        "c.cpp",
+    ]
+
+
+def test_lines_changed_only_formats_only_the_staged_lines(tmp_path, monkeypatch):
+    """The real clang-format leaves the unformatted lines of older commits alone."""
+
+    def git(*args):
+        subprocess.run(
+            [
+                "git",
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.com",
+                "-c",
+                "commit.gpgsign=false",
+                *args,
+            ],
+            cwd=tmp_path,
+            check=True,
+            capture_output=True,
+        )
+
+    source = tmp_path / "a.c"
+    source.write_text("int   old  =  1;\n\nint   other  =  2;\n")
+    git("init", "-q")
+    git("add", "a.c")
+    git("commit", "-q", "-m", "init")
+    source.write_text("int   old  =  1;\n\nint   added  =  3;\n")
+    git("add", "a.c")
+    monkeypatch.chdir(tmp_path)
+
+    assert run_clang_format(["--lines-changed-only", "--style=LLVM", "a.c"]) == (0, "")
+
+    assert source.read_text() == "int   old  =  1;\n\nint added = 3;\n"

@@ -11,6 +11,9 @@
 
 set -euo pipefail
 
+# The tool that runs the hooks: pre-commit, or prek with RUNNER=prek.
+RUNNER="${RUNNER:-pre-commit}"
+
 PASS=0
 FAIL=0
 
@@ -27,12 +30,12 @@ run_test() {
     local files="$3"
     local expect_nonzero="$4"
 
-    echo "---- $description ----"
-    uvx pre-commit clean
+    echo "---- $description ($RUNNER) ----"
+    uvx "$RUNNER" clean
 
     local output
     # shellcheck disable=SC2086  # word-splitting of $files is intentional
-    if output=$(uvx pre-commit run -c "$config" --files $files 2>&1); then
+    if output=$(uvx "$RUNNER" run -c "$config" --files $files 2>&1); then
         local got_nonzero=false
     else
         local got_nonzero=true
