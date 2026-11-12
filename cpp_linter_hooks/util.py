@@ -65,16 +65,18 @@ def split_source_files(args: list[str]) -> tuple[list[str], list[str]]:
     """Split a clang tool's options from the source files pre-commit appends.
 
     Going back from the end, an argument is a source file when it has a C or
-    C++ suffix, or when it is an existing file that does not follow an option,
-    which could take it as its value (``--export-fixes fixes.yaml``). The
-    second case covers suffixes added with ``types_or`` or ``files``.
+    C++ suffix, or when it is an existing file that does not follow an option
+    without ``=``, which could take it as its value (``--export-fixes
+    fixes.yaml``). The second case covers suffixes added with ``types_or`` or
+    ``files``.
     """
     split_idx = len(args)
     while split_idx > 0:
         arg = args[split_idx - 1]
         previous = args[split_idx - 2] if split_idx > 1 else ""
         if not _looks_like_source_file(arg) and (
-            previous.startswith("-") or not os.path.isfile(arg)
+            (previous.startswith("-") and "=" not in previous)
+            or not os.path.isfile(arg)
         ):
             break
         split_idx -= 1

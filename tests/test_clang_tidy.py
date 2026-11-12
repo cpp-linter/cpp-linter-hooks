@@ -1625,6 +1625,19 @@ def test_split_source_files_keeps_files_with_other_suffixes(tmp_path, monkeypatc
     )
 
 
+def test_split_source_files_keeps_a_first_file_after_an_option_with_a_value(
+    tmp_path, monkeypatch
+):
+    # "--style=LLVM" already has its value, so the next argument is a file.
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "a.proto").write_text("")
+
+    assert split_source_files(["--style=LLVM", "a.proto", "b.cpp"]) == (
+        ["--style=LLVM"],
+        ["a.proto", "b.cpp"],
+    )
+
+
 def test_split_source_files_keeps_an_option_value_that_is_a_file(tmp_path, monkeypatch):
     monkeypatch.chdir(tmp_path)
     (tmp_path / "fixes.yaml").write_text("")
