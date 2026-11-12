@@ -14,35 +14,6 @@ from pathlib import Path
 LOG = logging.getLogger(__name__)
 
 
-SOURCE_FILE_SUFFIXES = {
-    ".c",
-    ".cc",
-    ".ccm",
-    ".cp",
-    ".cpp",
-    ".cppm",
-    ".cxx",
-    ".cxxm",
-    ".c++",
-    ".c++m",
-    ".cu",
-    ".cuh",
-    ".h",
-    ".hh",
-    ".hpp",
-    ".hxx",
-    ".h++",
-    ".ino",
-    ".ipp",
-    ".inl",
-    ".ixx",
-    ".m",
-    ".mm",
-    ".tpp",
-    ".txx",
-}
-
-
 def file_argument(arg: str) -> str:
     """Return a file name that a clang tool cannot read as an option.
 
@@ -54,33 +25,6 @@ def file_argument(arg: str) -> str:
     if arg.startswith("-") and os.path.isfile(arg):
         return f"./{arg}"
     return arg
-
-
-def _looks_like_source_file(path: str) -> bool:
-    """Return whether a path has a recognized C or C++ source suffix."""
-    return Path(path).suffix.lower() in SOURCE_FILE_SUFFIXES
-
-
-def split_source_files(args: list[str]) -> tuple[list[str], list[str]]:
-    """Split a clang tool's options from the source files pre-commit appends.
-
-    Going back from the end, an argument is a source file when it has a C or
-    C++ suffix, or when it is an existing file that does not follow an option
-    without ``=``, which could take it as its value (``--export-fixes
-    fixes.yaml``). The second case covers suffixes added with ``types_or`` or
-    ``files``.
-    """
-    split_idx = len(args)
-    while split_idx > 0:
-        arg = args[split_idx - 1]
-        previous = args[split_idx - 2] if split_idx > 1 else ""
-        if not _looks_like_source_file(arg) and (
-            (previous.startswith("-") and "=" not in previous)
-            or not os.path.isfile(arg)
-        ):
-            break
-        split_idx -= 1
-    return args[:split_idx], args[split_idx:]
 
 
 @lru_cache(maxsize=1)

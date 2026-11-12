@@ -1,15 +1,12 @@
 """Pre-commit hook wrapper for clang-format."""
 
+import os
 import subprocess
 import sys
 from argparse import ArgumentParser
 
 from cpp_linter_hooks.changed_lines import changed_lines
-from cpp_linter_hooks.util import (
-    file_argument,
-    resolve_install_with_diagnostics,
-    split_source_files,
-)
+from cpp_linter_hooks.util import file_argument, resolve_install_with_diagnostics
 
 # No abbreviations: clang-format's own --lines must not be read as a short
 # form of --lines-changed-only.
@@ -36,6 +33,19 @@ parser.add_argument(
 )
 
 
+def _split_files(args: list[str]) -> tuple[list[str], list[str]]:
+    """Split clang-format options from the files that pre-commit appends.
+
+    pre-commit passes only existing files, so the files are the existing files
+    at the end. An option that takes its value as the next argument, such as
+    ``--style Google``, ends them because the value is not a file.
+    """
+    split = len(args)
+    while split > 0 and os.path.isfile(args[split - 1]):
+        split -= 1
+    return args[:split], args[split:]
+
+
 def _changed_lines_commands(command: list[str], args: list[str]) -> list[list[str]]:
     """Return one clang-format command per file, limited to its changed lines.
 
@@ -43,7 +53,7 @@ def _changed_lines_commands(command: list[str], args: list[str]) -> list[list[st
     added lines needs no run. When the changed lines are unknown, or the
     arguments already name lines, the one command for all files is returned.
     """
-    options, files = split_source_files(args)
+    options, files = _split_files(args)
     if any(a.lstrip("-").split("=")[0] == "lines" for a in options):
         return [[*command, *args]]
     lines = changed_lines(files)

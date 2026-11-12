@@ -367,8 +367,16 @@ def test_run_clang_format_uses_the_resolved_executable(mock_clang_format):
 # --- --lines-changed-only ---
 
 
+@pytest.fixture
+def source_files(tmp_path, monkeypatch):
+    """Run in a directory with the files that pre-commit would pass."""
+    monkeypatch.chdir(tmp_path)
+    for name in ("a.cpp", "b.cpp", "c.cpp", "a.proto"):
+        (tmp_path / name).write_text("")
+
+
 def test_lines_changed_only_runs_once_per_file_with_its_lines(
-    mock_clang_format, monkeypatch
+    mock_clang_format, monkeypatch, source_files
 ):
     _, mock_run = mock_clang_format
     monkeypatch.setattr(
@@ -389,7 +397,7 @@ def test_lines_changed_only_runs_once_per_file_with_its_lines(
 
 
 def test_lines_changed_only_formats_every_line_when_the_lines_are_unknown(
-    mock_clang_format, monkeypatch
+    mock_clang_format, monkeypatch, source_files
 ):
     _, mock_run = mock_clang_format
     monkeypatch.setattr(clang_format, "changed_lines", lambda files: None)
@@ -408,7 +416,7 @@ def test_lines_changed_only_formats_every_line_when_the_lines_are_unknown(
 
 @pytest.mark.parametrize("lines", (["--lines=1:2"], ["-lines=1:2"], ["--lines", "1:2"]))
 def test_lines_changed_only_keeps_lines_given_in_args(
-    mock_clang_format, monkeypatch, lines
+    mock_clang_format, monkeypatch, lines, source_files
 ):
     _, mock_run = mock_clang_format
     monkeypatch.setattr(
@@ -422,7 +430,7 @@ def test_lines_changed_only_keeps_lines_given_in_args(
 
 
 def test_lines_changed_only_runs_nothing_without_added_lines(
-    mock_clang_format, monkeypatch
+    mock_clang_format, monkeypatch, source_files
 ):
     _, mock_run = mock_clang_format
     monkeypatch.setattr(clang_format, "changed_lines", lambda files: {"a.cpp": []})
@@ -432,7 +440,9 @@ def test_lines_changed_only_runs_nothing_without_added_lines(
     mock_run.assert_not_called()
 
 
-def test_lines_changed_only_reports_every_failing_file(mock_clang_format, monkeypatch):
+def test_lines_changed_only_reports_every_failing_file(
+    mock_clang_format, monkeypatch, source_files
+):
     _, mock_run = mock_clang_format
     monkeypatch.setattr(
         clang_format,
@@ -456,6 +466,24 @@ def test_lines_changed_only_reports_every_failing_file(mock_clang_format, monkey
         "--dry-run",
         "--lines=1:1",
         "c.cpp",
+    ]
+
+
+def test_lines_changed_only_runs_a_first_file_of_another_type_alone(
+    mock_clang_format, monkeypatch, source_files
+):
+    # types_or can add files such as a.proto; one that comes right after a
+    # flag must still be a file, or two files get one --lines.
+    _, mock_run = mock_clang_format
+    monkeypatch.setattr(
+        clang_format, "changed_lines", lambda files: {f: [[1, 1]] for f in files}
+    )
+
+    run_clang_format(["--lines-changed-only", "--dry-run", "a.proto", "b.cpp"])
+
+    assert [call.args[0][-2:] for call in mock_run.call_args_list] == [
+        ["--lines=1:1", "a.proto"],
+        ["--lines=1:1", "b.cpp"],
     ]
 
 
