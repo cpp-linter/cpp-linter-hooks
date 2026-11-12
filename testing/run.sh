@@ -34,19 +34,19 @@ run_test() {
     uvx "$RUNNER" clean
 
     # prek reads "repo: ." relative to the config file and pre-commit relative
-    # to the current directory, so both get the repository's absolute path.
-    local resolved_config
-    resolved_config="$(mktemp)"
-    sed "s|repo: \.\$|repo: $PWD|" "$config" > "$resolved_config"
+    # to the current directory, so the config runs from the repository root.
+    local root_config
+    root_config="$(mktemp ./.run-config.XXXXXX)"
+    cp "$config" "$root_config"
 
     local output
     # shellcheck disable=SC2086  # word-splitting of $files is intentional
-    if output=$(uvx "$RUNNER" run -c "$resolved_config" --files $files 2>&1); then
+    if output=$(uvx "$RUNNER" run -c "$root_config" --files $files 2>&1); then
         local got_nonzero=false
     else
         local got_nonzero=true
     fi
-    rm -f "$resolved_config"
+    rm -f "$root_config"
 
     # A config or install error exits non-zero too, so a run counts only when
     # a hook reports Passed or Failed.
