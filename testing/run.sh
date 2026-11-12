@@ -33,12 +33,25 @@ run_test() {
     echo "---- $description ($RUNNER) ----"
     uvx "$RUNNER" clean
 
+    # prek reads "repo: ." relative to the config file and pre-commit relative
+    # to the current directory, so both get the repository's absolute path.
+    local resolved_config
+    resolved_config="$(mktemp)"
+    sed "s|repo: \.\$|repo: $PWD|" "$config" > "$resolved_config"
+
     local output
     # shellcheck disable=SC2086  # word-splitting of $files is intentional
-    if output=$(uvx "$RUNNER" run -c "$config" --files $files 2>&1); then
+    if output=$(uvx "$RUNNER" run -c "$resolved_config" --files $files 2>&1); then
         local got_nonzero=false
     else
         local got_nonzero=true
+    fi
+    rm -f "$resolved_config"
+
+    # A config or install error exits non-zero too, so a run counts only when
+    # a hook reports Passed or Failed.
+    if ! grep -qE '\.(Passed|Failed)$' <<<"$output"; then
+        got_nonzero="no hook ran"
     fi
 
     git restore testing/main.c 2>/dev/null || true
