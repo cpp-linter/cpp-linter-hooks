@@ -6,7 +6,8 @@
 [![part of cpp-linter](https://img.shields.io/badge/part%20of-cpp--linter-ffc20a?labelColor=454a63)](https://cpp-linter.github.io/)
 
 [pre-commit](https://pre-commit.com/) hooks that pip-install the clang-format and clang-tidy
-version you pin, on every developer's machine.
+version you pin, on every developer's machine. They also run with
+[prek](https://prek.j178.dev/), which the tests cover too.
 
 [Website](https://cpp-linter.github.io/) ·
 [Get started](https://cpp-linter.github.io/getting-started/#before-every-commit) ·
@@ -43,7 +44,7 @@ This uses the newest clang-format and clang-tidy. To choose a version, add `--ve
 
 ### Clang tool version
 
-The `rev` tag (e.g. `v1.8.1`) is the version of these hooks, not of clang-format or clang-tidy.
+The `rev` tag is the version of these hooks, not of clang-format or clang-tidy.
 Choose the clang tool version with `--version`:
 
 ```yaml
@@ -141,6 +142,24 @@ main.c:2:63: error: code should be clang-formatted [-Wclang-format-violations]
 int main() {for (;;) break; printf("Hello world!\n");return 0;}
                                                               ^
 ```
+
+#### Format only changed lines
+
+By default the hook formats whole files. In a code base that was never formatted, that turns a
+one-line change into a large diff. Add `--lines-changed-only` to format only the lines that the
+commit adds or changes:
+
+```yaml
+      - id: clang-format
+        args: [--style=file, --lines-changed-only]
+```
+
+The hook reads the changes with `git diff`, in the same way as the clang-tidy hook (see
+[Only changed lines](https://github.com/cpp-linter/cpp-linter-hooks#only-changed-lines)), and
+passes them to clang-format's `--lines`. clang-format can still touch a nearby line, because it
+formats whole statements. The hook formats every line when it cannot tell which lines changed,
+for example with `pre-commit run --all-files` on a clean working tree, and when `args` already
+has `--lines`.
 
 ### clang-tidy
 
@@ -369,6 +388,7 @@ mirror of the clang-format wheel.
 | Supports passing format style string | via `--style`                         | via `--style`                          |
 | Verbose output                   | via `--verbose`                           | via `--verbose`                        |
 | Dry-run mode                     | via `--dry-run`                           | via `--dry-run --Werror`               |
+| Format only changed lines        | via `--lines-changed-only`                | No                                     |
 | Auto-fix mode                    | via `--fix` (clang-tidy only)             | No                                     |
 | Compilation database support     | auto-detect or `--compile-commands`       | No                                     |
 

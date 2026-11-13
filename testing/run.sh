@@ -11,6 +11,9 @@
 
 set -euo pipefail
 
+# The tool that runs the hooks: pre-commit, or prek with RUNNER=prek.
+RUNNER="${RUNNER:-pre-commit}"
+
 PASS=0
 FAIL=0
 
@@ -27,15 +30,28 @@ run_test() {
     local files="$3"
     local expect_nonzero="$4"
 
-    echo "---- $description ----"
-    uvx pre-commit clean
+    echo "---- $description ($RUNNER) ----"
+    uvx "$RUNNER" clean
+
+    # prek reads "repo: ." relative to the config file and pre-commit relative
+    # to the current directory, so the config runs from the repository root.
+    local root_config
+    root_config="$(mktemp ./.run-config.XXXXXX)"
+    cp "$config" "$root_config"
 
     local output
     # shellcheck disable=SC2086  # word-splitting of $files is intentional
-    if output=$(uvx pre-commit run -c "$config" --files $files 2>&1); then
+    if output=$(uvx "$RUNNER" run -c "$root_config" --files $files 2>&1); then
         local got_nonzero=false
     else
         local got_nonzero=true
+    fi
+    rm -f "$root_config"
+
+    # A config or install error exits non-zero too, so a run counts only when
+    # a hook reports Passed or Failed.
+    if ! grep -qE '\.(Passed|Failed)$' <<<"$output"; then
+        got_nonzero="no hook ran"
     fi
 
     git restore testing/main.c 2>/dev/null || true
