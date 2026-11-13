@@ -1,7 +1,5 @@
 # AGENTS.md
 
-> **IMPORTANT**: When you modify any code in this project, also update this file if the change affects agent behavior, git workflow, or any guidance documented here.
-
 ## Git Rules (MUST FOLLOW)
 
 - **Never** commit directly to `main` branch.
@@ -11,11 +9,7 @@
 
 ## Project in a Nutshell
 
-A pre-commit hook repo that auto-installs and runs `clang-format` and `clang-tidy` from Python wheels. Supports Python 3.11+ (tested 3.11–3.15) on Windows, Linux, macOS.
-
-**Entry points** (defined in `pyproject.toml`):
-- `clang-format-hook` → `cpp_linter_hooks/clang_format.py:main`
-- `clang-tidy-hook` → `cpp_linter_hooks/clang_tidy.py:main`
+A pre-commit hook repo that auto-installs and runs `clang-format` and `clang-tidy` from Python wheels.
 
 **Hook definitions**: `.pre-commit-hooks.yaml`
 
