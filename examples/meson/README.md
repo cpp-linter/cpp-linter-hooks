@@ -8,7 +8,7 @@ database.
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.9.0
+    rev: v1.10.0
     hooks:
       - id: clang-format
         args: [--style=file]
