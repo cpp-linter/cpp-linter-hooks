@@ -20,7 +20,7 @@ Add this configuration to your `.pre-commit-config.yaml` file:
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.9.0
+    rev: v1.10.0
     hooks:
       - id: clang-format
         args: [--style=file]
@@ -235,7 +235,7 @@ See [Performance optimization](https://github.com/cpp-linter/cpp-linter-hooks#pe
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.9.0  # includes --fix support
+    rev: v1.10.0  # includes --fix support
     hooks:
       - id: clang-tidy
         args: [--fix]
@@ -259,7 +259,7 @@ project adds `-xc++` to it; otherwise a flag such as `-std=c++17` fails on every
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.9.0
+    rev: v1.10.0
     hooks:
       - id: clang-tidy
         # Auto-detects ./build/compile_commands.json if present
@@ -314,7 +314,7 @@ Three self-contained templates plus quick snippets for other common setups.
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.9.0
+  rev: v1.10.0
   hooks:
     - id: clang-format
       args: [--style=file]
@@ -328,7 +328,7 @@ or `-j`:
 
 ```yaml
 - repo: https://github.com/cpp-linter/cpp-linter-hooks
-  rev: v1.9.0
+  rev: v1.10.0
   hooks:
     - id: clang-tidy
       args: [--jobs=4]
@@ -365,7 +365,7 @@ This approach ensures that only modified files are checked, further speeding up 
 ```yaml
 repos:
   - repo: https://github.com/cpp-linter/cpp-linter-hooks
-    rev: v1.9.0
+    rev: v1.10.0
     hooks:
       - id: clang-format
         args: [--style=file, --verbose]   # Shows processed files
